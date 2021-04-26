@@ -1,0 +1,15 @@
+[package]
+name = "aqua-dht"
+version = "0.1.0"
+authors = ["Fluence Labs"]
+edition = "2018"
+publish = false
+
+[[bin]]
+name = "aqua-dht"
+path = "src/main.rs"
+
+[dependencies]
+fluence = "0.5.0"
+fce-sqlite-connector = "0.3.0"
+fstrings = "0.2.3"
