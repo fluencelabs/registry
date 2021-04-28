@@ -77,8 +77,9 @@ pub fn get_value(key: String) -> GetValueResult {
     fn get_value_impl(key: String) -> SqliteResult<String> {
         let connection = get_connection()?;
 
+        println!("{}", f!("SELECT value FROM {TABLE_NAME} WHERE key = {key}"));
         let mut statement = connection
-            .prepare(f!("SELECT value FROM {TABLE_NAME} WHERE key = {key}"))?;
+            .prepare(f!("SELECT value FROM {TABLE_NAME} WHERE key = '{key}'"))?;
 
         if let State::Row = statement.next()? {
             statement.read::<String>(0)
@@ -134,10 +135,82 @@ pub fn get_stale_records(current_timestamp: u64) -> GetStaleRecordsResult {
 #[cfg(test)]
 mod tests {
     use fluence_test::fce_test;
+    use rusqlite::{Connection};
+    use crate::{TABLE_NAME, DB_PATH, STALE_VALUE_AGE};
 
-    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts")]
-    fn test() {
-        let result = aqua - dht.get_value("key3");
-        assert(!result.success);
+    fn clear_db() {
+        let connection = Connection::open(DB_PATH).unwrap();
+
+        connection.execute(f!("DELETE FROM {TABLE_NAME}").as_str(), []).unwrap();
+    }
+
+    macro_rules! put_value_and_check {
+    ($aqua_dht:expr, $key:expr,$value:expr, $timestamp:expr)=>{
+        {
+            let put_result = $aqua_dht.put_value($key.clone(), $value.clone(), $timestamp.clone());
+
+            assert!(put_result.success);
+            assert_eq!(put_result.error, "");
+
+            let get_result = $aqua_dht.get_value($key);
+
+            assert!(get_result.success);
+            assert_eq!(get_result.result, $value);
+        }
+    }
+}
+    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    fn get_value_not_found() {
+        clear_db();
+        let result = aqua_dht.get_value("invalid_key".to_string());
+        assert!(!result.success);
+        assert_eq!(result.result, "not found");
+    }
+
+    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    fn put_value() {
+        clear_db();
+
+        let key = "some_key".to_string();
+        let value = "some_value".to_string();
+        let timestamp = 500u64;
+        put_value_and_check!(aqua_dht, key, value, timestamp);
+    }
+
+    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    fn put_value_update() {
+        clear_db();
+        let key = "some_key".to_string();
+        let timestamp = 500u64;
+
+        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), timestamp.clone());
+        put_value_and_check!(aqua_dht, key, "other_value".to_string(), timestamp);
+    }
+
+    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    fn get_stale_records() {
+        let result = aqua_dht.get_stale_records(999999999u64);
+
+        assert!(result.success);
+        assert_eq!(result.result.len(), 0);
+
+        let key = "some_key".to_string();
+        let value = "some_value".to_string();
+        let timestamp = 500u64;
+        put_value_and_check!(aqua_dht, key.clone(), value.clone(), timestamp.clone());
+
+        let result = aqua_dht.get_stale_records(STALE_VALUE_AGE + timestamp - 1);
+
+        assert!(result.success);
+        assert_eq!(result.result.len(), 0);
+
+        let result = aqua_dht.get_stale_records(STALE_VALUE_AGE + timestamp);
+
+        assert!(result.success);
+        assert_eq!(result.result.len(), 1);
+        let record = &result.result[0];
+        assert_eq!(record.key, key);
+        assert_eq!(record.value, value);
+        assert_eq!(record.peer_id, "");
     }
 }
