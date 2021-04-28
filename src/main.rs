@@ -20,7 +20,6 @@ use crate::results::{Record, GetValueResult, PutValueResult, ClearExpiredResult,
 
 use fluence::fce;
 use fluence::module_manifest;
-
 use fce_sqlite_connector;
 use fce_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State};
 
@@ -130,4 +129,15 @@ pub fn get_stale_records(current_timestamp: u64) -> GetStaleRecordsResult {
     }
 
     get_stale_records_impl(current_timestamp).into()
+}
+
+#[cfg(test)]
+mod tests {
+    use fluence_test::fce_test;
+
+    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts")]
+    fn test() {
+        let result = aqua - dht.get_value("key3");
+        assert(!result.success);
+    }
 }
