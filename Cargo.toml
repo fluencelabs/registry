@@ -15,5 +15,5 @@ fce-sqlite-connector = "0.4.0"
 fstrings = "0.2.3"
 
 [dev-dependencies]
-fluence-test = "0.1.3"
+fluence-test = {branch = "fixup_branch", git = "https://github.com/fluencelabs/rust-sdk"}
 rusqlite = "0.25.1"

@@ -159,7 +159,7 @@ mod tests {
         }
     }
 }
-    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    #[fce_test(config_path = "../Config.toml", modules_dir = "../artifacts")]
     fn get_value_not_found() {
         clear_db();
         let result = aqua_dht.get_value("invalid_key".to_string());
@@ -167,7 +167,7 @@ mod tests {
         assert_eq!(result.result, "not found");
     }
 
-    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    #[fce_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value() {
         clear_db();
 
@@ -177,7 +177,7 @@ mod tests {
         put_value_and_check!(aqua_dht, key, value, timestamp);
     }
 
-    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    #[fce_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_update() {
         clear_db();
         let key = "some_key".to_string();
@@ -187,7 +187,7 @@ mod tests {
         put_value_and_check!(aqua_dht, key, "other_value".to_string(), timestamp);
     }
 
-    #[fce_test(config_path = "Config.toml", modules_dir = "artifacts/")]
+    #[fce_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_stale_records() {
         let result = aqua_dht.get_stale_records(999999999u64);
 
