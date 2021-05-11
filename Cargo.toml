@@ -10,10 +10,11 @@ name = "aqua-dht"
 path = "src/main.rs"
 
 [dependencies]
-fluence = "0.6.2"
-fce-sqlite-connector = "0.4.0"
+fluence = "=0.6.4"
+marine-sqlite-connector = "0.4.1"
 fstrings = "0.2.3"
+eyre = "0.6.5"
 
 [dev-dependencies]
-fluence-test = {branch = "fixup_branch", git = "https://github.com/fluencelabs/rust-sdk"}
+fluence-test = "0.1.7"
 rusqlite = "0.25.1"

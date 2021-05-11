@@ -14,10 +14,54 @@
  * limitations under the License.
  */
 
-use fluence::fce;
-use fce_sqlite_connector::Result as SqliteResult;
+use fluence::marine;
+use marine_sqlite_connector::Result as SqliteResult;
 
-#[fce]
+#[marine]
+#[derive(Debug)]
+pub struct RegisterKeyResult {
+    pub success: bool,
+    pub error: String,
+}
+
+impl From<SqliteResult<()>> for RegisterKeyResult {
+    fn from(result: SqliteResult<()>) -> Self {
+        match result {
+            Ok(_) => Self {
+                success: true,
+                error: "".to_string(),
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+            },
+        }
+    }
+}
+
+#[marine]
+#[derive(Debug)]
+pub struct RepublishKeyResult {
+    pub success: bool,
+    pub error: String,
+}
+
+impl From<SqliteResult<()>> for RepublishKeyResult {
+    fn from(result: SqliteResult<()>) -> Self {
+        match result {
+            Ok(_) => Self {
+                success: true,
+                error: "".to_string(),
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+            },
+        }
+    }
+}
+
+#[marine]
 #[derive(Debug)]
 pub struct PutValueResult {
     pub success: bool,
@@ -39,29 +83,43 @@ impl From<SqliteResult<()>> for PutValueResult {
     }
 }
 
-#[fce]
+#[marine]
 #[derive(Debug)]
-pub struct GetValueResult {
-    pub success: bool,
-    pub result: String,
+pub struct Record {
+    pub value: String,
+    pub peer_id: String,
+    pub relay_id: String,
+    pub service_id: String,
+    pub timestamp_created: u64,
+    pub timestamp_accessed: u64,
 }
 
-impl From<SqliteResult<String>> for GetValueResult {
-    fn from(result: SqliteResult<String>) -> Self {
+#[marine]
+#[derive(Debug)]
+pub struct GetValuesResult {
+    pub success: bool,
+    pub error: String,
+    pub result: Vec<Record>,
+}
+
+impl From<SqliteResult<Vec<Record>>> for GetValuesResult {
+    fn from(result: SqliteResult<Vec<Record>>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
+                error: "".to_string(),
                 result,
             },
             Err(err) => Self {
                 success: false,
-                result: err.to_string(),
+                error: err.to_string(),
+                result: vec![],
             },
         }
     }
 }
 
-#[fce]
+#[marine]
 #[derive(Debug)]
 pub struct ClearExpiredResult {
     pub success: bool,
@@ -86,15 +144,7 @@ impl From<SqliteResult<u64>> for ClearExpiredResult {
     }
 }
 
-#[fce]
-#[derive(Debug)]
-pub struct Record {
-    pub key: String,
-    pub value: String,
-    pub peer_id: String,
-}
-
-#[fce]
+#[marine]
 #[derive(Debug)]
 pub struct GetStaleRecordsResult {
     pub success: bool,
@@ -114,6 +164,38 @@ impl From<SqliteResult<Vec<Record>>> for GetStaleRecordsResult {
                 success: false,
                 error: err.to_string(),
                 result: vec![],
+            },
+        }
+    }
+}
+
+#[marine]
+#[derive(Default, Clone)]
+pub struct Key {
+    pub key: String,
+    pub peer_id: String,
+    pub timestamp_created: u64,
+}
+
+#[marine]
+pub struct GetKeyMetadataResult {
+    pub success: bool,
+    pub error: String,
+    pub key: Key,
+}
+
+impl From<SqliteResult<Key>> for GetKeyMetadataResult {
+    fn from(result: SqliteResult<Key>) -> Self {
+        match result {
+            Ok(key) => Self {
+                success: true,
+                error: "".to_string(),
+                key,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                key: Key::default(),
             },
         }
     }
