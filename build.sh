@@ -1,5 +1,6 @@
-#!/usr/bin/env bash -o errexit -o nounset -o pipefail
+#!/usr/bin/env bash
 
+set -euo pipefail
 # This script builds all subprojects and puts all created Wasm modules in one dir
 cargo update
 marine build --release
