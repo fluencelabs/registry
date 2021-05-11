@@ -16,8 +16,8 @@ jobs:
           keys:
             - aqua-dht03-{{ checksum "Cargo.lock" }}
       - run: |
-          rustup toolchain install nightly-2021-03-24-x86_64-unknown-linux-gnu
-          rustup default nightly-2021-03-24-x86_64-unknown-linux-gnu
+          rustup toolchain install nightly-x86_64-unknown-linux-gnu
+          rustup default nightly-x86_64-unknown-linux-gnu
           rustup target add wasm32-wasi
           cargo +nightly  install marine
           ./build.sh
