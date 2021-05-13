@@ -15,7 +15,7 @@
  */
 
 use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME};
-use crate::results::{Key};
+use crate::results::{Key, Record};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State};
 use fluence::{CallParameters};
 use eyre;
@@ -54,13 +54,14 @@ pub(crate) fn create_values_table() -> bool {
     connection
         .execute(f!("
             CREATE TABLE IF NOT EXISTS {VALUES_TABLE_NAME} (
-                key TEXT PRIMARY KEY,
+                key TEXT,
                 value TEXT,
                 peer_id TEXT,
                 relay_id TEXT,
                 service_id TEXT,
                 timestamp_created INTEGER,
-                timestamp_accessed INTEGER
+                timestamp_accessed INTEGER,
+                PRIMARY KEY (key, peer_id)
                 );
         "),
         ).is_ok()
@@ -113,4 +114,51 @@ pub fn republish_key_impl(key: Key, current_timestamp: u64) -> SqliteResult<()> 
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
     update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp)
+}
+
+pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>) -> SqliteResult<()> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 2)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+
+    let connection = get_connection()?;
+
+    let _key = get_key_metadata_helper(&connection, key.clone())?;
+    let relay_id = if relay_id.len() == 0 { "".to_string() } else { relay_id[0].clone() };
+    let peer_id = call_parameters.init_peer_id;
+    let service_id = call_parameters.service_id;
+
+    connection.execute(
+        f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
+                    VALUES ('{key}', '{value}', '{peer_id}', '{relay_id}',\
+                    '{service_id}', '{current_timestamp}', '{current_timestamp}')")
+    )
+}
+
+pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<Record>> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 1)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+
+    let connection = get_connection()?;
+
+    let mut statement = connection.prepare(
+        f!("UPDATE {VALUES_TABLE_NAME} \
+                     SET timestamp_accessed = '{current_timestamp}' \
+                     WHERE key = '{key}' \
+                     RETURNING value, peer_id, relay_id, service_id, timestamp_created"))?;
+
+    let mut result: Vec<Record> = vec![];
+
+    while let State::Row = statement.next()? {
+        result.push(Record{
+            value: statement.read::<String>(0)?,
+            peer_id:statement.read::<String>(1)?,
+            relay_id: statement.read::<String>(2)?,
+            service_id: statement.read::<String>(3)?,
+            timestamp_created: statement.read::<i64>(4)? as u64,
+        })
+    }
+
+    Ok(result)
 }

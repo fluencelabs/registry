@@ -19,8 +19,8 @@ mod results;
 mod tests;
 mod impls;
 
-use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult};
-use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl};
+use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult};
+use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl};
 
 use fluence::marine;
 use fluence::module_manifest;
@@ -61,16 +61,16 @@ pub fn republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult {
 }
 
 // VALUES
-// #[marine]
-// pub fn put_value(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>) -> PutValueResult {
-//     put_value_impl(key, value, current_timestamp, relay_id).into()
-// }
+#[marine]
+pub fn put_value(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>) -> PutValueResult {
+    put_value_impl(key, value, current_timestamp, relay_id).into()
+}
 
-//
-// #[marine]
-// pub fn get_values(key: String, current_timestamp: u64) -> GetValuesResult {
-//     get_values_impl(key, current_timestamp).into()
-// }
+
+#[marine]
+pub fn get_values(key: String, current_timestamp: u64) -> GetValuesResult {
+    get_values_impl(key, current_timestamp).into()
+}
 
 // #[marine]
 // pub fn republish_values(key: String, records: Vec<Record>, current_timestamp: u64) -> RepublishValuesResult  {

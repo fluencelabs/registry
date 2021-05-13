@@ -91,7 +91,6 @@ pub struct Record {
     pub relay_id: String,
     pub service_id: String,
     pub timestamp_created: u64,
-    pub timestamp_accessed: u64,
 }
 
 #[marine]

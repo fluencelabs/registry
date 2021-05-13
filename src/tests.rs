@@ -107,10 +107,7 @@ mod tests {
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_empty_cp() {
         clear_db();
-        let key = "some_key".to_string();
-        let timestamp = 123u64;
-
-        let result = aqua_dht.register_key(key.clone(), timestamp);
+        let result = aqua_dht.register_key("some_key".to_string(), 123u64);
         assert!(!result.success);
         assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
     }
@@ -118,9 +115,6 @@ mod tests {
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_invalid_cp() {
         clear_db();
-        let key = "some_key".to_string();
-        let timestamp = 123u64;
-
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
         invalid_cp.tetraplets.push(vec![SecurityTetraplet {
@@ -130,7 +124,7 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.register_key_cp(key.clone(), timestamp, invalid_cp);
+        let result = aqua_dht.register_key_cp("some_key".to_string(), 123u64, invalid_cp);
         assert!(!result.success);
         assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
     }
@@ -218,5 +212,56 @@ mod tests {
         let result = aqua_dht.republish_key_cp(key, 123123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
         assert_eq!(result.error, "key already exists with different peer_id");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn put_value_empty_cp() {
+        clear_db();
+        let result = aqua_dht.put_value("some_key".to_string(), "value".to_string(), 123u64, vec![]);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn put_value_invalid_cp() {
+        clear_db();
+
+        let mut invalid_cp = CallParameters::default();
+        invalid_cp.tetraplets.push(vec![]);
+        invalid_cp.tetraplets.push(vec![SecurityTetraplet {
+            peer_pk: "some peer_pk".to_string(),
+            service_id: "INVALID SERVICE ID".to_string(),
+            function_name: "INVALID FUNCTION NAME".to_string(),
+            json_path: "some json path".to_string(),
+        }]);
+
+        let result = aqua_dht.put_value_cp("some_key".to_string(), "value".to_string(), 123u64, vec![], invalid_cp);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn get_values_empty_cp() {
+        clear_db();
+        let result = aqua_dht.get_values("some_key".to_string(), 123u64);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn get_values_invalid_cp() {
+        clear_db();
+        let mut invalid_cp = CallParameters::default();
+        invalid_cp.tetraplets.push(vec![]);
+        invalid_cp.tetraplets.push(vec![SecurityTetraplet {
+            peer_pk: "some peer_pk".to_string(),
+            service_id: "INVALID SERVICE ID".to_string(),
+            function_name: "INVALID FUNCTION NAME".to_string(),
+            json_path: "some json path".to_string(),
+        }]);
+
+        let result = aqua_dht.get_values_cp("some_key".to_string(), 123u64, invalid_cp);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
     }
 }
