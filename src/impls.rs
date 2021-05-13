@@ -142,12 +142,14 @@ pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<
 
     let connection = get_connection()?;
 
-    let mut statement = connection.prepare(
+    connection.execute(
         f!("UPDATE {VALUES_TABLE_NAME} \
                      SET timestamp_accessed = '{current_timestamp}' \
-                     WHERE key = '{key}' \
-                     RETURNING value, peer_id, relay_id, service_id, timestamp_created"))?;
+                     WHERE key = '{key}'"))?;
 
+    let mut statement = connection.prepare(
+        f!("SELECT value, peer_id, relay_id, service_id, timestamp_created FROM {VALUES_TABLE_NAME} \
+                     WHERE key = '{key}'"))?;
     let mut result: Vec<Record> = vec![];
 
     while let State::Row = statement.next()? {
