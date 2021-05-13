@@ -123,20 +123,23 @@ impl From<SqliteResult<Vec<Record>>> for GetValuesResult {
 pub struct ClearExpiredResult {
     pub success: bool,
     pub error: String,
-    pub count: u64,
+    pub count_keys: u64,
+    pub count_values: u64,
 }
 
-impl From<SqliteResult<u64>> for ClearExpiredResult {
-    fn from(result: SqliteResult<u64>) -> Self {
+impl From<SqliteResult<(u64, u64)>> for ClearExpiredResult {
+    fn from(result: SqliteResult<(u64, u64)>) -> Self {
         match result {
-            Ok(result) => Self {
+            Ok((keys, values)) => Self {
                 success: true,
-                count: result,
+                count_keys: keys,
+                count_values: values,
                 error: "".to_string(),
             },
             Err(err) => Self {
                 success: false,
-                count: 0,
+                count_keys: 0,
+                count_values: 0,
                 error: err.to_string(),
             },
         }
@@ -195,6 +198,30 @@ impl From<SqliteResult<Key>> for GetKeyMetadataResult {
                 success: false,
                 error: err.to_string(),
                 key: Key::default(),
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct RepublishValuesResult {
+    pub success: bool,
+    pub error: String,
+    pub updated: u64,
+}
+
+impl From<SqliteResult<u64>> for RepublishValuesResult {
+    fn from(result: SqliteResult<u64>) -> Self {
+        match result {
+            Ok(count) => Self {
+                success: true,
+                error: "".to_string(),
+                updated: count,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                updated: 0,
             },
         }
     }

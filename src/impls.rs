@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME};
+use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE};
 use crate::results::{Key, Record};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State};
 use fluence::{CallParameters};
@@ -123,6 +123,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
 
     let connection = get_connection()?;
 
+    // checking key for existence
     let _key = get_key_metadata_helper(&connection, key.clone())?;
     let relay_id = if relay_id.len() == 0 { "".to_string() } else { relay_id[0].clone() };
     let peer_id = call_parameters.init_peer_id;
@@ -153,9 +154,9 @@ pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<
     let mut result: Vec<Record> = vec![];
 
     while let State::Row = statement.next()? {
-        result.push(Record{
+        result.push(Record {
             value: statement.read::<String>(0)?,
-            peer_id:statement.read::<String>(1)?,
+            peer_id: statement.read::<String>(1)?,
             relay_id: statement.read::<String>(2)?,
             service_id: statement.read::<String>(3)?,
             timestamp_created: statement.read::<i64>(4)? as u64,
@@ -163,4 +164,41 @@ pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<
     }
 
     Ok(result)
+}
+
+pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestamp: u64) -> SqliteResult<u64> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 2)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    let connection = get_connection()?;
+
+    // checking key for existence
+    let _key = get_key_metadata_helper(&connection, key.clone())?;
+
+    let mut updated = 0u64;
+    for record in records {
+        connection.execute(
+            f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
+                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.relay_id}',\
+                    '{record.service_id}', '{record.timestamp_created}', '{current_timestamp}')"))?;
+
+        updated += connection.changes() as u64;
+    }
+
+    Ok(updated)
+}
+
+pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 0)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    let connection = get_connection()?;
+
+    let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
+    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE id IN (SELECT key FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp}"))?;
+    let deleted_values = connection.changes() as u64;
+    connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp}"))?;
+    let deleted_keys = connection.changes() as u64;
+
+    Ok((deleted_keys, deleted_values))
 }
