@@ -162,12 +162,13 @@ mod tests {
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn republish_key_not_exists() {
         clear_db();
-        let key = __m_generated_aqua_dht::Key {
+        let key = aqua_dht_structs::Key {
             key: "some_key".to_string(),
             peer_id: "some_peer".to_string(),
             timestamp_created: 0,
         };
 
+        println!("{:?}", key);
         republish_key_and_check!(aqua_dht, key, 123u64, get_correct_timestamp_cp(1));
     }
 

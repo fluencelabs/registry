@@ -16,5 +16,5 @@ fstrings = "0.2.3"
 eyre = "0.6.5"
 
 [dev-dependencies]
-fluence-test = "0.1.7"
+fluence-test = {git ="https://github.com/fluencelabs/rust-sdk", branch = "separate_struct_module"}
 rusqlite = "0.25.1"

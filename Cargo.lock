@@ -482,9 +482,8 @@ dependencies = [
 
 [[package]]
 name = "fluence-test"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7be0d7928e5e6a74a8e303b7f539116fdb4043f5788f78e9eaf32c53700c4c18"
+version = "0.1.9"
+source = "git+https://github.com/fluencelabs/rust-sdk?branch=separate_struct_module#fd2fc07595c5a037c7267cb848b8ea6eb741c735"
 dependencies = [
  "fluence-app-service",
  "marine-test-macro",
@@ -929,9 +928,8 @@ dependencies = [
 
 [[package]]
 name = "marine-test-macro"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "709eebc4ee6c8e6aa49066ab066c9f137d9cf164f298f578a67bfb11a0508f65"
+version = "0.1.9"
+source = "git+https://github.com/fluencelabs/rust-sdk?branch=separate_struct_module#fd2fc07595c5a037c7267cb848b8ea6eb741c735"
 dependencies = [
  "marine-test-macro-impl",
  "proc-macro-error",
@@ -942,9 +940,8 @@ dependencies = [
 
 [[package]]
 name = "marine-test-macro-impl"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2432fd5233a088981c79324668b76f3ee2ae6d313d4522b5490226e5e7827ce"
+version = "0.1.9"
+source = "git+https://github.com/fluencelabs/rust-sdk?branch=separate_struct_module#fd2fc07595c5a037c7267cb848b8ea6eb741c735"
 dependencies = [
  "darling",
  "fluence-app-service",

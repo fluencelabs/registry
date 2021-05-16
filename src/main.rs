@@ -82,7 +82,7 @@ pub fn republish_values(key: String, records: Vec<Record>, current_timestamp: u6
 pub fn clear_expired(current_timestamp: u64) -> ClearExpiredResult {
     clear_expired_impl(current_timestamp).into()
 }
-//
+
 // #[marine]
 // pub fn evict_stale(current_timestamp: u64) -> GetStaleResult {
 //     evict_stale_impl(current_timestamp).into()

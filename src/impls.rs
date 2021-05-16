@@ -176,7 +176,7 @@ pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestam
     let _key = get_key_metadata_helper(&connection, key.clone())?;
 
     let mut updated = 0u64;
-    for record in records {
+    for record in records.iter() {
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
                     VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.relay_id}',\
