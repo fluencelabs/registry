@@ -19,8 +19,8 @@ mod results;
 mod tests;
 mod impls;
 
-use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult};
-use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl};
+use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult};
+use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl};
 
 use fluence::marine;
 use fluence::module_manifest;
@@ -51,8 +51,8 @@ pub fn register_key(key: String, current_timestamp: u64) -> RegisterKeyResult {
 }
 
 #[marine]
-pub fn get_key_metadata(key: String) -> GetKeyMetadataResult {
-    get_key_metadata_impl(key).into()
+pub fn get_key_metadata(key: String, current_timestamp: u64) -> GetKeyMetadataResult {
+    get_key_metadata_impl(key, current_timestamp).into()
 }
 
 #[marine]
@@ -83,7 +83,7 @@ pub fn clear_expired(current_timestamp: u64) -> ClearExpiredResult {
     clear_expired_impl(current_timestamp).into()
 }
 
-// #[marine]
-// pub fn evict_stale(current_timestamp: u64) -> GetStaleResult {
-//     evict_stale_impl(current_timestamp).into()
-// }
+#[marine]
+pub fn evict_stale(current_timestamp: u64) -> EvictStaleResult {
+    evict_stale_impl(current_timestamp).into()
+}

@@ -227,7 +227,10 @@ impl From<SqliteResult<u64>> for RepublishValuesResult {
     }
 }
 
-// #[marine]
-// pub struct EvictStaleResult {
-//
-// }
+#[marine]
+pub struct EvictStaleResult {
+    pub success: bool,
+    pub error: String,
+    pub keys: Vec<Key>,
+    pub records: Vec<Record>,
+}

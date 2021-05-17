@@ -57,9 +57,9 @@ mod tests {
     }
 
     macro_rules! check_key_metadata {
-        ($aqua_dht:expr, $key:expr, $timestamp:expr, $peer_id:expr) => {
+        ($aqua_dht:expr, $key:expr, $timestamp:expr, $peer_id:expr, $current_timestamp:expr, $cp:expr) => {
             {
-                let result = $aqua_dht.get_key_metadata($key.clone());
+                let result = $aqua_dht.get_key_metadata_cp($key.clone(), $current_timestamp.clone(), $cp.clone());
                 assert!(result.success);
                 assert_eq!(result.error, "");
                 assert_eq!(result.key.key, $key);
@@ -76,8 +76,9 @@ mod tests {
                 assert_eq!(result.error, "");
                 assert!(result.success);
 
-                check_key_metadata!($aqua_dht, $key, $timestamp, $cp.init_peer_id);
+                check_key_metadata!($aqua_dht, $key, $timestamp, $cp.init_peer_id, $timestamp, $cp);
             }
+
         }
     }
 
@@ -88,7 +89,7 @@ mod tests {
                 assert_eq!(result.error, "");
                 assert!(result.success);
 
-                check_key_metadata!($aqua_dht, $key.key, $key.timestamp_created, $key.peer_id);
+                check_key_metadata!($aqua_dht, $key.key, $key.timestamp_created, $key.peer_id, $timestamp, $cp);
             }
         }
     }
@@ -154,7 +155,7 @@ mod tests {
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_key_metadata_not_found() {
         clear_db();
-        let result = aqua_dht.get_key_metadata("invalid_key".to_string());
+        let result = aqua_dht.get_key_metadata_cp("invalid_key".to_string(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
         assert_eq!(result.error, "not found");
     }
@@ -168,7 +169,6 @@ mod tests {
             timestamp_created: 0,
         };
 
-        println!("{:?}", key);
         republish_key_and_check!(aqua_dht, key, 123u64, get_correct_timestamp_cp(1));
     }
 

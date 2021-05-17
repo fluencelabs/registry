@@ -15,7 +15,7 @@
  */
 
 use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE};
-use crate::results::{Key, Record};
+use crate::results::{Key, Record, EvictStaleResult};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State};
 use fluence::{CallParameters};
 use eyre;
@@ -67,7 +67,13 @@ pub(crate) fn create_values_table() -> bool {
         ).is_ok()
 }
 
-fn get_key_metadata_helper(connection: &Connection, key: String) -> SqliteResult<Key> {
+fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp: u64) -> SqliteResult<Key> {
+
+    connection.execute(
+        f!("UPDATE {KEYS_TABLE_NAME} \
+                     SET timestamp_accessed = '{current_timestamp}' \
+                     WHERE key = '{key}'"))?;
+
     let mut statement = connection
         .prepare(f!("SELECT key, peer_id, timestamp_created \
                               FROM {KEYS_TABLE_NAME} WHERE key = '{key}'"))?;
@@ -84,7 +90,7 @@ fn get_key_metadata_helper(connection: &Connection, key: String) -> SqliteResult
 }
 
 fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_created: u64, timestamp_accessed: u64) -> SqliteResult<()> {
-    let old_key = get_key_metadata_helper(&connection, key.clone());
+    let old_key = get_key_metadata_helper(&connection, key.clone(), timestamp_accessed);
 
     if old_key.is_err() || old_key?.peer_id == peer_id {
         connection.execute(f!("
@@ -95,8 +101,12 @@ fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_c
     }
 }
 
-pub fn get_key_metadata_impl(key: String) -> SqliteResult<Key> {
-    get_key_metadata_helper(&get_connection()?, key)
+pub fn get_key_metadata_impl(key: String, current_timestamp: u64) -> SqliteResult<Key> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 1)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+
+    get_key_metadata_helper(&get_connection()?, key, current_timestamp)
 }
 
 pub fn register_key_impl(key: String, current_timestamp: u64) -> SqliteResult<()> {
@@ -124,7 +134,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
     let connection = get_connection()?;
 
     // checking key for existence
-    let _key = get_key_metadata_helper(&connection, key.clone())?;
+    let _key = get_key_metadata_helper(&connection, key.clone(), current_timestamp.clone())?;
     let relay_id = if relay_id.len() == 0 { "".to_string() } else { relay_id[0].clone() };
     let peer_id = call_parameters.init_peer_id;
     let service_id = call_parameters.service_id;
@@ -173,7 +183,7 @@ pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestam
     let connection = get_connection()?;
 
     // checking key for existence
-    let _key = get_key_metadata_helper(&connection, key.clone())?;
+    let _key = get_key_metadata_helper(&connection, key.clone(), current_timestamp.clone())?;
 
     let mut updated = 0u64;
     for record in records.iter() {
@@ -201,4 +211,8 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
     let deleted_keys = connection.changes() as u64;
 
     Ok((deleted_keys, deleted_values))
+}
+
+pub fn evict_stale_impl(current_timestamp: u64) -> EvictStaleResult {
+    unimplemented!()
 }
