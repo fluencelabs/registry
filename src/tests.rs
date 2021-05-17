@@ -18,7 +18,7 @@
 mod tests {
     use fluence_test::marine_test;
     use rusqlite::{Connection};
-    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID};
+    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, EXPIRED_VALUE_AGE, STALE_VALUE_AGE};
     use fluence::{CallParameters, SecurityTetraplet};
 
     fn clear_db() {
@@ -262,6 +262,20 @@ mod tests {
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn get_values_empty() {
+        clear_db();
+
+        let key = "some_key".to_string();
+        register_key_and_check!(aqua_dht, key, 123u64, get_correct_timestamp_cp(1));
+
+        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_key_not_exists() {
         clear_db();
         let result = aqua_dht.put_value_cp("some_key".to_string(), "value".to_string(), 123u64, vec![], get_correct_timestamp_cp(2));
@@ -372,4 +386,175 @@ mod tests {
         assert_eq!(record.timestamp_created, timestamp);
     }
 
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_empty_cp() {
+        clear_db();
+
+        let result = aqua_dht.clear_expired(124u64);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_invalid_cp() {
+        clear_db();
+
+        let mut invalid_cp = CallParameters::default();
+        invalid_cp.tetraplets.push(vec![]);
+        invalid_cp.tetraplets.push(vec![SecurityTetraplet {
+            peer_pk: "some peer_pk".to_string(),
+            service_id: "INVALID SERVICE ID".to_string(),
+            function_name: "INVALID FUNCTION NAME".to_string(),
+            json_path: "some json path".to_string(),
+        }]);
+
+        let result = aqua_dht.clear_expired_cp(124u64, invalid_cp);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_empty() {
+        clear_db();
+        let result = aqua_dht.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys + result.count_values, 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_key_without_values() {
+        clear_db();
+        let key = "some_key".to_string();
+        let expired_timestamp = 0u64;
+        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), get_correct_timestamp_cp(1));
+
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys, 1);
+        assert_eq!(result.count_values, 0);
+
+        let result = aqua_dht.get_key_metadata_cp(key, 123u64, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_key_with_values() {
+        clear_db();
+        let key = "some_key".to_string();
+        let expired_timestamp = 0u64;
+        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), get_correct_timestamp_cp(1));
+        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], get_correct_timestamp_cp(2));
+
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys, 1);
+        assert_eq!(result.count_values, 1);
+
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+
+        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn evict_stale_empty_cp() {
+        clear_db();
+
+        let result = aqua_dht.evict_stale(124u64);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn evict_stale_invalid_cp() {
+        clear_db();
+
+        let mut invalid_cp = CallParameters::default();
+        invalid_cp.tetraplets.push(vec![]);
+        invalid_cp.tetraplets.push(vec![SecurityTetraplet {
+            peer_pk: "some peer_pk".to_string(),
+            service_id: "INVALID SERVICE ID".to_string(),
+            function_name: "INVALID FUNCTION NAME".to_string(),
+            json_path: "some json path".to_string(),
+        }]);
+
+        let result = aqua_dht.evict_stale_cp(124u64, invalid_cp);
+        assert!(!result.success);
+        assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn evict_stale_empty() {
+        clear_db();
+        let result = aqua_dht.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.results.len(), 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn evict_stale_key_without_values() {
+        clear_db();
+        let key = "some_key".to_string();
+        let stale_timestamp = 0u64;
+        register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), get_correct_timestamp_cp(1));
+
+        let result = aqua_dht.evict_stale_cp(stale_timestamp + STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.results.len(), 1);
+        let item = &result.results[0];
+        assert_eq!(item.key.key, key);
+        assert_eq!(item.records.len(), 0);
+
+        let result = aqua_dht.get_key_metadata_cp(key, 123u64, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn evict_stale_key_with_values() {
+        clear_db();
+        let key = "some_key".to_string();
+        let value = "some_value".to_string();
+        let stale_timestamp = 0u64;
+        register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), get_correct_timestamp_cp(1));
+        put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], get_correct_timestamp_cp(2));
+
+        let result = aqua_dht.evict_stale_cp(stale_timestamp + STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.results.len(), 1);
+
+        let item = &result.results[0];
+        assert_eq!(item.key.key, key);
+        assert_eq!(item.records.len(), 1);
+
+        let record = &item.records[0];
+        assert_eq!(record.value, value);
+        assert_eq!(record.timestamp_created, stale_timestamp);
+
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+
+        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+    }
 }

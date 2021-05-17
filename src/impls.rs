@@ -208,7 +208,7 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
     let connection = get_connection()?;
 
     let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
-    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE id IN (SELECT key FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp}"))?;
+    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp})"))?;
     let deleted_values = connection.changes() as u64;
     connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp}"))?;
     let deleted_keys = connection.changes() as u64;
@@ -228,7 +228,7 @@ pub fn evict_stale_impl(current_timestamp: u64) -> SqliteResult<Vec<EvictStaleIt
     let mut statement =
         connection.prepare(
             f!("SELECT key, peer_id, timestamp_created FROM {KEYS_TABLE_NAME} \
-                         WHERE timestamp_created <= {stale_timestamp}"))?;
+                         WHERE timestamp_accessed <= {stale_timestamp}"))?;
 
     while let State::Row = statement.next()? {
         stale_keys.push(Key {
