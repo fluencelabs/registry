@@ -228,9 +228,31 @@ impl From<SqliteResult<u64>> for RepublishValuesResult {
 }
 
 #[marine]
+pub struct EvictStaleItem {
+    pub key: Key,
+    pub records: Vec<Record>,
+}
+
+#[marine]
 pub struct EvictStaleResult {
     pub success: bool,
     pub error: String,
-    pub keys: Vec<Key>,
-    pub records: Vec<Record>,
+    pub results: Vec<EvictStaleItem>,
+}
+
+impl From<SqliteResult<Vec<EvictStaleItem>>> for EvictStaleResult {
+    fn from(result: SqliteResult<Vec<EvictStaleItem>>) -> Self {
+        match result {
+            Ok(results) => Self {
+                success: true,
+                error: "".to_string(),
+                results,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                results: vec![],
+            },
+        }
+    }
 }

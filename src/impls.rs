@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE};
-use crate::results::{Key, Record, EvictStaleResult};
+use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE, STALE_VALUE_AGE};
+use crate::results::{Key, Record, EvictStaleItem};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State};
 use fluence::{CallParameters};
 use eyre;
@@ -68,7 +68,6 @@ pub(crate) fn create_values_table() -> bool {
 }
 
 fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp: u64) -> SqliteResult<Key> {
-
     connection.execute(
         f!("UPDATE {KEYS_TABLE_NAME} \
                      SET timestamp_accessed = '{current_timestamp}' \
@@ -146,18 +145,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
     )
 }
 
-pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<Record>> {
-    let call_parameters = fluence::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
-
-    let connection = get_connection()?;
-
-    connection.execute(
-        f!("UPDATE {VALUES_TABLE_NAME} \
-                     SET timestamp_accessed = '{current_timestamp}' \
-                     WHERE key = '{key}'"))?;
-
+pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<Vec<Record>> {
     let mut statement = connection.prepare(
         f!("SELECT value, peer_id, relay_id, service_id, timestamp_created FROM {VALUES_TABLE_NAME} \
                      WHERE key = '{key}'"))?;
@@ -174,6 +162,21 @@ pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<
     }
 
     Ok(result)
+}
+
+pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<Record>> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 1)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+
+    let connection = get_connection()?;
+
+    connection.execute(
+        f!("UPDATE {VALUES_TABLE_NAME} \
+                     SET timestamp_accessed = '{current_timestamp}' \
+                     WHERE key = '{key}'"))?;
+
+    get_values_helper(&connection, key)
 }
 
 pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestamp: u64) -> SqliteResult<u64> {
@@ -213,6 +216,34 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
     Ok((deleted_keys, deleted_values))
 }
 
-pub fn evict_stale_impl(current_timestamp: u64) -> EvictStaleResult {
-    unimplemented!()
+pub fn evict_stale_impl(current_timestamp: u64) -> SqliteResult<Vec<EvictStaleItem>> {
+    let call_parameters = fluence::get_call_parameters();
+    check_timestamp_tetraplets(&call_parameters, 0)
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    let connection = get_connection()?;
+
+    let stale_timestamp = current_timestamp - STALE_VALUE_AGE;
+
+    let mut stale_keys: Vec<Key> = vec![];
+    let mut statement =
+        connection.prepare(
+            f!("SELECT key, peer_id, timestamp_created FROM {KEYS_TABLE_NAME} \
+                         WHERE timestamp_created <= {stale_timestamp}"))?;
+
+    while let State::Row = statement.next()? {
+        stale_keys.push(Key {
+            key: statement.read::<String>(0)?,
+            peer_id: statement.read::<String>(1)?,
+            timestamp_created: statement.read::<i64>(2)? as u64,
+        });
+    }
+
+    let mut results: Vec<EvictStaleItem> = vec![];
+    for key in stale_keys.iter() {
+        results.push(EvictStaleItem { key: key.clone(), records: get_values_helper(&connection, key.key.clone())? });
+        connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key='{key.key}'"))?;
+        connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key='{key.key}'"))?;
+    }
+
+    Ok(results)
 }
