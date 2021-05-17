@@ -181,7 +181,7 @@ mod tests {
         cp.init_peer_id = "some_peer_id".to_string();
         register_key_and_check!(aqua_dht, key_str, timestamp, cp);
 
-        let key = __m_generated_aqua_dht::Key {
+        let key = aqua_dht_structs::Key {
             key: key_str.clone(),
             peer_id: cp.init_peer_id,
             timestamp_created: timestamp + 1,
@@ -199,7 +199,7 @@ mod tests {
         cp.init_peer_id = "some_peer_id".to_string();
         register_key_and_check!(aqua_dht, key_str, timestamp, cp);
 
-        let key = __m_generated_aqua_dht::Key {
+        let key = aqua_dht_structs::Key {
             key: key_str.clone(),
             peer_id: "OTHER_PEER_ID".to_string(),
             timestamp_created: timestamp + 1,
