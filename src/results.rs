@@ -88,8 +88,8 @@ impl From<SqliteResult<()>> for PutValueResult {
 pub struct Record {
     pub value: String,
     pub peer_id: String,
-    pub relay_id: String,
-    pub service_id: String,
+    pub relay_id: Vec<String>,
+    pub service_id: Vec<String>,
     pub timestamp_created: u64,
 }
 

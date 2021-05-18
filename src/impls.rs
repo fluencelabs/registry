@@ -21,6 +21,15 @@ use fluence::{CallParameters};
 use eyre;
 use eyre::ContextCompat;
 
+
+fn get_custom_option(value: String) -> Vec<String> {
+    if value.is_empty() {
+        vec![]
+    } else {
+        vec![value]
+    }
+}
+
 pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
     let error_msg = "you should use peer.timestamp_ms to pass timestamp";
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
@@ -155,8 +164,8 @@ pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<V
         result.push(Record {
             value: statement.read::<String>(0)?,
             peer_id: statement.read::<String>(1)?,
-            relay_id: statement.read::<String>(2)?,
-            service_id: statement.read::<String>(3)?,
+            relay_id: get_custom_option(statement.read::<String>(2)?),
+            service_id: get_custom_option(statement.read::<String>(3)?),
             timestamp_created: statement.read::<i64>(4)? as u64,
         })
     }
@@ -190,10 +199,12 @@ pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestam
 
     let mut updated = 0u64;
     for record in records.iter() {
+        let relay_id = if record.relay_id.is_empty() {"".to_string()} else {record.relay_id[0].clone()};
+        let service_id = if record.service_id.is_empty() {"".to_string()} else {record.service_id[0].clone()};
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
-                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.relay_id}',\
-                    '{record.service_id}', '{record.timestamp_created}', '{current_timestamp}')"))?;
+                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{relay_id}',\
+                    '{service_id}', '{record.timestamp_created}', '{current_timestamp}')"))?;
 
         updated += connection.changes() as u64;
     }

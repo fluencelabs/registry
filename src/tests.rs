@@ -308,8 +308,8 @@ mod tests {
         let record = &result.result[0];
         assert_eq!(record.value, value);
         assert_eq!(record.peer_id, cp.init_peer_id);
-        assert_eq!(record.relay_id, relay_id);
-        assert_eq!(record.service_id, service_id);
+        assert_eq!(record.relay_id[0], relay_id);
+        assert_eq!(record.service_id[0], service_id);
         assert_eq!(record.timestamp_created, timestamp);
     }
 
@@ -340,8 +340,8 @@ mod tests {
         let record = &result.result[0];
         assert_eq!(record.value, value2);
         assert_eq!(record.peer_id, cp.init_peer_id);
-        assert_eq!(record.relay_id, relay_id);
-        assert_eq!(record.service_id, service_id);
+        assert_eq!(record.relay_id[0], relay_id);
+        assert_eq!(record.service_id[0], service_id);
         assert_eq!(record.timestamp_created, timestamp);
     }
 
@@ -375,15 +375,15 @@ mod tests {
         let record = &result.result[0];
         assert_eq!(record.value, value);
         assert_eq!(record.peer_id, peer2_id);
-        assert_eq!(record.relay_id, relay_id);
-        assert_eq!(record.service_id, service_id);
+        assert_eq!(record.relay_id[0], relay_id);
+        assert_eq!(record.service_id[0], service_id);
         assert_eq!(record.timestamp_created, timestamp);
 
         let record = &result.result[1];
         assert_eq!(record.value, value);
         assert_eq!(record.peer_id, peer1_id);
-        assert_eq!(record.relay_id, relay_id);
-        assert_eq!(record.service_id, service_id);
+        assert_eq!(record.relay_id[0], relay_id);
+        assert_eq!(record.service_id[0], service_id);
         assert_eq!(record.timestamp_created, timestamp);
     }
 
