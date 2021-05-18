@@ -33,11 +33,11 @@ module_manifest!();
 pub static KEYS_TABLE_NAME: &str = "dht_keys";
 pub static VALUES_TABLE_NAME: &str = "dht_values";
 pub static DB_PATH: &str = "/tmp/dht.db";
-pub static STALE_VALUE_AGE: u64 = 60 * 60 * 1000;
-pub static EXPIRED_VALUE_AGE: u64 = 24 * 60 * 60 * 1000;
+pub static STALE_VALUE_AGE: u64 = 60 * 60;
+pub static EXPIRED_VALUE_AGE: u64 = 24 * 60 * 60;
 
 pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
-pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_ms";
+pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
 
 fn main() {
     create_keys_table();
