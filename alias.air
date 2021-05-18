@@ -1,0 +1,7 @@
+(xor
+    (seq
+        (call relay ("srv" "add_alias") [alias service] result)
+        (call %init_peer_id% (returnService "run") [result])
+    )
+    (call %init_peer_id% (returnService "run") [%last_error%])
+)
