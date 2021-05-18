@@ -62,8 +62,8 @@ pub fn republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult {
 
 // VALUES
 #[marine]
-pub fn put_value(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>) -> PutValueResult {
-    put_value_impl(key, value, current_timestamp, relay_id).into()
+pub fn put_value(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>, service_id: Vec<String>) -> PutValueResult {
+    put_value_impl(key, value, current_timestamp, relay_id, service_id).into()
 }
 
 

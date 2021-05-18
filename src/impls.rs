@@ -125,7 +125,7 @@ pub fn republish_key_impl(key: Key, current_timestamp: u64) -> SqliteResult<()> 
     update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp)
 }
 
-pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>) -> SqliteResult<()> {
+pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>, service_id: Vec<String>) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
@@ -136,7 +136,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
     let _key = get_key_metadata_helper(&connection, key.clone(), current_timestamp.clone())?;
     let relay_id = if relay_id.len() == 0 { "".to_string() } else { relay_id[0].clone() };
     let peer_id = call_parameters.init_peer_id;
-    let service_id = call_parameters.service_id;
+    let service_id = if service_id.len() == 0 { "".to_string() } else { service_id[0].clone() };
 
     connection.execute(
         f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
