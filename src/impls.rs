@@ -36,6 +36,7 @@ pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_n
     let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID &&
         tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME).then(|| ()).wrap_err(error_msg)
+    // TODO check host_id == peer_pk(???)
 }
 
 #[inline]
