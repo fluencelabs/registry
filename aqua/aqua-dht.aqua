@@ -1,42 +1,14 @@
+data Key:
+  key: string
+  peer_id: string
+  timestamp_created: u64
+
 data Record:
   value: string
   peer_id: string
   relay_id: []string
   service_id: []string
   timestamp_created: u64
-
-data GetValuesResult:
-  success: bool
-  error: string
-  result: []Record
-
-data PutValueResult:
-  success: bool
-  error: string
-
-data Key:
-  key: string
-  peer_id: string
-  timestamp_created: u64
-
-data GetKeyMetadataResult:
-  success: bool
-  error: string
-  key: Key
-
-data RepublishKeyResult:
-  success: bool
-  error: string
-
-data RegisterKeyResult:
-  success: bool
-  error: string
-
-data ClearExpiredResult:
-  success: bool
-  error: string
-  count_keys: u64
-  count_values: u64
 
 data EvictStaleItem:
   key: Key
@@ -47,17 +19,45 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
+
+data GetKeyMetadataResult:
+  success: bool
+  error: string
+  key: Key
+
+data ClearExpiredResult:
+  success: bool
+  error: string
+  count_keys: u64
+  count_values: u64
+
+data RepublishKeyResult:
+  success: bool
+  error: string
+
+data PutValueResult:
+  success: bool
+  error: string
+
+data RegisterKeyResult:
+  success: bool
+  error: string
+
 data RepublishValuesResult:
   success: bool
   error: string
   updated: u64
 
-service AquaDht:
-  get_values(key: string, current_timestamp: u64) -> GetValuesResult
-  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
-  republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
-  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
+service AquaDHT("aqua-dht"):
   republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult
   clear_expired(current_timestamp: u64) -> ClearExpiredResult
+  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
+  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
   get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult
+  get_values(key: string, current_timestamp: u64) -> GetValuesResult
+  republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
   evict_stale(current_timestamp: u64) -> EvictStaleResult
