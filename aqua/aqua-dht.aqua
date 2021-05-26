@@ -19,21 +19,16 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data GetValuesResult:
-  success: bool
-  error: string
-  result: []Record
-
-data GetKeyMetadataResult:
-  success: bool
-  error: string
-  key: Key
-
 data ClearExpiredResult:
   success: bool
   error: string
   count_keys: u64
   count_values: u64
+
+data RepublishValuesResult:
+  success: bool
+  error: string
+  updated: u64
 
 data RepublishKeyResult:
   success: bool
@@ -43,21 +38,38 @@ data PutValueResult:
   success: bool
   error: string
 
+data RecordWithKey:
+  key: string
+  record: Record
+
 data RegisterKeyResult:
   success: bool
   error: string
 
-data RepublishValuesResult:
+data GetKeyMetadataResult:
   success: bool
   error: string
-  updated: u64
+  key: Key
+
+data MergeResult:
+  success: bool
+  error: string
+  result: []RecordWithKey
+
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
 
 service AquaDHT("aqua-dht"):
-  republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult
-  clear_expired(current_timestamp: u64) -> ClearExpiredResult
-  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
-  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
-  get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult
-  get_values(key: string, current_timestamp: u64) -> GetValuesResult
   republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
+  republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult
   evict_stale(current_timestamp: u64) -> EvictStaleResult
+  clear_expired(current_timestamp: u64) -> ClearExpiredResult
+  put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string) -> PutValueResult
+  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
+  merge(records: []RecordWithKey) -> MergeResult
+  get_values(key: string, current_timestamp: u64) -> GetValuesResult
+  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
+  merge_two(a: []RecordWithKey, b: []RecordWithKey) -> MergeResult
+  get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult

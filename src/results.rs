@@ -256,3 +256,35 @@ impl From<SqliteResult<Vec<EvictStaleItem>>> for EvictStaleResult {
         }
     }
 }
+
+#[marine]
+#[derive(Debug)]
+pub struct RecordWithKey {
+    pub key: String,
+    pub record: Record,
+}
+
+#[marine]
+#[derive(Debug)]
+pub struct MergeResult {
+    pub success: bool,
+    pub error: String,
+    pub result: Vec<RecordWithKey>,
+}
+
+impl From<SqliteResult<Vec<RecordWithKey>>> for MergeResult {
+    fn from(result: SqliteResult<Vec<RecordWithKey>>) -> Self {
+        match result {
+            Ok(result) => Self {
+                success: true,
+                error: "".to_string(),
+                result,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                result: vec![],
+            },
+        }
+    }
+}

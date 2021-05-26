@@ -19,8 +19,8 @@ mod results;
 mod tests;
 mod impls;
 
-use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult};
-use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl};
+use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult, RecordWithKey};
+use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl};
 
 use fluence::marine;
 use fluence::module_manifest;
@@ -66,6 +66,10 @@ pub fn put_value(key: String, value: String, current_timestamp: u64, relay_id: V
     put_value_impl(key, value, current_timestamp, relay_id, service_id).into()
 }
 
+#[marine]
+pub fn put_value_relay(key: String, value: String, current_timestamp: u64, relay_id: String) -> PutValueResult {
+    put_value_impl(key, value, current_timestamp, vec![relay_id], vec![]).into()
+}
 
 #[marine]
 pub fn get_values(key: String, current_timestamp: u64) -> GetValuesResult {
@@ -86,4 +90,14 @@ pub fn clear_expired(current_timestamp: u64) -> ClearExpiredResult {
 #[marine]
 pub fn evict_stale(current_timestamp: u64) -> EvictStaleResult {
     evict_stale_impl(current_timestamp).into()
+}
+
+#[marine]
+pub fn merge(records: Vec<RecordWithKey>) -> MergeResult {
+    merge_impl(records).into()
+}
+
+#[marine]
+pub fn merge_two(a: Vec<RecordWithKey>, b: Vec<RecordWithKey>) -> MergeResult {
+    merge_impl(a.into_iter().chain(b.into_iter()).collect()).into()
 }
