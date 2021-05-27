@@ -101,3 +101,12 @@ pub fn merge(records: Vec<Vec<Record>>) -> MergeResult {
 pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
     merge_impl(a.into_iter().chain(b.into_iter()).collect()).into()
 }
+
+#[marine]
+pub fn merge_hack(records: Vec<Vec<Record>>, _hack: String) -> MergeResult {
+    merge(records)
+}
+#[marine]
+pub fn merge_wrapped(records: Vec<Vec<Vec<Record>>>) -> MergeResult {
+    merge_impl(records.into_iter().flatten().flatten().collect()).into()
+}
