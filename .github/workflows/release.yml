@@ -18,6 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Build .aqua file
+        working-directory: .
+        run: |
+          ./build.sh
+          cp ./aqua/aqua-dht.aqua ./npm/dht.aqua
+
       ### Calculate FINAL_VERSION
       - name: Install jq
         run: sudo apt-get update && sudo apt-get --yes --force-yes install jq
