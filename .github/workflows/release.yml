@@ -31,7 +31,7 @@ jobs:
 
       ### Calculate FINAL_VERSION
       - name: Install jq
-        run: sudo apt-get update && sudo apt-get --yes --force-yes install jq
+        run: apt-get update && apt-get --yes --force-yes install jq
 
       - name: Get version from npm and increment
         run: |
