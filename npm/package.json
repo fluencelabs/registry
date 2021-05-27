@@ -1,0 +1,23 @@
+{
+  "name": "@fluencelabs/aqua-dht",
+  "version": "0.1.0",
+  "description": "Aqua DHT library",
+  "files": [
+    "dht.aqua"
+  ],
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluencelabs/aqua-dht.git"
+  },
+  "keywords": [
+    "aqua",
+    "fluence"
+  ],
+  "author": "Fluence Labs",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fluencelabs/aqua-dht/issues"
+  },
+  "homepage": "https://github.com/fluencelabs/aqua-dht#readme"
+}
