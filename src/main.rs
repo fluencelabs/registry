@@ -77,7 +77,7 @@ pub fn get_values(key: String, current_timestamp: u64) -> GetValuesResult {
 }
 
 #[marine]
-pub fn republish_values(key: String, records: Vec<Record>, current_timestamp: u64) -> RepublishValuesResult  {
+pub fn republish_values(key: String, records: Vec<Record>, current_timestamp: u64) -> RepublishValuesResult {
     republish_values_impl(key, records, current_timestamp).into()
 }
 
@@ -104,9 +104,10 @@ pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
 
 #[marine]
 pub fn merge_hack(records: Vec<Vec<Record>>, hack: String) -> MergeResult {
-    print!("{}",hack);
+    print!("{}", hack);
     merge(records)
 }
+
 #[marine]
 pub fn merge_wrapped(records: Vec<Vec<Vec<Record>>>) -> MergeResult {
     merge_impl(records.into_iter().flatten().flatten().collect()).into()
@@ -115,4 +116,16 @@ pub fn merge_wrapped(records: Vec<Vec<Vec<Record>>>) -> MergeResult {
 #[marine]
 pub fn merge_hack_struct(records: RecordsStruct) -> MergeResult {
     merge_impl(records.records).into()
+}
+
+#[marine]
+pub fn merge_hack_get_values(records: Vec<GetValuesResult>) -> MergeResult {
+    merge_impl(
+        records
+            .into_iter()
+            .filter(|elem| elem.success)
+            .map(|elem| elem.result)
+            .flatten()
+            .collect()
+    ).into()
 }
