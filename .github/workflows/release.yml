@@ -30,8 +30,11 @@ jobs:
           cp ./aqua/aqua-dht.aqua ./npm/dht.aqua
 
       ### Calculate FINAL_VERSION
-      - name: Install jq
-        run: apt-get update && apt-get --yes --force-yes install jq
+      - name: Install deps
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+          apt-get update && apt-get --yes --force-yes install jq nodejs
+          npm install --global yarn
 
       - name: Get version from npm and increment
         run: |
