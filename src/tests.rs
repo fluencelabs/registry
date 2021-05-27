@@ -561,84 +561,60 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn merge_test() {
-        let mut records: Vec<aqua_dht_structs::RecordWithKey> = vec![];
-        let key = "some_key".to_string();
         let peer_id = "some_peer_id".to_string();
-        let stale_record = aqua_dht_structs::RecordWithKey {
-            key: key.clone(),
-            record: aqua_dht_structs::Record {
-                value: "stale".to_string(),
-                peer_id: peer_id.clone(),
-                relay_id: vec![],
-                service_id: vec![],
-                timestamp_created: 123u64,
-            },
+        let stale_record = aqua_dht_structs::Record {
+            value: "stale".to_string(),
+            peer_id: peer_id.clone(),
+            relay_id: vec![],
+            service_id: vec![],
+            timestamp_created: 123u64,
+
         };
 
-        let new_record = aqua_dht_structs::RecordWithKey {
-            key: key.clone(),
-            record: aqua_dht_structs::Record {
-                value: "new".to_string(),
-                peer_id: peer_id.clone(),
-                relay_id: vec![],
-                service_id: vec![],
-                timestamp_created: stale_record.record.timestamp_created + 9999u64,
-            },
+        let new_record = aqua_dht_structs::Record {
+            value: "new".to_string(),
+            peer_id: peer_id.clone(),
+            relay_id: vec![],
+            service_id: vec![],
+            timestamp_created: stale_record.timestamp_created + 9999u64,
         };
 
-        records.push(stale_record.clone());
-        records.push(new_record.clone());
-
-        let result = aqua_dht.merge(records);
+        let result = aqua_dht.merge(vec![vec![stale_record.clone()], vec![new_record.clone()]]);
 
         assert_eq!(result.result.len(), 1);
         let record = &result.result[0];
-        assert_eq!(record.key, new_record.key);
-        assert_eq!(record.record.value, new_record.record.value);
-        assert_eq!(record.record.timestamp_created, new_record.record.timestamp_created);
-
+        assert_eq!(record.value, new_record.value);
+        assert_eq!(record.timestamp_created, new_record.timestamp_created);
 
         let result = aqua_dht.merge_two(vec![stale_record.clone()], vec![new_record.clone()]);
 
         assert_eq!(result.result.len(), 1);
         let record = &result.result[0];
-        assert_eq!(record.key, new_record.key);
-        assert_eq!(record.record.value, new_record.record.value);
-        assert_eq!(record.record.timestamp_created, new_record.record.timestamp_created);
+        assert_eq!(record.value, new_record.value);
+        assert_eq!(record.timestamp_created, new_record.timestamp_created);
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn merge_test_different_peer_ids() {
-        let mut records: Vec<aqua_dht_structs::RecordWithKey> = vec![];
-        let key = "some_key".to_string();
         let peer_id1 = "some_peer_id1".to_string();
         let peer_id2 = "some_peer_id2".to_string();
-        let record1 = aqua_dht_structs::RecordWithKey {
-            key: key.clone(),
-            record: aqua_dht_structs::Record {
-                value: "value1".to_string(),
-                peer_id: peer_id1.clone(),
-                relay_id: vec![],
-                service_id: vec![],
-                timestamp_created: 123u64,
-            },
+        let record1 = aqua_dht_structs::Record {
+            value: "value1".to_string(),
+            peer_id: peer_id1.clone(),
+            relay_id: vec![],
+            service_id: vec![],
+            timestamp_created: 123u64,
         };
 
-        let record2 = aqua_dht_structs::RecordWithKey {
-            key: key.clone(),
-            record: aqua_dht_structs::Record {
-                value: "value2".to_string(),
-                peer_id: peer_id2.clone(),
-                relay_id: vec![],
-                service_id: vec![],
-                timestamp_created: record1.record.timestamp_created + 9999u64,
-            },
+        let record2 = aqua_dht_structs::Record {
+            value: "value2".to_string(),
+            peer_id: peer_id2.clone(),
+            relay_id: vec![],
+            service_id: vec![],
+            timestamp_created: record1.timestamp_created + 9999u64,
         };
 
-        records.push(record1.clone());
-        records.push(record2.clone());
-
-        let result = aqua_dht.merge(records);
+        let result = aqua_dht.merge_two(vec![record1], vec![record2]);
 
         assert_eq!(result.result.len(), 2);
     }

@@ -15,7 +15,7 @@
  */
 
 use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE, STALE_VALUE_AGE};
-use crate::results::{Key, Record, EvictStaleItem, RecordWithKey};
+use crate::results::{Key, Record, EvictStaleItem};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State};
 use fluence::{CallParameters};
 use eyre;
@@ -261,14 +261,14 @@ pub fn evict_stale_impl(current_timestamp: u64) -> SqliteResult<Vec<EvictStaleIt
     Ok(results)
 }
 
-pub fn merge_impl(records: Vec<RecordWithKey>) -> SqliteResult<Vec<RecordWithKey>> {
-    let mut result: HashMap<(String, String), RecordWithKey> = HashMap::new();
+pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
+    let mut result: HashMap<String, Record> = HashMap::new();
 
     for rec in records.into_iter() {
-        let key = (rec.key.clone(), rec.record.peer_id.clone());
+        let key = rec.peer_id.clone();
 
         if let Some(other_rec) = result.get_mut(&key) {
-            if other_rec.record.timestamp_created < rec.record.timestamp_created {
+            if other_rec.timestamp_created < rec.timestamp_created {
                 *other_rec = rec;
             }
         } else {

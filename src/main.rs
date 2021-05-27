@@ -19,7 +19,7 @@ mod results;
 mod tests;
 mod impls;
 
-use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult, RecordWithKey};
+use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult};
 use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl};
 
 use fluence::marine;
@@ -93,11 +93,11 @@ pub fn evict_stale(current_timestamp: u64) -> EvictStaleResult {
 }
 
 #[marine]
-pub fn merge(records: Vec<RecordWithKey>) -> MergeResult {
-    merge_impl(records).into()
+pub fn merge(records: Vec<Vec<Record>>) -> MergeResult {
+    merge_impl(records.into_iter().flatten().collect()).into()
 }
 
 #[marine]
-pub fn merge_two(a: Vec<RecordWithKey>, b: Vec<RecordWithKey>) -> MergeResult {
+pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
     merge_impl(a.into_iter().chain(b.into_iter()).collect()).into()
 }

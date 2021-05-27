@@ -19,57 +19,53 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data ClearExpiredResult:
+data GetValuesResult:
   success: bool
   error: string
-  count_keys: u64
-  count_values: u64
-
-data RepublishValuesResult:
-  success: bool
-  error: string
-  updated: u64
-
-data RepublishKeyResult:
-  success: bool
-  error: string
-
-data PutValueResult:
-  success: bool
-  error: string
-
-data RecordWithKey:
-  key: string
-  record: Record
-
-data RegisterKeyResult:
-  success: bool
-  error: string
+  result: []Record
 
 data GetKeyMetadataResult:
   success: bool
   error: string
   key: Key
 
-data MergeResult:
+data RegisterKeyResult:
   success: bool
   error: string
-  result: []RecordWithKey
 
-data GetValuesResult:
+data RepublishKeyResult:
+  success: bool
+  error: string
+
+data RepublishValuesResult:
+  success: bool
+  error: string
+  updated: u64
+
+data ClearExpiredResult:
+  success: bool
+  error: string
+  count_keys: u64
+  count_values: u64
+
+data MergeResult:
   success: bool
   error: string
   result: []Record
 
+data PutValueResult:
+  success: bool
+  error: string
+
 service AquaDHT("aqua-dht"):
   republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
-  republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult
-  evict_stale(current_timestamp: u64) -> EvictStaleResult
+  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
+  get_values(key: string, current_timestamp: u64) -> GetValuesResult
+  merge(records: [][]Record) -> MergeResult
+  merge_two(a: []Record, b: []Record) -> MergeResult
+  get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult
+  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
   clear_expired(current_timestamp: u64) -> ClearExpiredResult
   put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string) -> PutValueResult
-  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
-  merge(records: []RecordWithKey) -> MergeResult
-  get_values(key: string, current_timestamp: u64) -> GetValuesResult
-  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
-  merge_two(a: []RecordWithKey, b: []RecordWithKey) -> MergeResult
-  get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult
+  republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult
+  evict_stale(current_timestamp: u64) -> EvictStaleResult
