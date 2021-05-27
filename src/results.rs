@@ -281,3 +281,8 @@ impl From<SqliteResult<Vec<Record>>> for MergeResult {
         }
     }
 }
+
+#[marine]
+pub struct RecordsStruct {
+    pub records: Vec<Record>
+}

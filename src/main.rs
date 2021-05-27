@@ -19,7 +19,7 @@ mod results;
 mod tests;
 mod impls;
 
-use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult};
+use crate::results::{Key, GetKeyMetadataResult, RegisterKeyResult, RepublishKeyResult, PutValueResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult, RecordsStruct};
 use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl};
 
 use fluence::marine;
@@ -110,4 +110,9 @@ pub fn merge_hack(records: Vec<Vec<Record>>, hack: String) -> MergeResult {
 #[marine]
 pub fn merge_wrapped(records: Vec<Vec<Vec<Record>>>) -> MergeResult {
     merge_impl(records.into_iter().flatten().flatten().collect()).into()
+}
+
+#[marine]
+pub fn merge_hack_struct(records: RecordsStruct) -> MergeResult {
+    merge_impl(records.records).into()
 }
