@@ -8,9 +8,9 @@ or in parallel, forming a single-use coordination network.
 Aqua's runtime is heterogeneous: it includes browsers, servers, devices, all involved in solving a single task.
 Therefore, Aqua scripts are compiled into several targets at once, with AIR and Typescript as a default.
 
-## aqua-lib
+## aqua-dht
 
-TBD
+Interface to DHT in aqua language
 
 ### usage
 
