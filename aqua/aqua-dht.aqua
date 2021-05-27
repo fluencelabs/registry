@@ -1,6 +1,13 @@
-data PutValueResult:
+data ClearExpiredResult:
   success: bool
   error: string
+  count_keys: u64
+  count_values: u64
+
+data Key:
+  key: string
+  peer_id: string
+  timestamp_created: u64
 
 data Record:
   value: string
@@ -9,65 +16,58 @@ data Record:
   service_id: []string
   timestamp_created: u64
 
-data GetValuesResult:
-  success: bool
-  error: string
-  result: []Record
-
-data RepublishKeyResult:
-  success: bool
-  error: string
-
-data Key:
-  key: string
-  peer_id: string
-  timestamp_created: u64
-
-data GetKeyMetadataResult:
-  success: bool
-  error: string
-  key: Key
-
 data EvictStaleItem:
   key: Key
   records: []Record
-
-data EvictStaleResult:
-  success: bool
-  error: string
-  results: []EvictStaleItem
-
-data RegisterKeyResult:
-  success: bool
-  error: string
-
-data MergeResult:
-  success: bool
-  error: string
-  result: []Record
-
-data ClearExpiredResult:
-  success: bool
-  error: string
-  count_keys: u64
-  count_values: u64
 
 data RepublishValuesResult:
   success: bool
   error: string
   updated: u64
 
+data MergeResult:
+  success: bool
+  error: string
+  result: []Record
+
+data PutValueResult:
+  success: bool
+  error: string
+
+data GetKeyMetadataResult:
+  success: bool
+  error: string
+  key: Key
+
+data RepublishKeyResult:
+  success: bool
+  error: string
+
+data EvictStaleResult:
+  success: bool
+  error: string
+  results: []EvictStaleItem
+
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
+
+data RegisterKeyResult:
+  success: bool
+  error: string
+
 service AquaDHT("aqua-dht"):
-  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
-  clear_expired(current_timestamp: u64) -> ClearExpiredResult
-  merge_two(a: []Record, b: []Record) -> MergeResult
-  evict_stale(current_timestamp: u64) -> EvictStaleResult
-  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
-  get_values(key: string, current_timestamp: u64) -> GetValuesResult
-  merge(records: [][]Record) -> MergeResult
-  put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string) -> PutValueResult
   merge_wrapped(records: [][][]Record) -> MergeResult
-  merge_hack(records: [][]Record, _hack: string) -> MergeResult
+  merge(records: [][]Record) -> MergeResult
+  evict_stale(current_timestamp: u64) -> EvictStaleResult
+  put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string) -> PutValueResult
+  clear_expired(current_timestamp: u64) -> ClearExpiredResult
   republish_key(key: Key, current_timestamp: u64) -> RepublishKeyResult
+  register_key(key: string, current_timestamp: u64) -> RegisterKeyResult
   republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
   get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult
+  merge_hack(records: [][]Record, hack: string) -> MergeResult
+  put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string) -> PutValueResult
+  get_values(key: string, current_timestamp: u64) -> GetValuesResult
+  merge_two(a: []Record, b: []Record) -> MergeResult

@@ -103,7 +103,8 @@ pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
 }
 
 #[marine]
-pub fn merge_hack(records: Vec<Vec<Record>>, _hack: String) -> MergeResult {
+pub fn merge_hack(records: Vec<Vec<Record>>, hack: String) -> MergeResult {
+    print!("{}",hack);
     merge(records)
 }
 #[marine]
