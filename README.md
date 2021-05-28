@@ -1,6 +1,6 @@
 # aqua-dht
 
-Distributed Hash Table (DHT) implementation for the Fluence networl.
+Distributed Hash Table (DHT) implementation for the Fluence network.
 
 ## Getting started
 
