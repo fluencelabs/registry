@@ -1,6 +1,6 @@
 # aqua-dht
 
-Repository demonstrating the how to start writing aqua and integrate it into a typescript application
+Distributed Hash Table (DHT) implementation for the Fluence networl.
 
 ## Getting started
 
