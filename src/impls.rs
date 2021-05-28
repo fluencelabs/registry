@@ -102,6 +102,7 @@ fn get_key_metadata_helper(connection: &Connection, key: String, current_timesta
 fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_created: u64, timestamp_accessed: u64) -> SqliteResult<()> {
     let old_key = get_key_metadata_helper(&connection, key.clone(), timestamp_accessed);
 
+    // TODO: compare conflicting keys by timestamp_created
     if old_key.is_err() || old_key?.peer_id == peer_id {
         connection.execute(f!("
              INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES ('{key}', '{timestamp_created}', '{timestamp_accessed}', '{peer_id}');
@@ -199,6 +200,8 @@ pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestam
     // checking key for existence
     let _key = get_key_metadata_helper(&connection, key.clone(), current_timestamp.clone())?;
 
+
+    // TODO: compare conflicting values by timestamp_created
     let mut updated = 0u64;
     for record in records.iter() {
         let relay_id = if record.relay_id.is_empty() {"".to_string()} else {record.relay_id[0].clone()};
