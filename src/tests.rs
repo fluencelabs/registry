@@ -97,13 +97,13 @@ mod tests {
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key() {
         clear_db();
-        register_key_and_check!(aqua_dht, "some_key".to_string(), 123u64, get_correct_timestamp_cp(1));
+        register_key_and_check!(aqua_dht, "some_key".to_string(), 123u64, false, 0u32, get_correct_timestamp_cp(1));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_empty_cp() {
         clear_db();
-        let result = aqua_dht.register_key("some_key".to_string(), 123u64);
+        let result = aqua_dht.register_key("some_key".to_string(), false, 0u32, 123u64);
         assert!(!result.success);
         assert_eq!(result.error, "you should use peer.timestamp_ms to pass timestamp");
     }

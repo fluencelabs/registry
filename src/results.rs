@@ -19,56 +19,12 @@ use marine_sqlite_connector::Result as SqliteResult;
 
 #[marine]
 #[derive(Debug)]
-pub struct RegisterKeyResult {
+pub struct DhtResult {
     pub success: bool,
     pub error: String,
 }
 
-impl From<SqliteResult<()>> for RegisterKeyResult {
-    fn from(result: SqliteResult<()>) -> Self {
-        match result {
-            Ok(_) => Self {
-                success: true,
-                error: "".to_string(),
-            },
-            Err(err) => Self {
-                success: false,
-                error: err.to_string(),
-            },
-        }
-    }
-}
-
-#[marine]
-#[derive(Debug)]
-pub struct RepublishKeyResult {
-    pub success: bool,
-    pub error: String,
-}
-
-impl From<SqliteResult<()>> for RepublishKeyResult {
-    fn from(result: SqliteResult<()>) -> Self {
-        match result {
-            Ok(_) => Self {
-                success: true,
-                error: "".to_string(),
-            },
-            Err(err) => Self {
-                success: false,
-                error: err.to_string(),
-            },
-        }
-    }
-}
-
-#[marine]
-#[derive(Debug)]
-pub struct PutValueResult {
-    pub success: bool,
-    pub error: String,
-}
-
-impl From<SqliteResult<()>> for PutValueResult {
+impl From<SqliteResult<()>> for DhtResult {
     fn from(result: SqliteResult<()>) -> Self {
         match result {
             Ok(_) => Self {
@@ -88,9 +44,11 @@ impl From<SqliteResult<()>> for PutValueResult {
 pub struct Record {
     pub value: String,
     pub peer_id: String,
+    pub set_by: String,
     pub relay_id: Vec<String>,
     pub service_id: Vec<String>,
     pub timestamp_created: u64,
+    pub weight: u32,
 }
 
 #[marine]
@@ -177,6 +135,8 @@ pub struct Key {
     pub key: String,
     pub peer_id: String,
     pub timestamp_created: u64,
+    pub pinned: bool,
+    pub weight: u32,
 }
 
 #[marine]
@@ -280,9 +240,4 @@ impl From<SqliteResult<Vec<Record>>> for MergeResult {
             },
         }
     }
-}
-
-#[marine]
-pub struct RecordsStruct {
-    pub records: Vec<Record>
 }
