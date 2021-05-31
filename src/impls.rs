@@ -21,6 +21,7 @@ use fluence::{CallParameters};
 use eyre;
 use eyre::ContextCompat;
 use std::collections::HashMap;
+use boolinator::Boolinator;
 
 
 fn get_custom_option(value: String) -> Vec<String> {
@@ -58,7 +59,7 @@ fn check_key_existence(connection: &Connection, key: String, current_timestamp: 
 }
 
 pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
-    let error_msg = "you should use host peer.timestamp_ms to pass timestamp";
+    let error_msg = "you should use host peer.timestamp_sec to pass timestamp";
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
     let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID &&
@@ -191,8 +192,10 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
         let set_by = call_parameters.init_peer_id;
         let service_id = if service_id.len() == 0 { "".to_string() } else { service_id[0].clone() };
 
-        if let Some(rec) = min_weight_record {
-            connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE set_by='{rec.peer_id}'"))?;
+        if values.len() >= VALUES_LIMIT {
+            if let Some(rec) = min_weight_record {
+                connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE set_by='{rec.peer_id}'"))?;
+            }
         }
 
         connection.execute(
@@ -267,8 +270,9 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
 
     let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
     let host_id = call_parameters.host_id;
+
     connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
-                                    WHERE timestamp_created <= {expired_timestamp} AND peer_id !='{host_id})"))?;
+                                    WHERE timestamp_created <= {expired_timestamp} AND peer_id !='{host_id}')"))?;
     let mut deleted_values = connection.changes() as u64;
 
     // TODO: ignore keys with host values
@@ -309,7 +313,7 @@ pub fn evict_stale_impl(current_timestamp: u64) -> SqliteResult<Vec<EvictStaleIt
         let values = get_values_helper(&connection, key.key.clone())?;
         connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key = '{key.key}' AND set_by != '{host_id}'"))?;
 
-        if !key.pinned && !values.iter().any(|val| val.peer_id != host_id) {
+        if !key.pinned && !values.iter().any(|val| val.peer_id == host_id) {
             connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key='{key.key}'"))?;
         }
 
@@ -346,6 +350,7 @@ pub fn renew_host_value_impl(key: String, current_timestamp: u64) -> SqliteResul
     check_key_existence(&connection, key.clone(), current_timestamp.clone())?;
 
     let set_by = call_parameters.init_peer_id;
+    let host_id = call_parameters.host_id;
 
     connection.execute(
         f!("UPDATE {VALUES_TABLE_NAME} \
