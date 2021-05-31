@@ -5,7 +5,7 @@
                 (call relay ("srv" "resolve_alias") [alias] service_id)
                 (call relay ("srv" "remove") [service_id])
             )
-            (call relay ("op" "identity") [])
+            (null)
         )
         (seq
             (call relay ("srv" "add_alias") [alias service] result)
