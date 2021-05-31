@@ -1,8 +1,11 @@
 (xor
     (seq
-        (seq
-            (call relay ("srv" "resolve_alias") [alias] service_id)
-            (call relay ("srv" "remove") [service_id])
+        (xor
+            (seq
+                (call relay ("srv" "resolve_alias") [alias] service_id)
+                (call relay ("srv" "remove") [service_id])
+            )
+            (call relay ("op" "identity") [])
         )
         (seq
             (call relay ("srv" "add_alias") [alias service] result)
