@@ -1,3 +1,9 @@
+data ClearExpiredResult:
+  success: bool
+  error: string
+  count_keys: u64
+  count_values: u64
+
 data Key:
   key: string
   peer_id: string
@@ -5,10 +11,10 @@ data Key:
   pinned: bool
   weight: u32
 
-data GetKeyMetadataResult:
+data RepublishValuesResult:
   success: bool
   error: string
-  key: Key
+  updated: u64
 
 data Record:
   value: string
@@ -19,6 +25,21 @@ data Record:
   timestamp_created: u64
   weight: u32
 
+data MergeResult:
+  success: bool
+  error: string
+  result: []Record
+
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
+
+data GetKeyMetadataResult:
+  success: bool
+  error: string
+  key: Key
+
 data EvictStaleItem:
   key: Key
   records: []Record
@@ -28,45 +49,24 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data ClearExpiredResult:
-  success: bool
-  error: string
-  count_keys: u64
-  count_values: u64
-
-data GetValuesResult:
-  success: bool
-  error: string
-  result: []Record
-
-data RepublishValuesResult:
-  success: bool
-  error: string
-  updated: u64
-
 data DhtResult:
   success: bool
   error: string
 
-data MergeResult:
-  success: bool
-  error: string
-  result: []Record
-
 service AquaDHT("aqua-dht"):
-  get_values(key: string, current_timestamp: u64) -> GetValuesResult
-  republish_key(key: Key, current_timestamp: u64) -> DhtResult
+  clear_expired(current_timestamp: u64) -> ClearExpiredResult
+  clear_host_value(key: string, current_timestamp: u64) -> DhtResult
+  evict_stale(current_timestamp: u64) -> EvictStaleResult
   get_key_metadata(key: string, current_timestamp: u64) -> GetKeyMetadataResult
-  merge_two(a: []Record, b: []Record) -> MergeResult
-  renew_host_value(key: string, current_timestamp: u64) -> DhtResult
+  get_values(key: string, current_timestamp: u64) -> GetValuesResult
+  merge(records: [][]Record) -> MergeResult
   merge_hack_get_values(records: []GetValuesResult) -> MergeResult
-  republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
+  merge_two(a: []Record, b: []Record) -> MergeResult
   put_host_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string, weight: u32) -> DhtResult
   put_host_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string, weight: u32) -> DhtResult
-  put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string, weight: u32) -> DhtResult
-  clear_host_value(key: string, current_timestamp: u64) -> DhtResult
-  register_key(key: string, current_timestamp: u64, pin: bool, weight: u32) -> DhtResult
-  evict_stale(current_timestamp: u64) -> EvictStaleResult
   put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string, weight: u32) -> DhtResult
-  clear_expired(current_timestamp: u64) -> ClearExpiredResult
-  merge(records: [][]Record) -> MergeResult
+  put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string, weight: u32) -> DhtResult
+  register_key(key: string, current_timestamp: u64, pin: bool, weight: u32) -> DhtResult
+  renew_host_value(key: string, current_timestamp: u64) -> DhtResult
+  republish_key(key: Key, current_timestamp: u64) -> DhtResult
+  republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
