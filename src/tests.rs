@@ -18,8 +18,9 @@
 mod tests {
     use fluence_test::marine_test;
     use rusqlite::{Connection};
-    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, EXPIRED_VALUE_AGE, STALE_VALUE_AGE};
+    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, EXPIRED_VALUE_AGE, STALE_VALUE_AGE, VALUES_LIMIT};
     use fluence::{CallParameters, SecurityTetraplet};
+    use std::time::SystemTime;
 
     const HOST_ID: &str = "some_host_id";
 
@@ -46,6 +47,17 @@ mod tests {
         }]);
 
         cp
+    }
+
+    macro_rules! put_host_value_and_check {
+        ($aqua_dht:expr, $key:expr, $value:expr, $timestamp:expr, $relay_id:expr, $service_id:expr, $weight:expr, $cp:expr) => {
+            {
+                let result = $aqua_dht.put_host_value_cp($key.clone(), $value.clone(), $timestamp.clone(), $relay_id.clone(), $service_id.clone(), $weight.clone(), $cp.clone());
+
+                assert_eq!(result.error, "");
+                assert!(result.success);
+            }
+        }
     }
 
     macro_rules! put_value_and_check {
@@ -369,6 +381,48 @@ mod tests {
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn put_value_limit() {
+        clear_db();
+        let key = "some_key".to_string();
+        let value = "some_value".to_string();
+        let timestamp = 123u64;
+
+        macro_rules! put_value {
+            ($peer_id:expr, $weight:expr) => {
+                {
+                    let mut cp = get_correct_timestamp_cp(2);
+                    cp.init_peer_id = $peer_id.clone();
+                    put_value_and_check!(aqua_dht, key, value, timestamp, vec![], vec![], $weight.clone(), cp);
+                }
+            }
+        }
+
+        register_key_and_check!(aqua_dht, key, timestamp, false, 8u32, get_correct_timestamp_cp(1));
+
+        let min_weight = 10u32;
+        for i in 0..VALUES_LIMIT {
+            put_value!(i.to_string(), min_weight + i as u32);
+        }
+
+        // try to put value with smaller weight
+        let smaller_weight = min_weight - 1;
+        let mut cp = get_correct_timestamp_cp(2);
+        cp.init_peer_id = "unique_peer_id1".to_string();
+        let result = aqua_dht.put_value_cp(key.clone(), value.clone(), timestamp, vec![], vec![], smaller_weight, cp);
+        assert!(!result.success);
+        assert_eq!(result.error, "values limit is exceeded");
+
+        // try to put value with bigger weight
+        let bigger_weight = min_weight + 99999;
+        let mut cp = get_correct_timestamp_cp(2);
+        cp.init_peer_id = "unique_peer_id2".to_string();
+        put_value_and_check!(aqua_dht, key, value, timestamp, vec![], vec![], bigger_weight, cp);
+
+        // try to put host value
+        put_host_value_and_check!(aqua_dht, key, value, timestamp, vec![], vec![], 0u32, get_correct_timestamp_cp(2));
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_multiple_values_for_key() {
         clear_db();
         let key = "some_key".to_string();
@@ -453,7 +507,7 @@ mod tests {
     fn clear_expired_key_without_values() {
         clear_db();
         let key = "some_key".to_string();
-        let expired_timestamp = 0u64;
+        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
 
         let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
@@ -469,10 +523,42 @@ mod tests {
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_host_key() {
+        clear_db();
+        let key = "some_key".to_string();
+        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), true, 8u32, get_correct_timestamp_cp(1));
+        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys, 0);
+        assert_eq!(result.count_values, 1);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_host_value() {
+        clear_db();
+        let key = "some_key".to_string();
+        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
+        put_host_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys, 0);
+        assert_eq!(result.count_values, 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_key_with_values() {
         clear_db();
         let key = "some_key".to_string();
-        let expired_timestamp = 0u64;
+        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 

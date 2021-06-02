@@ -186,13 +186,13 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
     let values: Vec<Record> = get_values_helper(&connection, key.clone())?.into_iter().filter(|item| item.peer_id == item.set_by).collect();
     let min_weight_record = values.iter().last();
 
-    if values.len() < VALUES_LIMIT || min_weight_record.unwrap().weight < weight {
+    if host || values.len() < VALUES_LIMIT || min_weight_record.unwrap().weight < weight {
         let relay_id = if relay_id.len() == 0 { "".to_string() } else { relay_id[0].clone() };
         let peer_id = if host { call_parameters.host_id } else { call_parameters.init_peer_id.clone() };
         let set_by = call_parameters.init_peer_id;
         let service_id = if service_id.len() == 0 { "".to_string() } else { service_id[0].clone() };
 
-        if values.len() >= VALUES_LIMIT {
+        if !host && values.len() >= VALUES_LIMIT {
             if let Some(rec) = min_weight_record {
                 connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE set_by='{rec.peer_id}'"))?;
             }
@@ -237,7 +237,7 @@ pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<
     get_values_helper(&connection, key)
 }
 
-pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestamp: u64) -> SqliteResult<u64> {
+pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp: u64) -> SqliteResult<u64> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
@@ -245,7 +245,8 @@ pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestam
 
     check_key_existence(&connection, key.clone(), current_timestamp.clone())?;
 
-    // TODO: compare conflicting values by timestamp_created
+    records = merge_impl(get_values_helper(&connection, key.clone())?.into_iter().chain(records.into_iter()).collect())?;
+
     let mut updated = 0u64;
     for record in records.iter() {
         let relay_id = if record.relay_id.is_empty() { "".to_string() } else { record.relay_id[0].clone() };
@@ -268,23 +269,29 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
-    let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
-    let host_id = call_parameters.host_id;
-
-    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
-                                    WHERE timestamp_created <= {expired_timestamp} AND peer_id !='{host_id}')"))?;
-    let mut deleted_values = connection.changes() as u64;
-
-    // TODO: ignore keys with host values
-    connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND NOT pinned"))?;
-    let mut deleted_keys = connection.changes() as u64;
-
     let expired_host_timestamp = current_timestamp - EXPIRED_HOST_VALUE_AGE;
+    let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
+    let mut deleted_values = 0u64;
+    let host_id = call_parameters.host_id;
     connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
                                     WHERE timestamp_created <= {expired_host_timestamp})"))?;
     deleted_values += connection.changes() as u64;
+    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"))?;
+    deleted_values += connection.changes() as u64;
+
+    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
+                                    WHERE timestamp_created <= {expired_timestamp}) AND peer_id != '{host_id}'"))?;
+    deleted_values += connection.changes() as u64;
+    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} \
+                                    WHERE timestamp_created <= {expired_timestamp} AND peer_id != '{host_id}'"))?;
+    deleted_values += connection.changes() as u64;
+
 
     connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"))?;
+    let mut deleted_keys = connection.changes() as u64;
+    connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} \
+                                    WHERE timestamp_created <= {expired_timestamp} AND pinned=0 AND \
+                                    key NOT IN (SELECT key FROM {VALUES_TABLE_NAME} WHERE peer_id='{host_id}')"))?;
     deleted_keys += connection.changes() as u64;
 
     Ok((deleted_keys, deleted_values))
@@ -343,7 +350,7 @@ pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
 
 pub fn renew_host_value_impl(key: String, current_timestamp: u64) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 0)
+    check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
@@ -362,7 +369,7 @@ pub fn renew_host_value_impl(key: String, current_timestamp: u64) -> SqliteResul
 
 pub fn clear_host_value_impl(key: String, current_timestamp: u64) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 0)
+    check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
