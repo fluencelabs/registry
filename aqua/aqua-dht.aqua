@@ -1,9 +1,3 @@
-data ClearExpiredResult:
-  success: bool
-  error: string
-  count_keys: u64
-  count_values: u64
-
 data Key:
   key: string
   peer_id: string
@@ -11,10 +5,10 @@ data Key:
   pinned: bool
   weight: u32
 
-data RepublishValuesResult:
+data GetKeyMetadataResult:
   success: bool
   error: string
-  updated: u64
+  key: Key
 
 data Record:
   value: string
@@ -35,10 +29,15 @@ data GetValuesResult:
   error: string
   result: []Record
 
-data GetKeyMetadataResult:
+data ClearExpiredResult:
   success: bool
   error: string
-  key: Key
+  count_keys: u64
+  count_values: u64
+
+data DhtResult:
+  success: bool
+  error: string
 
 data EvictStaleItem:
   key: Key
@@ -49,9 +48,10 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data DhtResult:
+data RepublishValuesResult:
   success: bool
   error: string
+  updated: u64
 
 service AquaDHT("aqua-dht"):
   clear_expired(current_timestamp: u64) -> ClearExpiredResult

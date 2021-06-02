@@ -251,10 +251,14 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
     for record in records.iter() {
         let relay_id = if record.relay_id.is_empty() { "".to_string() } else { record.relay_id[0].clone() };
         let service_id = if record.service_id.is_empty() { "".to_string() } else { record.service_id[0].clone() };
-        let set_by = record.peer_id.clone(); // set_by ignored in republish
+
+        if record.set_by != record.peer_id { // host values are ignored in republish
+            continue;
+        }
+
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
-                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{set_by}', '{relay_id}',\
+                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.peer_id}, '{relay_id}',\
                     '{service_id}', '{record.timestamp_created}', '{current_timestamp}', '{record.weight}')"))?;
 
         updated += connection.changes() as u64;
