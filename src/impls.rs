@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE, STALE_VALUE_AGE, EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT};
+use crate::{Config, KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, DEFAULT_EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
 use crate::results::{Key, Record, EvictStaleItem};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement};
 use fluence::{CallParameters};
@@ -22,7 +22,8 @@ use eyre;
 use eyre::ContextCompat;
 use std::collections::HashMap;
 use boolinator::Boolinator;
-
+use toml;
+use std::fs;
 
 fn get_custom_option(value: String) -> Vec<String> {
     if value.is_empty() {
@@ -54,8 +55,8 @@ fn read_record(statement: &Statement) -> SqliteResult<Record> {
     })
 }
 
-fn check_key_existence(connection: &Connection, key: String, current_timestamp: u64) -> SqliteResult<()> {
-    get_key_metadata_helper(&connection, key, current_timestamp).map(|_| ())
+fn check_key_existence(connection: &Connection, key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
+    get_key_metadata_helper(&connection, key, current_timestamp_sec).map(|_| ())
 }
 
 pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
@@ -110,10 +111,30 @@ pub(crate) fn create_values_table() -> bool {
         ).is_ok()
 }
 
-fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp: u64) -> SqliteResult<Key> {
+pub fn write_config(config: Config) {
+    fs::write(CONFIG_FILE, toml::to_string(&config).unwrap()).unwrap();
+}
+
+pub fn load_config() -> Config {
+    let file_content = fs::read_to_string(CONFIG_FILE).unwrap();
+    let config: Config = toml::from_str(&file_content).unwrap();
+    config
+}
+
+pub(crate) fn create_config() {
+    if fs::metadata(CONFIG_FILE).is_err() {
+        write_config(Config {
+            expired_timeout: DEFAULT_EXPIRED_VALUE_AGE,
+            stale_timeout: DEFAULT_STALE_VALUE_AGE,
+            host_expired_timeout: DEFAULT_EXPIRED_HOST_VALUE_AGE,
+        });
+    }
+}
+
+fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
     connection.execute(
         f!("UPDATE {KEYS_TABLE_NAME} \
-                     SET timestamp_accessed = '{current_timestamp}' \
+                     SET timestamp_accessed = '{current_timestamp_sec}' \
                      WHERE key = '{key}'"))?;
 
     let mut statement = connection
@@ -148,40 +169,40 @@ fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_c
     }
 }
 
-pub fn get_key_metadata_impl(key: String, current_timestamp: u64) -> SqliteResult<Key> {
+pub fn get_key_metadata_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
-    get_key_metadata_helper(&get_connection()?, key, current_timestamp)
+    get_key_metadata_helper(&get_connection()?, key, current_timestamp_sec)
 }
 
-pub fn register_key_impl(key: String, current_timestamp: u64, pin: bool, weight: u32) -> SqliteResult<()> {
+pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, weight: u32) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
     let peer_id = call_parameters.init_peer_id.clone();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
-    update_key(&get_connection()?, key, peer_id, current_timestamp.clone(), current_timestamp, pin, weight)
+    update_key(&get_connection()?, key, peer_id, current_timestamp_sec.clone(), current_timestamp_sec, pin, weight)
 }
 
-pub fn republish_key_impl(key: Key, current_timestamp: u64) -> SqliteResult<()> {
+pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
     // Key.pinned is ignored in republish
-    update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp, false, key.weight)
+    update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp_sec, false, key.weight)
 }
 
-pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32, host: bool) -> SqliteResult<()> {
+pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32, host: bool) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
     let values: Vec<Record> = get_values_helper(&connection, key.clone())?.into_iter().filter(|item| item.peer_id == item.set_by).collect();
     let min_weight_record = values.iter().last();
@@ -201,7 +222,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp: u64, relay_
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
                     VALUES ('{key}', '{value}', '{peer_id}', '{set_by}', '{relay_id}',\
-                    '{service_id}', '{current_timestamp}', '{current_timestamp}', '{weight}')")
+                    '{service_id}', '{current_timestamp_sec}', '{current_timestamp_sec}', '{weight}')")
         )
     } else {
         Err(SqliteError { code: None, message: Some("values limit is exceeded".to_string()) })
@@ -222,7 +243,7 @@ pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<V
     Ok(result)
 }
 
-pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<Record>> {
+pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Vec<Record>> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
@@ -231,19 +252,19 @@ pub fn get_values_impl(key: String, current_timestamp: u64) -> SqliteResult<Vec<
 
     connection.execute(
         f!("UPDATE {VALUES_TABLE_NAME} \
-                     SET timestamp_accessed = '{current_timestamp}' \
+                     SET timestamp_accessed = '{current_timestamp_sec}' \
                      WHERE key = '{key}'"))?;
 
     get_values_helper(&connection, key)
 }
 
-pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp: u64) -> SqliteResult<u64> {
+pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
     records = merge_impl(get_values_helper(&connection, key.clone())?.into_iter().chain(records.into_iter()).collect())?;
 
@@ -259,7 +280,7 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
                     VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.peer_id}, '{relay_id}',\
-                    '{service_id}', '{record.timestamp_created}', '{current_timestamp}', '{record.weight}')"))?;
+                    '{service_id}', '{record.timestamp_created}', '{current_timestamp_sec}', '{record.weight}')"))?;
 
         updated += connection.changes() as u64;
     }
@@ -267,14 +288,15 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
     Ok(updated)
 }
 
-pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
+pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
+    let config = load_config();
 
-    let expired_host_timestamp = current_timestamp - EXPIRED_HOST_VALUE_AGE;
-    let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
+    let expired_host_timestamp = current_timestamp_sec - config.host_expired_timeout;
+    let expired_timestamp = current_timestamp_sec - config.expired_timeout;
     let mut deleted_values = 0u64;
     let host_id = call_parameters.host_id;
     connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
@@ -301,12 +323,12 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
     Ok((deleted_keys, deleted_values))
 }
 
-pub fn evict_stale_impl(current_timestamp: u64) -> SqliteResult<Vec<EvictStaleItem>> {
+pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictStaleItem>> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
-    let stale_timestamp = current_timestamp - STALE_VALUE_AGE;
+    let stale_timestamp = current_timestamp_sec - load_config().stale_timeout;
 
     let mut stale_keys: Vec<Key> = vec![];
     let mut statement =
@@ -352,32 +374,32 @@ pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
     Ok(result.into_iter().map(|(_, rec)| rec).collect())
 }
 
-pub fn renew_host_value_impl(key: String, current_timestamp: u64) -> SqliteResult<()> {
+pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
     let set_by = call_parameters.init_peer_id;
     let host_id = call_parameters.host_id;
 
     connection.execute(
         f!("UPDATE {VALUES_TABLE_NAME} \
-                     SET timestamp_created = '{current_timestamp}', timestamp_accessed = '{current_timestamp}' \
+                     SET timestamp_created = '{current_timestamp_sec}', timestamp_accessed = '{current_timestamp_sec}' \
                      WHERE key = '{key}' AND set_by = '{set_by}' AND peer_id = '{host_id}'"))?;
 
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
 
-pub fn clear_host_value_impl(key: String, current_timestamp: u64) -> SqliteResult<()> {
+pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
     let host_id = call_parameters.host_id;
     let set_by = call_parameters.init_peer_id;

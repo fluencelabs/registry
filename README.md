@@ -40,43 +40,83 @@ cargo test --release
 Note: all timestamps should be passed as result of `("op" "timestamp_sec")` builtin call.
 ### Key methods
 
-```~~~~
-register_key(key: string, current_timestamp: u64)
-get_key_metadata(key: string, current_timestamp: u64)
+#### `register_key(key: string, current_timestamp: u64, weight: u32)`
 
-# used for replication
-republish_key(key: Key, current_timestamp: u64) 
-```
+- key is unique
+- key owner is `%init_peer_id%`
+- return `"key already exists with different peer_id"` if key is already registered by another peer
+
+####`get_key_metadata(key: string, current_timestamp: u64)`
+
+- return `"not found"` if key not exists
+- update `timestamp_accessed`
+
+#### `republish_key(key: Key, current_timestamp: u64) `
+
+- register key if not exists
+- pick older one in case of conflicts
+- `pinned` field is ignored
 
 ### Value methods
-```
-# key should already be registered, each peer_id has its own value for the key
-put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string)
-put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string)
 
-# return list of values for given key
-get_values(key: string, current_timestamp: u64)
+#### `put_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string, weight: u32)`
 
-# used for replication
-republish_values(key: string, records: []Record, current_timestamp: u64)
-```
+- key should already be registered
+- value's peer_id is `%init_peer_id%`
+- each peer can have only one value per key
+- `relay_id` and `service_id` should have one element or be empty
+- there are hardcoded limit for values per key (20)
+- values are prioritized by weight, if the limit is exceeded, the lightest value will be replaced by the heavier one
+
+#### `put_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string, weight: u32)`
+
+- same as `put_value` but `relay_id` is required and `service_id` is omitted
+
+#### `put_host_value(key: string, value: string, current_timestamp: u64, relay_id: []string, service_id: []string, weight: u32)`
+
+- key should already be registered
+- value's peer_id is `host_id`
+- each peer can have only one value per key
+- there are no limits for host values
+
+#### `put_host_value_relay(key: string, value: string, current_timestamp: u64, relay_id: string, weight: u32)`
+
+- same as `put_host_value` but `relay_id` is required and `service_id` is omitted
+
+#### `renew_host_value(key: string, current_timestamp: u64)`
+
+- update `timestamp_created` and `timestamp_accessed` for host value given by `%init_peer_id`
+
+#### `clear_host_value(key: string, current_timestamp: u64)`
+
+- remove host value given by `%init_peer_id`
+
+#### `get_values(key: string, current_timestamp: u64)`
+
+- return list of values for given key
+
+#### `republish_values(key: string, records: []Record, current_timestamp: u64)`
+
+- host values are ignored
+- merge with current values by last-write-wins strategy
+
 
 ### Other
-```
-# clear locally and return keys and values older than 1 hour for republishing
-evict_stale(current_timestamp: u64)
 
-# clear values and keys older than 24 hours
-clear_expired(current_timestamp: u64)
-```
+#### `evict_stale(current_timestamp: u64)`
 
+- return stale keys and records
+- remove stale non-host records, unpinned keys that have no host values
+
+#### `clear_expired(current_timestamp: u64)`
+
+- remove expired keys and values
+- an expired key is ignored if it has an actual host value
 
 ```
-# this methods merge values and return the most recent
 merge(records: [][]Record)
 merge_two(a: []Record, b: []Record)
-merge_wrapped(records: [][][]Record)
-merge_hack(records: [][]Record, hack: string)
 merge_hack_get_values(records: []GetValuesResult)
-merge_hack_struct(records: RecordsStruct)
 ```
+
+- this methods merge values and return the most recent
