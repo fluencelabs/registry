@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Aqua DHT library",
   "files": [
-    "dht.aqua"
+    "dht.aqua",
+    "dht-api.aqua",
+    "dht-"
   ],
   "scripts": {},
   "repository": {
