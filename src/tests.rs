@@ -586,6 +586,35 @@ mod tests {
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_change_timeout() {
+        clear_env();
+        let key = "some_key".to_string();
+        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+
+        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
+        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+
+        let new_expired_timeout = DEFAULT_EXPIRED_VALUE_AGE - 100u64;
+        aqua_dht.set_expired_timeout(new_expired_timeout.clone());
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + new_expired_timeout, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys, 1);
+        assert_eq!(result.count_values, 1);
+
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+
+        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_stale_empty_cp() {
         clear_env();
 
