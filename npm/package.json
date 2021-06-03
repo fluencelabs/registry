@@ -5,7 +5,7 @@
   "files": [
     "dht.aqua",
     "dht-api.aqua",
-    "dht-"
+    "dht-scheduled-scripts"
   ],
   "scripts": {},
   "repository": {
