@@ -18,17 +18,22 @@
 mod tests {
     use fluence_test::marine_test;
     use rusqlite::{Connection};
-    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, EXPIRED_VALUE_AGE, STALE_VALUE_AGE, VALUES_LIMIT};
+    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
     use fluence::{CallParameters, SecurityTetraplet};
     use std::time::SystemTime;
+    use std::fs;
 
     const HOST_ID: &str = "some_host_id";
 
-    fn clear_db() {
+    fn clear_env() {
         let connection = Connection::open(DB_PATH).unwrap();
 
         connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME}").as_str(), []).unwrap();
         connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME}").as_str(), []).unwrap();
+
+        if fs::metadata(CONFIG_FILE).is_ok() {
+            fs::remove_file(CONFIG_FILE).unwrap();
+        }
     }
 
     fn get_correct_timestamp_cp(arg_number: usize) -> CallParameters {
@@ -113,13 +118,13 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key() {
-        clear_db();
+        clear_env();
         register_key_and_check!(aqua_dht, "some_key".to_string(), 123u64, false, 0u32, get_correct_timestamp_cp(1));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_empty_cp() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.register_key("some_key".to_string(), 123u64, false, 0u32);
         assert!(!result.success);
         assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
@@ -127,7 +132,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_invalid_cp() {
-        clear_db();
+        clear_env();
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
         invalid_cp.tetraplets.push(vec![SecurityTetraplet {
@@ -144,7 +149,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_twice_same_peer_id() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let timestamp = 123u64;
         let weight = 8u32;
@@ -158,7 +163,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn register_key_twice_other_peer_id() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let timestamp = 123u64;
         let weight = 8u32;
@@ -175,7 +180,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_key_metadata_not_found() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.get_key_metadata_cp("invalid_key".to_string(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
         assert_eq!(result.error, "not found");
@@ -183,7 +188,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn republish_key_not_exists() {
-        clear_db();
+        clear_env();
         let key = aqua_dht_structs::Key {
             key: "some_key".to_string(),
             peer_id: "some_peer".to_string(),
@@ -197,7 +202,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn republish_key_same_peer_id() {
-        clear_db();
+        clear_env();
         let key_str = "some_key".to_string();
         let timestamp = 123u64;
         let weight = 8u32;
@@ -219,7 +224,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn republish_key_other_peer_id() {
-        clear_db();
+        clear_env();
         let key_str = "some_key".to_string();
         let timestamp = 123u64;
         let weight = 8u32;
@@ -243,7 +248,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_empty_cp() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.put_value("some_key".to_string(), "value".to_string(), 123u64, vec![], vec![], 8u32);
         assert!(!result.success);
         assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
@@ -251,7 +256,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_invalid_cp() {
-        clear_db();
+        clear_env();
 
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -269,7 +274,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_values_empty_cp() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.get_values("some_key".to_string(), 123u64);
         assert!(!result.success);
         assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
@@ -277,7 +282,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_values_invalid_cp() {
-        clear_db();
+        clear_env();
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
         invalid_cp.tetraplets.push(vec![SecurityTetraplet {
@@ -294,7 +299,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_values_empty() {
-        clear_db();
+        clear_env();
 
         let key = "some_key".to_string();
         register_key_and_check!(aqua_dht, key, 123u64, false, 8u32, get_correct_timestamp_cp(1));
@@ -308,7 +313,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_key_not_exists() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.put_value_cp("some_key".to_string(), "value".to_string(), 123u64, vec![], vec![], 8u32, get_correct_timestamp_cp(2));
         assert!(!result.success);
         assert_eq!(result.error, "not found");
@@ -316,7 +321,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value() {
-        clear_db();
+        clear_env();
 
         let key = "some_key".to_string();
         let value = "some_value".to_string();
@@ -348,7 +353,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_update() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let value1 = "some_value".to_string();
         let timestamp = 123u64;
@@ -382,7 +387,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_limit() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let timestamp = 123u64;
@@ -424,7 +429,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_multiple_values_for_key() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let timestamp = 123u64;
@@ -469,7 +474,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_empty_cp() {
-        clear_db();
+        clear_env();
 
         let result = aqua_dht.clear_expired(124u64);
         assert!(!result.success);
@@ -478,7 +483,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_invalid_cp() {
-        clear_db();
+        clear_env();
 
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -496,7 +501,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_empty() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
         assert_eq!(result.error, "");
         assert!(result.success);
@@ -505,12 +510,12 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_key_without_values() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -524,13 +529,13 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_host_key() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), true, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -540,13 +545,13 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_host_value() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_host_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -556,13 +561,42 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn clear_expired_key_with_values() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.count_keys, 1);
+        assert_eq!(result.count_values, 1);
+
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+
+        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn clear_expired_change_timeout() {
+        clear_env();
+        let key = "some_key".to_string();
+        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+
+        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
+        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+
+        let new_expired_timeout = DEFAULT_EXPIRED_VALUE_AGE - 100u64;
+        aqua_dht.set_expired_timeout(new_expired_timeout.clone());
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + new_expired_timeout, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -582,7 +616,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_stale_empty_cp() {
-        clear_db();
+        clear_env();
 
         let result = aqua_dht.evict_stale(124u64);
         assert!(!result.success);
@@ -591,7 +625,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_stale_invalid_cp() {
-        clear_db();
+        clear_env();
 
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -609,7 +643,7 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_stale_empty() {
-        clear_db();
+        clear_env();
         let result = aqua_dht.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -618,12 +652,12 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_stale_key_without_values() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let stale_timestamp = 0u64;
         register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
 
-        let result = aqua_dht.evict_stale_cp(stale_timestamp + STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.evict_stale_cp(stale_timestamp + DEFAULT_STALE_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -639,14 +673,14 @@ mod tests {
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_stale_key_with_values() {
-        clear_db();
+        clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let stale_timestamp = 0u64;
         register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.evict_stale_cp(stale_timestamp + STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.evict_stale_cp(stale_timestamp + DEFAULT_STALE_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
