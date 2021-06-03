@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, EXPIRED_VALUE_AGE, STALE_VALUE_AGE, EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT};
+use crate::{Config, KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, DEFAULT_EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
 use crate::results::{Key, Record, EvictStaleItem};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement};
 use fluence::{CallParameters};
@@ -22,7 +22,8 @@ use eyre;
 use eyre::ContextCompat;
 use std::collections::HashMap;
 use boolinator::Boolinator;
-
+use toml;
+use std::fs;
 
 fn get_custom_option(value: String) -> Vec<String> {
     if value.is_empty() {
@@ -108,6 +109,26 @@ pub(crate) fn create_values_table() -> bool {
             );
         "),
         ).is_ok()
+}
+
+pub fn write_config(config: Config) {
+    fs::write(CONFIG_FILE, toml::to_string(&config).unwrap()).unwrap();
+}
+
+pub fn load_config() -> Config {
+    let file_content = fs::read_to_string(CONFIG_FILE).unwrap();
+    let config: Config = toml::from_str(&file_content).unwrap();
+    config
+}
+
+pub(crate) fn create_config() {
+    if fs::metadata(CONFIG_FILE).is_err() {
+        write_config(Config {
+            expired_timeout: DEFAULT_EXPIRED_VALUE_AGE,
+            stale_timeout: DEFAULT_STALE_VALUE_AGE,
+            host_expired_timeout: DEFAULT_EXPIRED_HOST_VALUE_AGE,
+        });
+    }
 }
 
 fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp: u64) -> SqliteResult<Key> {
@@ -272,9 +293,10 @@ pub fn clear_expired_impl(current_timestamp: u64) -> SqliteResult<(u64, u64)> {
     check_timestamp_tetraplets(&call_parameters, 0)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
+    let config = load_config();
 
-    let expired_host_timestamp = current_timestamp - EXPIRED_HOST_VALUE_AGE;
-    let expired_timestamp = current_timestamp - EXPIRED_VALUE_AGE;
+    let expired_host_timestamp = current_timestamp - config.host_expired_timeout;
+    let expired_timestamp = current_timestamp - config.expired_timeout;
     let mut deleted_values = 0u64;
     let host_id = call_parameters.host_id;
     connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
@@ -306,7 +328,7 @@ pub fn evict_stale_impl(current_timestamp: u64) -> SqliteResult<Vec<EvictStaleIt
     check_timestamp_tetraplets(&call_parameters, 0)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
-    let stale_timestamp = current_timestamp - STALE_VALUE_AGE;
+    let stale_timestamp = current_timestamp - load_config().stale_timeout;
 
     let mut stale_keys: Vec<Key> = vec![];
     let mut statement =

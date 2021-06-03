@@ -20,10 +20,12 @@ mod tests;
 mod impls;
 
 use crate::results::{Key, GetKeyMetadataResult, DhtResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult};
-use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl, renew_host_value_impl, clear_host_value_impl};
+use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl, renew_host_value_impl, clear_host_value_impl, create_config, load_config, write_config};
 
 use fluence::marine;
 use fluence::module_manifest;
+
+use serde::{Deserialize, Serialize};
 
 #[macro_use]
 extern crate fstrings;
@@ -32,18 +34,27 @@ module_manifest!();
 
 pub static KEYS_TABLE_NAME: &str = "dht_keys";
 pub static VALUES_TABLE_NAME: &str = "dht_values";
+pub static CONFIG_FILE: &str = "/tmp/Config.toml";
 pub static DB_PATH: &str = "/tmp/dht.db";
-pub static STALE_VALUE_AGE: u64 = 60 * 60;
-pub static EXPIRED_VALUE_AGE: u64 = 24 * 60 * 60;
-pub static EXPIRED_HOST_VALUE_AGE: u64 = 10 * EXPIRED_VALUE_AGE;
+pub static DEFAULT_STALE_VALUE_AGE: u64 = 60 * 60;
+pub static DEFAULT_EXPIRED_VALUE_AGE: u64 = 24 * 60 * 60;
+pub static DEFAULT_EXPIRED_HOST_VALUE_AGE: u64 = 10 * DEFAULT_EXPIRED_VALUE_AGE;
 pub static VALUES_LIMIT: usize = 20;
 
 pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
 pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
 
+#[derive(Deserialize, Serialize)]
+pub struct Config {
+    pub expired_timeout: u64,
+    pub stale_timeout: u64,
+    pub host_expired_timeout: u64,
+}
+
 fn main() {
     create_keys_table();
     create_values_table();
+    create_config();
 }
 
 // KEYS
@@ -134,4 +145,25 @@ pub fn merge_hack_get_values(records: Vec<GetValuesResult>) -> MergeResult {
             .flatten()
             .collect()
     ).into()
+}
+
+#[marine]
+pub fn set_expired_timeout(timeout: u64) {
+    let mut config = load_config();
+    config.expired_timeout = timeout;
+    write_config(config);
+}
+
+#[marine]
+pub fn set_host_expired_timeout(timeout: u64) {
+    let mut config = load_config();
+    config.host_expired_timeout = timeout;
+    write_config(config);
+}
+
+#[marine]
+pub fn set_stale_timeout(timeout: u64) {
+    let mut config = load_config();
+    config.stale_timeout = timeout;
+    write_config(config);
 }

@@ -18,7 +18,7 @@
 mod tests {
     use fluence_test::marine_test;
     use rusqlite::{Connection};
-    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, EXPIRED_VALUE_AGE, STALE_VALUE_AGE, VALUES_LIMIT};
+    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, VALUES_LIMIT};
     use fluence::{CallParameters, SecurityTetraplet};
     use std::time::SystemTime;
 
@@ -510,7 +510,7 @@ mod tests {
         let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -530,7 +530,7 @@ mod tests {
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), true, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -546,7 +546,7 @@ mod tests {
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_host_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -562,7 +562,7 @@ mod tests {
         register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -623,7 +623,7 @@ mod tests {
         let stale_timestamp = 0u64;
         register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
 
-        let result = aqua_dht.evict_stale_cp(stale_timestamp + STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.evict_stale_cp(stale_timestamp + DEFAULT_STALE_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -646,7 +646,7 @@ mod tests {
         register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
-        let result = aqua_dht.evict_stale_cp(stale_timestamp + STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.evict_stale_cp(stale_timestamp + DEFAULT_STALE_VALUE_AGE, get_correct_timestamp_cp(0));
 
         assert!(result.success);
         assert_eq!(result.error, "");

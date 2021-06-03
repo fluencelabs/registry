@@ -1,14 +1,11 @@
-data Key:
-  key: string
-  peer_id: string
-  timestamp_created: u64
-  pinned: bool
-  weight: u32
-
-data GetKeyMetadataResult:
+data DhtResult:
   success: bool
   error: string
-  key: Key
+
+data RepublishValuesResult:
+  success: bool
+  error: string
+  updated: u64
 
 data Record:
   value: string
@@ -24,20 +21,12 @@ data MergeResult:
   error: string
   result: []Record
 
-data GetValuesResult:
-  success: bool
-  error: string
-  result: []Record
-
-data ClearExpiredResult:
-  success: bool
-  error: string
-  count_keys: u64
-  count_values: u64
-
-data DhtResult:
-  success: bool
-  error: string
+data Key:
+  key: string
+  peer_id: string
+  timestamp_created: u64
+  pinned: bool
+  weight: u32
 
 data EvictStaleItem:
   key: Key
@@ -48,10 +37,21 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data RepublishValuesResult:
+data GetKeyMetadataResult:
   success: bool
   error: string
-  updated: u64
+  key: Key
+
+data ClearExpiredResult:
+  success: bool
+  error: string
+  count_keys: u64
+  count_values: u64
+
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
 
 service AquaDHT("aqua-dht"):
   clear_expired(current_timestamp: u64) -> ClearExpiredResult
@@ -70,3 +70,6 @@ service AquaDHT("aqua-dht"):
   renew_host_value(key: string, current_timestamp: u64) -> DhtResult
   republish_key(key: Key, current_timestamp: u64) -> DhtResult
   republish_values(key: string, records: []Record, current_timestamp: u64) -> RepublishValuesResult
+  set_expired_timeout(timeout: u64) -> ()
+  set_host_expired_timeout(timeout: u64) -> ()
+  set_stale_timeout(timeout: u64) -> ()
