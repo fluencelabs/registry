@@ -59,70 +59,70 @@ fn main() {
 
 // KEYS
 #[marine]
-pub fn register_key(key: String, current_timestamp: u64, pin: bool, weight: u32) -> DhtResult {
-    register_key_impl(key, current_timestamp, pin, weight).into()
+pub fn register_key(key: String, current_timestamp_sec: u64, pin: bool, weight: u32) -> DhtResult {
+    register_key_impl(key, current_timestamp_sec, pin, weight).into()
 }
 
 #[marine]
-pub fn get_key_metadata(key: String, current_timestamp: u64) -> GetKeyMetadataResult {
-    get_key_metadata_impl(key, current_timestamp).into()
+pub fn get_key_metadata(key: String, current_timestamp_sec: u64) -> GetKeyMetadataResult {
+    get_key_metadata_impl(key, current_timestamp_sec).into()
 }
 
 #[marine]
-pub fn republish_key(key: Key, current_timestamp: u64) -> DhtResult {
-    republish_key_impl(key, current_timestamp).into()
+pub fn republish_key(key: Key, current_timestamp_sec: u64) -> DhtResult {
+    republish_key_impl(key, current_timestamp_sec).into()
 }
 
 // VALUES
 #[marine]
-pub fn put_value(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32) -> DhtResult {
-    put_value_impl(key, value, current_timestamp, relay_id, service_id, weight, false).into()
+pub fn put_value(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32) -> DhtResult {
+    put_value_impl(key, value, current_timestamp_sec, relay_id, service_id, weight, false).into()
 }
 
 #[marine]
-pub fn put_value_relay(key: String, value: String, current_timestamp: u64, relay_id: String, weight: u32) -> DhtResult {
-    put_value_impl(key, value, current_timestamp, vec![relay_id], vec![], weight, false).into()
+pub fn put_value_relay(key: String, value: String, current_timestamp_sec: u64, relay_id: String, weight: u32) -> DhtResult {
+    put_value_impl(key, value, current_timestamp_sec, vec![relay_id], vec![], weight, false).into()
 }
 
 #[marine]
-pub fn put_host_value(key: String, value: String, current_timestamp: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32) -> DhtResult {
-    put_value_impl(key, value, current_timestamp, relay_id, service_id, weight, true).into()
+pub fn put_host_value(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32) -> DhtResult {
+    put_value_impl(key, value, current_timestamp_sec, relay_id, service_id, weight, true).into()
 }
 
 #[marine]
-pub fn put_host_value_relay(key: String, value: String, current_timestamp: u64, relay_id: String, weight: u32) -> DhtResult {
-    put_value_impl(key, value, current_timestamp, vec![relay_id], vec![], weight, true).into()
+pub fn put_host_value_relay(key: String, value: String, current_timestamp_sec: u64, relay_id: String, weight: u32) -> DhtResult {
+    put_value_impl(key, value, current_timestamp_sec, vec![relay_id], vec![], weight, true).into()
 }
 
 #[marine]
-pub fn get_values(key: String, current_timestamp: u64) -> GetValuesResult {
-    get_values_impl(key, current_timestamp).into()
+pub fn get_values(key: String, current_timestamp_sec: u64) -> GetValuesResult {
+    get_values_impl(key, current_timestamp_sec).into()
 }
 
 #[marine]
-pub fn republish_values(key: String, records: Vec<Record>, current_timestamp: u64) -> RepublishValuesResult {
-    republish_values_impl(key, records, current_timestamp).into()
+pub fn republish_values(key: String, records: Vec<Record>, current_timestamp_sec: u64) -> RepublishValuesResult {
+    republish_values_impl(key, records, current_timestamp_sec).into()
 }
 
 #[marine]
-pub fn renew_host_value(key: String, current_timestamp: u64) -> DhtResult {
-    renew_host_value_impl(key, current_timestamp).into()
+pub fn renew_host_value(key: String, current_timestamp_sec: u64) -> DhtResult {
+    renew_host_value_impl(key, current_timestamp_sec).into()
 }
 
 #[marine]
-pub fn clear_host_value(key: String, current_timestamp: u64) -> DhtResult {
-    clear_host_value_impl(key, current_timestamp).into()
+pub fn clear_host_value(key: String, current_timestamp_sec: u64) -> DhtResult {
+    clear_host_value_impl(key, current_timestamp_sec).into()
 }
 
 // BOTH
 #[marine]
-pub fn clear_expired(current_timestamp: u64) -> ClearExpiredResult {
-    clear_expired_impl(current_timestamp).into()
+pub fn clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult {
+    clear_expired_impl(current_timestamp_sec).into()
 }
 
 #[marine]
-pub fn evict_stale(current_timestamp: u64) -> EvictStaleResult {
-    evict_stale_impl(current_timestamp).into()
+pub fn evict_stale(current_timestamp_sec: u64) -> EvictStaleResult {
+    evict_stale_impl(current_timestamp_sec).into()
 }
 
 #[marine]
@@ -148,22 +148,22 @@ pub fn merge_hack_get_values(records: Vec<GetValuesResult>) -> MergeResult {
 }
 
 #[marine]
-pub fn set_expired_timeout(timeout: u64) {
+pub fn set_expired_timeout(timeout_sec: u64) {
     let mut config = load_config();
-    config.expired_timeout = timeout;
+    config.expired_timeout = timeout_sec;
     write_config(config);
 }
 
 #[marine]
-pub fn set_host_expired_timeout(timeout: u64) {
+pub fn set_host_expired_timeout(timeout_sec: u64) {
     let mut config = load_config();
-    config.host_expired_timeout = timeout;
+    config.host_expired_timeout = timeout_sec;
     write_config(config);
 }
 
 #[marine]
-pub fn set_stale_timeout(timeout: u64) {
+pub fn set_stale_timeout(timeout_sec: u64) {
     let mut config = load_config();
-    config.stale_timeout = timeout;
+    config.stale_timeout = timeout_sec;
     write_config(config);
 }
