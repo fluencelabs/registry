@@ -80,7 +80,7 @@ func onProviders(node_id: string, key: string, callback: Record -> ()):
     k <- Op.string_to_b58(key)
     t <- Peer.timestamp_sec()
     res <- AquaDHT.get_values(key, t)
-    for r <- res.result:
+    for r <- res.result par:
       on r.peer_id via r.relay_id:
         callback(r)
 
