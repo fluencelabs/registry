@@ -20,6 +20,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - uses: actions/setup-java@v2
+
       - name: Build .aqua file
         working-directory: .
         run: |
@@ -38,7 +40,6 @@ jobs:
           npm install --global yarn
 
       - name: Build a project
-        uses: actions/setup-java@v2
         run: |
           npm i
           npm run compile-aqua
