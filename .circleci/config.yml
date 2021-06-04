@@ -13,8 +13,7 @@ jobs:
     steps:
       - checkout
       - run: |
-          ls -la
-          bash ./github/download_marine.sh
+          bash .github/download_marine.sh
       - restore_cache:
           keys:
             - aqua-dht04-{{ checksum "Cargo.lock" }}
