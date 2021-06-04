@@ -36,6 +36,11 @@ jobs:
           apt-get update && apt-get --yes --force-yes install jq nodejs
           npm install --global yarn
 
+      - name: Build a project
+        run: |
+          npm run compile-aqua
+          npm run build
+
       - name: Get version from npm and increment
         run: |
           yarn global add semver
