@@ -38,6 +38,7 @@ jobs:
           npm install --global yarn
 
       - name: Build a project
+        uses: actions/setup-java@v2
         run: |
           npm i
           npm run compile-aqua
