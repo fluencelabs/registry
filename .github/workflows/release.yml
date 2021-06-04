@@ -19,13 +19,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Build .aqua file
-        working-directory: .
+      - name: Install Rust
         run: |
           rustup toolchain install nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup default nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup target add wasm32-wasi --toolchain nightly-2021-04-24-x86_64-unknown-linux-gnu
-          cargo install marine
+
+      - name: Download marine
+        run: bash .github/download_marine.sh
+
+      - name: Build .aqua file
+        run: |
           ./build.sh
           cp ./aqua/aqua-dht.aqua ./npm/dht.aqua
 
