@@ -49,7 +49,7 @@ jobs:
           apt-get update && apt-get --yes --force-yes install jq nodejs
           npm install --global yarn
 
-      - name: Build a project
+      - name: Compile aqua => TS => JS for NPM package
         run: |
           npm i
           npm run compile-aqua
