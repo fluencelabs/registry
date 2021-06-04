@@ -27,13 +27,27 @@ jobs:
       - name: Download marine
         run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
 
-      - uses: actions/cache@v2
+      - name: Cache cargo
+        uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             ~/.cargo/bin
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
 
       - name: Install Rust
         run: |
@@ -55,6 +69,12 @@ jobs:
           curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
           apt-get update && apt-get --yes --force-yes install jq nodejs
           npm install --global yarn
+
+      - name: Compile aqua => TS => JS for NPM package
+        run: |
+          npm i
+          npm run compile-aqua
+          npm run build
 
       - name: Get version from npm and increment
         run: |
