@@ -5,7 +5,7 @@
   "files": [
     "dht.aqua",
     "dht-api.aqua",
-    "dht-scheduled-scripts"
+    "dht-scheduled-scripts.aqua"
   ],
   "dependencies": {
     "@fluencelabs/aqua-lib": "^0.1.5"
