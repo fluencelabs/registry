@@ -7,6 +7,9 @@
     "dht-api.aqua",
     "dht-scheduled-scripts"
   ],
+  "dependencies": {
+    "@fluencelabs/aqua-lib": "^0.1.5"
+  },
   "scripts": {},
   "repository": {
     "type": "git",
