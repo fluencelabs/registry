@@ -19,6 +19,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
       - name: Build .aqua file
         working-directory: .
         run: |
@@ -35,6 +48,12 @@ jobs:
           curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
           apt-get update && apt-get --yes --force-yes install jq nodejs
           npm install --global yarn
+
+      - name: Compile aqua => TS => JS for NPM package
+        run: |
+          npm i
+          npm run compile-aqua
+          npm run build
 
       - name: Get version from npm and increment
         run: |
