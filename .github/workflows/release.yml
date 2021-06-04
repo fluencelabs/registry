@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "download_marine"
 
 jobs:
   npm-publish:
@@ -50,57 +49,57 @@ jobs:
         run: |
           cp $GITHUB_WORKSPACE/aqua/aqua-dht.aqua $GITHUB_WORKSPACE/npm/dht.aqua
 
-      ### Calculate FINAL_VERSION
-      # - name: Install deps
-      #   run: |
-      #     curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-      #     apt-get update && apt-get --yes --force-yes install jq nodejs
-      #     npm install --global yarn
+      ## Calculate FINAL_VERSION
+      - name: Install deps
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+          apt-get update && apt-get --yes --force-yes install jq nodejs
+          npm install --global yarn
 
-      # - name: Get version from npm and increment
-      #   run: |
-      #     yarn global add semver
-      #     PATH="$(yarn global bin):$PATH"
+      - name: Get version from npm and increment
+        run: |
+          yarn global add semver
+          PATH="$(yarn global bin):$PATH"
 
-      #     # take npm version and increment it
-      #     PKG_NAME="$(cat package.json | jq -r .name)"
-      #     NPM_VERSION="$(yarn info --silent "$PKG_NAME" version || true)"
-      #     NEXT_NPM_VERSION="$(semver --increment patch "$NPM_VERSION" || true)"
+          # take npm version and increment it
+          PKG_NAME="$(cat package.json | jq -r .name)"
+          NPM_VERSION="$(yarn info --silent "$PKG_NAME" version || true)"
+          NEXT_NPM_VERSION="$(semver --increment patch "$NPM_VERSION" || true)"
 
-      #     # take local version
-      #     LOCAL_VERSION="$(cat package.json | jq -r .version)"
+          # take local version
+          LOCAL_VERSION="$(cat package.json | jq -r .version)"
 
-      #     # take maximum of the local and NEXT_NPM versions
-      #     MAX_VERSION="$(semver "$LOCAL_VERSION" "$NEXT_NPM_VERSION" "0.0.0" | tail -n1)"
+          # take maximum of the local and NEXT_NPM versions
+          MAX_VERSION="$(semver "$LOCAL_VERSION" "$NEXT_NPM_VERSION" "0.0.0" | tail -n1)"
 
-      #     # save info to env
-      #     echo "FINAL_VERSION=$MAX_VERSION" | tee -a $GITHUB_ENV
-      #     echo "PKG_NAME=$PKG_NAME" | tee -a $GITHUB_ENV
+          # save info to env
+          echo "FINAL_VERSION=$MAX_VERSION" | tee -a $GITHUB_ENV
+          echo "PKG_NAME=$PKG_NAME" | tee -a $GITHUB_ENV
 
-      # ### Set version
-      # - name: Set version to ${{ env.FINAL_VERSION }}
-      #   run: yarn version --new-version ${{ env.FINAL_VERSION }} --no-git-tag-version
+      ### Set version
+      - name: Set version to ${{ env.FINAL_VERSION }}
+        run: yarn version --new-version ${{ env.FINAL_VERSION }} --no-git-tag-version
 
-      # ### Publish to NPM registry
-      # - uses: actions/setup-node@v1
-      #   with:
-      #     node-version: "14"
-      #     registry-url: "https://registry.npmjs.org"
+      ### Publish to NPM registry
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "14"
+          registry-url: "https://registry.npmjs.org"
 
-      # - run: npm publish --access public
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # ### Create a release
-      # - name: Create Release
-      #   id: create_release
-      #   uses: actions/create-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     tag_name: ${{ env.FINAL_VERSION }}
-      #     release_name: Aqua DHT ${{ env.FINAL_VERSION }}
-      #     body: |
-      #       [${{ env.FINAL_VERSION }} @ NPM registry](https://www.npmjs.com/package/${{ env.PKG_NAME }}/v/${{ env.FINAL_VERSION }})
-      #     draft: false
-      #     prerelease: false
+      ### Create a release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.FINAL_VERSION }}
+          release_name: Aqua DHT ${{ env.FINAL_VERSION }}
+          body: |
+            [${{ env.FINAL_VERSION }} @ NPM registry](https://www.npmjs.com/package/${{ env.PKG_NAME }}/v/${{ env.FINAL_VERSION }})
+          draft: false
+          prerelease: false
