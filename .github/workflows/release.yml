@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+      - "publish-ts"
 
 jobs:
   npm-publish:
