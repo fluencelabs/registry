@@ -39,6 +39,7 @@ jobs:
 
       - name: Build a project
         run: |
+          npm i
           npm run compile-aqua
           npm run build
 
