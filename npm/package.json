@@ -10,7 +10,9 @@
   "dependencies": {
     "@fluencelabs/aqua-lib": "^0.1.5"
   },
-  "scripts": {},
+  "scripts": {
+    "compile-aqua": "aqua-cli -i . -o ./target"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fluencelabs/aqua-dht.git"
@@ -24,5 +26,8 @@
   "bugs": {
     "url": "https://github.com/fluencelabs/aqua-dht/issues"
   },
-  "homepage": "https://github.com/fluencelabs/aqua-dht#readme"
+  "homepage": "https://github.com/fluencelabs/aqua-dht#readme",
+  "devDependencies": {
+    "@fluencelabs/aqua-cli": "^0.1.4-136"
+  }
 }
