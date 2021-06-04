@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "publish-ts"
 
 jobs:
   npm-publish:
@@ -19,6 +18,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - uses: actions/setup-java@v2
         with:
