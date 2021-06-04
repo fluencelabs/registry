@@ -44,7 +44,7 @@ jobs:
 
       - name: Build aqua-dht.wasm
         working-directory: .
-        run: build.sh
+        run: ./build.sh
 
       - name: Build .aqua file
         run: |
