@@ -25,6 +25,10 @@ func registerKey(node_id: string, key: string) -> []string:
         AquaDHT.register_key(key, t, true, 0)
   <- nodes
 
+service MyOp("op"):
+    array(a: []string) -> []string
+
+
 func registerKeyPutValue(node_id: string, key: string, value: string, relay_id: ?string, service_id: ?string) -> []string:
   nodes <- getNeighbours(key, node_id)
   on node_id:
@@ -33,7 +37,9 @@ func registerKeyPutValue(node_id: string, key: string, value: string, relay_id: 
           try:
             t <- Peer.timestamp_sec()
             AquaDHT.register_key(key, t, false, 0)
-            AquaDHT.put_value(key, value, t, relay_id, service_id, 0)
+            rid <- MyOp.array(relay_id)
+            sid <- MyOp.array(service_id)
+            AquaDHT.put_value(key, value, t, rid, sid, 0)
   <- nodes
 
 func registerKeyPutHostValue(node_id: string, key: string, value: string, service_id: ?string):

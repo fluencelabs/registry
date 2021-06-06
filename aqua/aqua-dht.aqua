@@ -1,15 +1,3 @@
-data Key:
-  key: string
-  peer_id: string
-  timestamp_created: u64
-  pinned: bool
-  weight: u32
-
-data GetKeyMetadataResult:
-  success: bool
-  error: string
-  key: Key
-
 data Record:
   value: string
   peer_id: string
@@ -19,10 +7,26 @@ data Record:
   timestamp_created: u64
   weight: u32
 
+data MergeResult:
+  success: bool
+  error: string
+  result: []Record
+
 data GetValuesResult:
   success: bool
   error: string
   result: []Record
+
+data DhtResult:
+  success: bool
+  error: string
+
+data Key:
+  key: string
+  peer_id: string
+  timestamp_created: u64
+  pinned: bool
+  weight: u32
 
 data EvictStaleItem:
   key: Key
@@ -33,25 +37,21 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data RepublishValuesResult:
-  success: bool
-  error: string
-  updated: u64
-
 data ClearExpiredResult:
   success: bool
   error: string
   count_keys: u64
   count_values: u64
 
-data DhtResult:
+data GetKeyMetadataResult:
   success: bool
   error: string
+  key: Key
 
-data MergeResult:
+data RepublishValuesResult:
   success: bool
   error: string
-  result: []Record
+  updated: u64
 
 service AquaDHT("aqua-dht"):
   clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult
