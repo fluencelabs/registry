@@ -243,31 +243,27 @@ impl From<SqliteResult<Vec<Record>>> for MergeResult {
 }
 
 #[marine]
-#[derive(Default)]
-pub struct HostValueSet {
-    pub key: String,
-    pub value: Record
-}
-
-#[marine]
 pub struct PutHostValueResult {
     pub success: bool,
     pub error: String,
-    pub result: HostValueSet,
+    pub key: String,
+    pub value: Vec<Record>
 }
 
-impl From<SqliteResult<HostValueSet>> for PutHostValueResult {
-    fn from(result: SqliteResult<HostValueSet>) -> Self {
+impl From<SqliteResult<Record>> for PutHostValueResult {
+    fn from(result: SqliteResult<Record>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
                 error: "".to_string(),
-                result,
+                key: "".to_string(),
+                value: vec![result]
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                result: HostValueSet::default(),
+                key: "".to_string(),
+                value: vec![]
             },
         }
     }

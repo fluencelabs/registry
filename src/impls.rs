@@ -15,7 +15,7 @@
  */
 
 use crate::{Config, KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, DEFAULT_EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
-use crate::results::{Key, Record, EvictStaleItem, HostValueSet};
+use crate::results::{Key, Record, EvictStaleItem, PutHostValueResult};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement};
 use fluence::{CallParameters};
 use eyre;
@@ -68,13 +68,13 @@ pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_n
         && tetraplet.peer_pk == call_parameters.host_id).then(|| ()).wrap_err(error_msg)
 }
 
-pub(crate) fn check_host_value_tetraplets(call_parameters: &CallParameters, arg_number: usize, set_host_value: &HostValueSet) -> eyre::Result<()> {
+pub(crate) fn check_host_value_tetraplets(call_parameters: &CallParameters, arg_number: usize, host_value: &Record) -> eyre::Result<()> {
     let error_msg = "you should use put_host_value to pass set_host_value";
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
     let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
     (tetraplet.service_id == "aqua-dht" &&
         tetraplet.function_name == "put_host_value"
-        && tetraplet.peer_pk == set_host_value.value.peer_id).then(|| ()).wrap_err(error_msg)
+        && tetraplet.peer_pk == host_value.peer_id).then(|| ()).wrap_err(error_msg)
 }
 
 #[inline]
@@ -426,17 +426,21 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
 
-pub fn propagate_host_value_impl(mut set_host_value: HostValueSet, current_timestamp_sec: u64, weight: u32) -> SqliteResult<()> {
+pub fn propagate_host_value_impl(mut set_host_value: PutHostValueResult, current_timestamp_sec: u64, weight: u32) -> SqliteResult<()> {
+    if !set_host_value.success || set_host_value.value.len() != 1 {
+        return Err( SqliteError { code: None, message: Some("invalid set_host_value".to_string()) });
+    }
+
     let call_parameters = fluence::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
-    check_host_value_tetraplets(&call_parameters, 0, &set_host_value)
+    check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
-    if set_host_value.value.set_by != call_parameters.init_peer_id {
+    if set_host_value.value[0].set_by != call_parameters.init_peer_id {
         return Err( SqliteError { code: None, message: Some("value is set by another peer".to_string()) });
     }
 
-    set_host_value.value.weight = weight;
-    republish_values_impl(set_host_value.key, vec![set_host_value.value], current_timestamp_sec).map(|_| ())
+    set_host_value.value[0].weight = weight;
+    republish_values_impl(set_host_value.key, set_host_value.value, current_timestamp_sec).map(|_| ())
 }

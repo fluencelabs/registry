@@ -7,23 +7,16 @@ data Record:
   timestamp_created: u64
   weight: u32
 
-data HostValueSet:
-  key: string
-  value: Record
-
-data PutHostValueResult:
+data MergeResult:
   success: bool
   error: string
-  result: HostValueSet
+  result: []Record
 
-data DhtResult:
+data ClearExpiredResult:
   success: bool
   error: string
-
-data RepublishValuesResult:
-  success: bool
-  error: string
-  updated: u64
+  count_keys: u64
+  count_values: u64
 
 data Key:
   key: string
@@ -41,26 +34,30 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data GetKeyMetadataResult:
+data RepublishValuesResult:
   success: bool
   error: string
-  key: Key
-
-data ClearExpiredResult:
-  success: bool
-  error: string
-  count_keys: u64
-  count_values: u64
-
-data MergeResult:
-  success: bool
-  error: string
-  result: []Record
+  updated: u64
 
 data GetValuesResult:
   success: bool
   error: string
   result: []Record
+
+data DhtResult:
+  success: bool
+  error: string
+
+data PutHostValueResult:
+  success: bool
+  error: string
+  key: string
+  value: []Record
+
+data GetKeyMetadataResult:
+  success: bool
+  error: string
+  key: Key
 
 service AquaDHT("aqua-dht"):
   clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult
@@ -71,6 +68,7 @@ service AquaDHT("aqua-dht"):
   merge(records: [][]Record) -> MergeResult
   merge_hack_get_values(records: []GetValuesResult) -> MergeResult
   merge_two(a: []Record, b: []Record) -> MergeResult
+  propagate_host_value(set_host_value: PutHostValueResult, current_timestamp_sec: u64, weight: u32) -> DhtResult
   put_host_value(key: string, value: string, current_timestamp_sec: u64, relay_id: []string, service_id: []string, weight: u32) -> PutHostValueResult
   put_value(key: string, value: string, current_timestamp_sec: u64, relay_id: []string, service_id: []string, weight: u32) -> DhtResult
   register_key(key: string, current_timestamp_sec: u64, pin: bool, weight: u32) -> DhtResult
