@@ -10,7 +10,7 @@ name = "aqua-dht"
 path = "src/main.rs"
 
 [dependencies]
-fluence = "0.6.8"
+fluence = "0.6.9"
 marine-sqlite-connector = "0.4.1"
 fstrings = "0.2.3"
 eyre = "0.6.5"
