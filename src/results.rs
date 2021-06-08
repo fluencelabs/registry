@@ -40,7 +40,7 @@ impl From<SqliteResult<()>> for DhtResult {
 }
 
 #[marine]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Record {
     pub value: String,
     pub peer_id: String,
@@ -237,6 +237,37 @@ impl From<SqliteResult<Vec<Record>>> for MergeResult {
                 success: false,
                 error: err.to_string(),
                 result: vec![],
+            },
+        }
+    }
+}
+
+#[marine]
+#[derive(Default)]
+pub struct HostValueSet {
+    pub key: String,
+    pub value: Record
+}
+
+#[marine]
+pub struct PutHostValueResult {
+    pub success: bool,
+    pub error: String,
+    pub result: HostValueSet,
+}
+
+impl From<SqliteResult<HostValueSet>> for PutHostValueResult {
+    fn from(result: SqliteResult<HostValueSet>) -> Self {
+        match result {
+            Ok(result) => Self {
+                success: true,
+                error: "".to_string(),
+                result,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                result: HostValueSet::default(),
             },
         }
     }
