@@ -33,7 +33,7 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht#readme",
   "devDependencies": {
-    "@fluencelabs/aqua-cli": "^0.1.5-140",
+    "@fluencelabs/aqua-cli": "^0.1.5-141",
     "typescript": "^3.9.5"
   }
 }
