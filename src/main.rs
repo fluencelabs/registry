@@ -1,4 +1,3 @@
-#![feature(try_trait)]
 /*
  * Copyright 2021 Fluence Labs Limited
  *

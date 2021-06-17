@@ -4,12 +4,12 @@ orbs:
   docker: circleci/docker@1.5.0
 
 jobs:
-  Build:
+  Build and test:
     docker:
       - image: circleci/rust:latest
     resource_class: xlarge
     environment:
-      RUST_BACKTRACE: 1
+      RUST_BACKTRACE: full
     steps:
       - checkout
       - run: |
@@ -20,71 +20,19 @@ jobs:
       - run: |
           rustup toolchain install nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup default nightly-2021-04-24-x86_64-unknown-linux-gnu
+          rustup override set nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup target add wasm32-wasi --toolchain nightly-2021-04-24-x86_64-unknown-linux-gnu
-          ./build.sh
-      - persist_to_workspace:
-         # Must be an absolute path, or relative path from working_directory.
-         # This is a directory on the container which is taken to be the root directory of the workspace.
-         root: .
-         # Must be relative path from root
-         paths:
-           - artifacts/
+      - run: ./build.sh
+      - run: |
+          cargo test --no-fail-fast --release --all-features -- --test-threads=1
       - save_cache:
           paths:
             - ~/.cargo
             - ~/.rustup
           key: aqua-dht04-{{ checksum "Cargo.lock" }}
 
-  Rust Tests:
-    docker:
-      - image: circleci/rust:latest
-    resource_class: xlarge
-    environment:
-      RUST_BACKTRACE: 1
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run: |
-          rustup default nightly-2021-04-24-x86_64-unknown-linux-gnu
-          cargo test --no-fail-fast --release --all-features -- --test-threads=1
-
-  # Build and publish npm:
-  #   docker:
-  #     - image: circleci/node:latest
-  #   resource_class: xlarge
-  #   steps:
-  #     - checkout
-  #     - attach_workspace:
-  #         at: ./npm
-  #     - run: |
-  #         yarn global add semver
-  #         PATH="$(yarn global bin):$PATH"
-
-  #         # take npm version and increment it
-  #         PKG_NAME="$(cat package.json | jq -r .name)"
-  #         NPM_VERSION="$(yarn info --silent "$PKG_NAME" version || true)"
-  #         NEXT_NPM_VERSION="$(semver --increment patch "$NPM_VERSION" || true)"
-
-  #         # take local version
-  #         LOCAL_VERSION="$(cat package.json | jq -r .version)"
-
-  #         # take maximum of the local and NEXT_NPM versions
-  #         MAX_VERSION="$(semver "$LOCAL_VERSION" "$NEXT_NPM_VERSION" "0.0.0" | tail -n1)"
-
-  #         yarn version --new-version ${MAX_VERSION} --no-git-tag-version
-
-  #         echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/repo/.npmrc
-  #         npm publish --access public
-
 workflows:
   version: 2
   CircleCI:
     jobs:
-      - Build
-      - Rust Tests:
-          requires:
-            - Build
-      # - Build and publish npm:
-      #     requires:
-      #       - Rust Tests
+      - Build and test
