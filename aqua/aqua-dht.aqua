@@ -1,3 +1,40 @@
+data Record:
+  value: string
+  peer_id: string
+  set_by: string
+  relay_id: []string
+  service_id: []string
+  timestamp_created: u64
+  weight: u32
+
+data PutHostValueResult:
+  success: bool
+  error: string
+  key: string
+  value: []Record
+
+data Key:
+  key: string
+  peer_id: string
+  timestamp_created: u64
+  pinned: bool
+  weight: u32
+
+data GetKeyMetadataResult:
+  success: bool
+  error: string
+  key: Key
+
+data MergeResult:
+  success: bool
+  error: string
+  result: []Record
+
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
+
 data ClearExpiredResult:
   success: bool
   error: string
@@ -8,21 +45,10 @@ data DhtResult:
   success: bool
   error: string
 
-data Key:
-  key: string
-  peer_id: string
-  timestamp_created: u64
-  pinned: bool
-  weight: u32
-
-data Record:
-  value: string
-  peer_id: string
-  set_by: string
-  relay_id: []string
-  service_id: []string
-  timestamp_created: u64
-  weight: u32
+data RepublishValuesResult:
+  success: bool
+  error: string
+  updated: u64
 
 data EvictStaleItem:
   key: Key
@@ -32,32 +58,6 @@ data EvictStaleResult:
   success: bool
   error: string
   results: []EvictStaleItem
-
-data GetKeyMetadataResult:
-  success: bool
-  error: string
-  key: Key
-
-data GetValuesResult:
-  success: bool
-  error: string
-  result: []Record
-
-data MergeResult:
-  success: bool
-  error: string
-  result: []Record
-
-data PutHostValueResult:
-  success: bool
-  error: string
-  key: string
-  value: []Record
-
-data RepublishValuesResult:
-  success: bool
-  error: string
-  updated: u64
 
 service AquaDHT("aqua-dht"):
   clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult

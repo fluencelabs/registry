@@ -21,8 +21,8 @@ mod impls;
 use crate::results::{Key, GetKeyMetadataResult, DhtResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult, PutHostValueResult};
 use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl, renew_host_value_impl, clear_host_value_impl, create_config, load_config, write_config, propagate_host_value_impl};
 
-use fluence::marine;
-use fluence::module_manifest;
+use marine_rs_sdk::marine;
+use marine_rs_sdk::module_manifest;
 
 use serde::{Deserialize, Serialize};
 

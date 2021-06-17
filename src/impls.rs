@@ -17,7 +17,7 @@
 use crate::{Config, KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, DEFAULT_EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
 use crate::results::{Key, Record, EvictStaleItem, PutHostValueResult};
 use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement};
-use fluence::{CallParameters};
+use marine_rs_sdk::{CallParameters, get_call_parameters};
 use eyre;
 use eyre::ContextCompat;
 use std::collections::HashMap;
@@ -179,7 +179,7 @@ fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_c
 }
 
 pub fn get_key_metadata_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
@@ -187,7 +187,7 @@ pub fn get_key_metadata_impl(key: String, current_timestamp_sec: u64) -> SqliteR
 }
 
 pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, weight: u32) -> SqliteResult<()> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     let peer_id = call_parameters.init_peer_id.clone();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
@@ -196,7 +196,7 @@ pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, wei
 }
 
 pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<()> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
@@ -205,7 +205,7 @@ pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<
 }
 
 pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32, host: bool) -> SqliteResult<Record> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
@@ -263,7 +263,7 @@ pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<V
 }
 
 pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Vec<Record>> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
@@ -278,7 +278,7 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
 }
 
 pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
@@ -304,7 +304,7 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
 }
 
 pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
@@ -339,7 +339,7 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)
 }
 
 pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictStaleItem>> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
@@ -390,7 +390,7 @@ pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
 }
 
 pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
@@ -409,7 +409,7 @@ pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
 }
 
 pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
@@ -431,7 +431,7 @@ pub fn propagate_host_value_impl(mut set_host_value: PutHostValueResult, current
         return Err( SqliteError { code: None, message: Some("invalid set_host_value".to_string()) });
     }
 
-    let call_parameters = fluence::get_call_parameters();
+    let call_parameters = get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])
