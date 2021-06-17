@@ -10,8 +10,8 @@ name = "aqua-dht"
 path = "src/main.rs"
 
 [dependencies]
-fluence = "0.6.9"
-marine-sqlite-connector = "0.4.1"
+marine-rs-sdk = "0.6.10"
+marine-sqlite-connector = "0.5.0"
 fstrings = "0.2.3"
 eyre = "0.6.5"
 boolinator = "2.4.0"
@@ -19,5 +19,5 @@ toml = "0.5.6"
 serde = { version = "1.0.118", features = ["derive"] }
 
 [dev-dependencies]
-fluence-test = "0.1.9"
+marine-rs-sdk-test = "=0.1.9"
 rusqlite = "0.25.1"
