@@ -16,10 +16,10 @@
 
 #[cfg(test)]
 mod tests {
-    use fluence_test::marine_test;
+    use marine_rs_sdk_test::marine_test;
     use rusqlite::{Connection};
     use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
-    use fluence::{CallParameters, SecurityTetraplet};
+    use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use std::time::SystemTime;
     use std::fs;
 
