@@ -19,5 +19,5 @@ toml = "0.5.6"
 serde = { version = "1.0.118", features = ["derive"] }
 
 [dev-dependencies]
-marine-rs-sdk-test = "=0.1.9"
+marine-rs-sdk-test = "0.1.11"
 rusqlite = "0.25.1"
