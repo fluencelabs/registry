@@ -1,10 +1,16 @@
 # aqua-dht
 
-Distributed Hash Table (DHT) implementation for the Fluence network with Aqua interface.
+[Distributed Hash Table](https://en.wikipedia.org/wiki/Distributed_hash_table) (DHT) implementation for the Fluence network with an Aqua interface.
+
+## Learn Aqua
+
+* [Aqua Book](https://app.gitbook.com/@fluence/s/aqua-book/)
+* [Aqua Playground](https://github.com/fluencelabs/aqua-playground)
+* [Aqua repo](https://github.com/fluencelabs/aqua)
 
 ## Getting started
 
-- Install dependencies
+* Install dependencies
 
 ```bash
 rustup toolchain install nightly-2021-03-24-x86_64-unknown-linux-gnu
@@ -13,19 +19,19 @@ rustup target add wasm32-wasi
 cargo install +nightly marine
 ```
 
-- To compile .wasm and generate aqua file
+* Compile compile .wasm and generate aqua file
 
 ```bash
 ./build.sh
 ```
 
-- To run tests
+* Run tests
 
 ```bash
 cargo test --release
 ```
 
-- To deploy service
+* Deploy service
 
 ```bash
 ./deploy.sh
@@ -33,8 +39,8 @@ cargo test --release
 
 ## How to Use
 
-see [PubSub](/npm/pubsub.aqua)
+See the Aqua [PubSub](./npm/pubsub.aqua) script
 
 ## Deploy As A Builtin Service
 
-see [Tutorials](https://doc.fluence.dev/docs/tutorials_tutorials/add-your-own-builtin)
+See [Tutorials](https://doc.fluence.dev/docs/tutorials_tutorials/add-your-own-builtin)
