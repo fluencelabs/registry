@@ -6,7 +6,7 @@ import "@fluencelabs/aqua-lib/builtin.aqua"
 func getNeighbours(node_id: PeerId, topic: string) -> []PeerId:
   on node_id:
     k <- Op.string_to_b58(topic)
-    nodes <- Kademlia.neighborhood(k, false)
+    nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
 
 -- If this peer have set node_id as a subscriber for topic,
@@ -40,7 +40,6 @@ func initTopicAndSubscribe(node_id: PeerId, topic: string, value: string, relay_
 
 -- Create a topic and make the given node a subscriber to it
 func initTopicAndSubscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string):
-  nil: ?string
   on subscriber_node_id:
     t <- Peer.timestamp_sec()
     AquaDHT.register_key(topic, t, false, 0)
@@ -67,7 +66,6 @@ func subscribe(node_id: PeerId, topic: string, value: string, relay_id: ?PeerId,
 -- Note: topic must be already initiated
 func subscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string):
   on subscriber_node_id:
-    nil: ?string
     t <- Peer.timestamp_sec()
     r <- AquaDHT.put_host_value(topic, value, t, nil, service_id, 0)
     nodes <- getNeighbours(subscriber_node_id, topic)

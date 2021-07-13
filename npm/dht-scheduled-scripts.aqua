@@ -12,7 +12,7 @@ func replicate():
   res <- AquaDHT.evict_stale(t)
   for r <- res.results par:
     k <- Op.string_to_b58(r.key.key)
-    nodes <- Kademlia.neighborhood(k, false)
+    nodes <- Kademlia.neighborhood(k, nil, nil)
     for n <- nodes par:
       on n:
         AquaDHT.republish_key(r.key, t)

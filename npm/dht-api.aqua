@@ -5,7 +5,7 @@ import "@fluencelabs/aqua-lib/builtin.aqua"
 func getNeighbours(key: string, node_id: string) -> []PeerId:
   on node_id:
     k <- Op.string_to_b58(key)
-    nodes <- Kademlia.neighborhood(k, false)
+    nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
 
 func clearHostValue(key: string, node_id: string):
@@ -40,7 +40,6 @@ func registerKeyPutHostValue(node_id: string, key: string, value: string, servic
   on node_id:
     t <- Peer.timestamp_sec()
     AquaDHT.register_key(key, t, false, 0)
-    nil: ?string
     AquaDHT.put_host_value(key, value, t, nil, service_id, 0)
 
 -- get all neighbors around the key in Kademlia network and store a value into them
@@ -57,14 +56,13 @@ func putValue(node_id: string, key: string, value: string, relay_id: ?string, se
 -- put a value on behalf of node_id (ie owner of the record will be node_id)
 func putHostValue(node_id: string, key: string, value: string, service_id: ?string):
   on node_id:
-    nil: ?string
     t <- Peer.timestamp_sec()
     AquaDHT.put_host_value(key, value, t, nil, service_id, 0)
 
 func getValues(node_id: string, key: string) -> []Record:
   on node_id:
     k <- Op.string_to_b58(key)
-    nodes <- Kademlia.neighborhood(k, false)
+    nodes <- Kademlia.neighborhood(k, nil, nil)
     res: *GetValuesResult
     for n <- nodes par:
       on n:

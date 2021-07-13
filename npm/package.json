@@ -11,7 +11,7 @@
     "dist/*"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "^0.1.5",
+    "@fluencelabs/aqua-lib": "^0.1.9",
     "@fluencelabs/fluence": "^0.9.50"
   },
   "scripts": {
@@ -33,7 +33,7 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht#readme",
   "devDependencies": {
-    "@fluencelabs/aqua-cli": "^0.1.5-141",
+    "@fluencelabs/aqua-cli": "^0.1.9-162",
     "typescript": "^3.9.5"
   }
 }
