@@ -8,11 +8,12 @@
     "dht.aqua",
     "dht-api.aqua",
     "dht-scheduled-scripts.aqua",
+    "pubsub.aqua",
     "dist/*"
   ],
   "dependencies": {
     "@fluencelabs/aqua-lib": "^0.1.9",
-    "@fluencelabs/fluence": "^0.9.50"
+    "@fluencelabs/fluence": "^0.9.53"
   },
   "scripts": {
     "compile-aqua": "aqua-cli -i . -o ./src",
