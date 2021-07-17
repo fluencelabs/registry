@@ -59,6 +59,8 @@ fn check_key_existence(connection: &Connection, key: String, current_timestamp_s
     get_key_metadata_helper(&connection, key, current_timestamp_sec).map(|_| ())
 }
 
+
+/// timestamps should be passed from host ("peer" "timestamp_sec")
 pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
     let error_msg = "you should use host peer.timestamp_sec to pass timestamp";
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
@@ -67,6 +69,7 @@ pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_n
         tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
         && tetraplet.peer_pk == call_parameters.host_id).then(|| ()).wrap_err(error_msg)
 }
+
 
 pub(crate) fn check_host_value_tetraplets(call_parameters: &CallParameters, arg_number: usize, host_value: &Record) -> eyre::Result<()> {
     let error_msg = "you should use put_host_value to pass set_host_value";
@@ -140,6 +143,7 @@ pub(crate) fn create_config() {
     }
 }
 
+/// update timestamp_accessed and return metadata of corresponding key
 fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
     connection.execute(
         f!("UPDATE {KEYS_TABLE_NAME} \
@@ -157,6 +161,7 @@ fn get_key_metadata_helper(connection: &Connection, key: String, current_timesta
     }
 }
 
+/// insert key if not exists or update timestamp if peer_id is same
 fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_created: u64, timestamp_accessed: u64, pin: bool, weight: u32) -> SqliteResult<()> {
     let old_key = get_key_metadata_helper(&connection, key.clone(), timestamp_accessed);
     let pinned = pin as i32;
@@ -186,6 +191,7 @@ pub fn get_key_metadata_impl(key: String, current_timestamp_sec: u64) -> SqliteR
     get_key_metadata_helper(&get_connection()?, key, current_timestamp_sec)
 }
 
+/// register new key if not exists with caller peer_id, update if exists with same peer_id or return error
 pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, weight: u32) -> SqliteResult<()> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     let peer_id = call_parameters.init_peer_id.clone();
@@ -195,6 +201,7 @@ pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, wei
     update_key(&get_connection()?, key, peer_id, current_timestamp_sec.clone(), current_timestamp_sec, pin, weight)
 }
 
+/// used for replication, same as register_key, but key.pinned is ignored
 pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<()> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
@@ -204,6 +211,7 @@ pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<
     update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp_sec, false, key.weight)
 }
 
+/// put value with caller peer_id if key exists. If value is NOT host and key already has VALUES_LIMIT records value with the smallest weight displaced
 pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32, host: bool) -> SqliteResult<Record> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
@@ -248,6 +256,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
     }
 }
 
+/// return all values by corresponding key
 pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<Vec<Record>> {
     let mut statement = connection.prepare(
         f!("SELECT value, peer_id, set_by, relay_id, service_id, timestamp_created, weight FROM {VALUES_TABLE_NAME} \
@@ -262,6 +271,7 @@ pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<V
     Ok(result)
 }
 
+/// return all values by corresponding key and update timestamp_accessed
 pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Vec<Record>> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
@@ -277,6 +287,7 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
     get_values_helper(&connection, key)
 }
 
+/// if key exists merge records with existing (last-write-wins) and put
 pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
@@ -303,6 +314,7 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
     Ok(updated)
 }
 
+/// remove expired by timestamp_created values and keys. If key is expired but has actual host values it has same lifetime as its host values. Return the number of keys and values removed
 pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
@@ -338,6 +350,7 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)
     Ok((deleted_keys, deleted_values))
 }
 
+/// return stale by timestamp_accessed keys and values, delete NOT pinned keys and NOT host values
 pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictStaleItem>> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
@@ -371,6 +384,7 @@ pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictSta
     Ok(results)
 }
 
+/// merge values with same peer_id by timestamp_created (last-write-wins)
 pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
     let mut result: HashMap<String, Record> = HashMap::new();
 
@@ -389,6 +403,7 @@ pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
     Ok(result.into_iter().map(|(_, rec)| rec).collect())
 }
 
+/// update timestamp_created of host value by key and caller peer_id
 pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
@@ -408,6 +423,7 @@ pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
 
+/// remove host value by corresponding key and caller peer_id
 pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
@@ -426,6 +442,7 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
 
+/// used for replication of host values
 pub fn propagate_host_value_impl(mut set_host_value: PutHostValueResult, current_timestamp_sec: u64, weight: u32) -> SqliteResult<()> {
     if !set_host_value.success || set_host_value.value.len() != 1 {
         return Err( SqliteError { code: None, message: Some("invalid set_host_value".to_string()) });
