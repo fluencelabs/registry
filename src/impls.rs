@@ -315,7 +315,9 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
     Ok(updated)
 }
 
-/// remove expired by timestamp_created values and keys. If key is expired but has actual host values it has same lifetime as its host values. Return the number of keys and values removed
+/// Remove expired values and expired empty keys. 
+/// Expired means  that `timestamp_created` has surpassed `expired_timeout`.
+/// Return number of keys and values removed
 pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
