@@ -351,7 +351,9 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)
     Ok((deleted_keys, deleted_values))
 }
 
-/// return stale by timestamp_accessed keys and values, delete NOT pinned keys and NOT host values
+/// Delete all stale keys and values except for pinned keys and host values. 
+/// Stale means that `timestamp_accessed` has surpassed `stale_timeout`.
+/// Returns all deleted items
 pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictStaleItem>> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 0)
