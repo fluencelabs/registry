@@ -288,7 +288,7 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
     get_values_helper(&connection, key)
 }
 
-/// if key exists merge records with existing (last-write-wins) and put
+/// If the key exists, then merge new records with existing (last-write-wins) and put
 pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
