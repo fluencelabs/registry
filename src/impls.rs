@@ -60,7 +60,7 @@ fn check_key_existence(connection: &Connection, key: String, current_timestamp_s
 }
 
 
-/// timestamps should be passed from host ("peer" "timestamp_sec")
+/// Check timestamps are generated on the current host with builtin ("peer" "timestamp_sec")
 pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
     let error_msg = "you should use host peer.timestamp_sec to pass timestamp";
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
