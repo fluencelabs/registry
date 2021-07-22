@@ -272,7 +272,7 @@ pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<V
     Ok(result)
 }
 
-/// return all values by corresponding key and update timestamp_accessed
+/// Return all values by key and update timestamp_accessed
 pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Vec<Record>> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 1)
