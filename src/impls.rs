@@ -257,7 +257,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
     }
 }
 
-/// return all values by corresponding key
+/// Return all values by key
 pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<Vec<Record>> {
     let mut statement = connection.prepare(
         f!("SELECT value, peer_id, set_by, relay_id, service_id, timestamp_created, weight FROM {VALUES_TABLE_NAME} \
