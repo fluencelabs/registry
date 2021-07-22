@@ -211,7 +211,8 @@ pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<
     update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp_sec, false, key.weight)
 }
 
-/// put value with caller peer_id if key exists. If value is NOT host and key already has VALUES_LIMIT records value with the smallest weight displaced
+/// Put value with caller peer_id if the key exists. 
+/// If the value is NOT a host value and the key already has `VALUES_LIMIT` records, then a value with the smallest weight is removed and the new value is inserted instead.
 pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32, host: bool) -> SqliteResult<Record> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
