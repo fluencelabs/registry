@@ -2,21 +2,20 @@
   "name": "@fluencelabs/aqua-dht",
   "version": "0.1.0",
   "description": "Aqua DHT library",
-  "main": "./dist/index.js",
+  "main": "./typescript/dist/index.js",
   "typings": "./dist/index.d.ts",
   "files": [
-    "dht.aqua",
-    "dht-api.aqua",
-    "dht-scheduled-scripts.aqua",
-    "pubsub.aqua",
-    "dist/*"
+    "src/*",
+    "typescript/*"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "^0.1.9",
-    "@fluencelabs/fluence": "^0.9.53"
+    "@fluencelabs/aqua-lib": "^0.1.10",
+    "@fluencelabs/fluence": "^0.9.53",
+    "near-api-js": "0.42.0"
   },
   "scripts": {
-    "compile-aqua": "aqua-cli -i . -o ./src",
+    "compile-aqua": "aqua-cli -i ./src -o ./typescript",
+    "generate-aqua": "../service/build.sh",
     "build": "tsc"
   },
   "repository": {
@@ -34,7 +33,7 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht#readme",
   "devDependencies": {
-    "@fluencelabs/aqua-cli": "^0.1.9-162",
+    "@fluencelabs/aqua-cli": "^0.1.9-165",
     "typescript": "^3.9.5"
   }
 }
