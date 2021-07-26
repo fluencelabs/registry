@@ -1,5 +1,5 @@
+service/target
 **/*.rs.bk
-**/target
 **/.idea
 **/artifacts
 **/.DS_Store
