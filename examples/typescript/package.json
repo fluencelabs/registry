@@ -16,7 +16,7 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "dependencies": {
-    "@fluencelabs/aqua-dht-ts": "../../aqua/typescript",
+    "@fluencelabs/aqua-dht-ts": "../../aqua/target/typescript",
     "@fluencelabs/fluence": "0.9.53",
     "@fluencelabs/fluence-network-environment": "1.0.10"
   }
