@@ -2,8 +2,8 @@ name: "publish-release"
 
 on:
   push:
-    branches:
-      - "main"
+    tags:
+      - "v*"
 
 jobs:
   npm-publish:
@@ -12,7 +12,6 @@ jobs:
     container: rust
     defaults:
       run:
-        working-directory: ./npm
         shell: bash
 
     steps:
@@ -57,71 +56,78 @@ jobs:
           rustup override set nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup target add wasm32-wasi --toolchain nightly-2021-04-24-x86_64-unknown-linux-gnu
 
+## Build
       - name: Build aqua-dht.wasm
-        working-directory: .
+        working-directory: ./service
         run: ./build.sh
 
-      - name: Build .aqua file
+      - name: Create builtin distribution package
+        working-directory: ./service
         run: |
-          cp $GITHUB_WORKSPACE/aqua/aqua-dht.aqua $GITHUB_WORKSPACE/npm/dht.aqua
+          mv artifacts aqua-dht
+          tar -zcvf aqua-dht.tar.gz aqua-dht
 
-      ## Calculate FINAL_VERSION
-      - name: Install deps
-        run: |
-          curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-          apt-get update && apt-get --yes --force-yes install jq nodejs
-          npm install --global yarn
-
-      - name: Compile aqua => TS => JS for NPM package
+      - name: Compile Aqua to TypeScript
+        working-directory: ./aqua
         run: |
           npm i
           npm run compile-aqua
           npm run build
-
-      - name: Get version from npm and increment
+      
+      - name: Compile TypeScript to .js + .d.ts
+        working-directory: ./aqua/target/typescript
         run: |
-          yarn global add semver
-          PATH="$(yarn global bin):$PATH"
+          npm i
+          npm run build
 
-          # take npm version and increment it
-          PKG_NAME="$(cat package.json | jq -r .name)"
-          NPM_VERSION="$(yarn info --silent "$PKG_NAME" version || true)"
-          NEXT_NPM_VERSION="$(semver --increment patch "$NPM_VERSION" || true)"
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v1
+        with:
+          configuration: ".github/workflows/changelog_config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # take local version
-          LOCAL_VERSION="$(cat package.json | jq -r .version)"
+## Publish
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: aqua-dht ${{ env.RELEASE_VERSION }}
+          tag_name: ${{ env.RELEASE_VERSION }}
+          files: |
+            ./service/aqua-dht.tar.gz
+          body: ${{steps.github_release.outputs.changelog}}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # take maximum of the local and NEXT_NPM versions
-          MAX_VERSION="$(semver "$LOCAL_VERSION" "$NEXT_NPM_VERSION" "0.0.0" | tail -n1)"
-
-          # save info to env
-          echo "FINAL_VERSION=$MAX_VERSION" | tee -a $GITHUB_ENV
-          echo "PKG_NAME=$PKG_NAME" | tee -a $GITHUB_ENV
-
-      ### Set version
-      - name: Set version to ${{ env.FINAL_VERSION }}
-        run: yarn version --new-version ${{ env.FINAL_VERSION }} --no-git-tag-version
-
-      ### Publish to NPM registry
       - uses: actions/setup-node@v1
         with:
           node-version: "14"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm publish --access public
+### Publish Aqua API
+      - run: |
+          npm version ${{ env.RELEASE_VERSION }}
+          npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: ./aqua
+      
+### Publish TS API
+      - run: |
+          npm version ${{ env.RELEASE_VERSION }}
+          npm publish --access public
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: ./aqua/target/typescript
 
-      ### Create a release
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.FINAL_VERSION }}
-          release_name: Aqua DHT ${{ env.FINAL_VERSION }}
-          body: |
-            [${{ env.FINAL_VERSION }} @ NPM registry](https://www.npmjs.com/package/${{ env.PKG_NAME }}/v/${{ env.FINAL_VERSION }})
-          draft: false
-          prerelease: false
+# ### TODO: Rebuild node-distro
+#       - name: Trigger new node-distro container
+#         uses: benc-uk/workflow-dispatch@v1
+#         with:
+#           workflow: Publish Container
+#           repo: fluencelabs/node-distro
+#           ref: 'main'
+#           token: ${{ secrets.PERSONAL_TOKEN }}
