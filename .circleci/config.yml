@@ -10,10 +10,10 @@ jobs:
     resource_class: xlarge
     environment:
       RUST_BACKTRACE: full
-    working_directory: /project/service
+    working_directory: ~/project/service
     steps:
       - checkout:
-          path: /project
+          path: ~/project
       - run: |
           sudo bash .github/download_marine.sh
       - restore_cache:
