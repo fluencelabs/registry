@@ -10,10 +10,8 @@ jobs:
     resource_class: xlarge
     environment:
       RUST_BACKTRACE: full
-    working_directory: ~/project/service
     steps:
-      - checkout:
-          path: ~/project
+      - checkout
       - run: |
           sudo bash .github/download_marine.sh
       - restore_cache:
@@ -23,9 +21,13 @@ jobs:
           rustup toolchain install nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup default nightly-2021-04-24-x86_64-unknown-linux-gnu
           rustup override set nightly-2021-04-24-x86_64-unknown-linux-gnu
+        working_directory: ./service
+        
       - run: ./build.sh
+        working_directory: ./service
       - run: |
           cargo test --no-fail-fast --release --all-features -- --test-threads=1
+        working_directory: ./service
       - save_cache:
           paths:
             - ~/.cargo
