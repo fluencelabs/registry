@@ -6,7 +6,7 @@ orbs:
 jobs:
   Build and test Rust service:
     docker:
-      - image: cimg/rust:1.53
+      - image: circleci/rust:latest
     resource_class: xlarge
     environment:
       RUST_BACKTRACE: full
