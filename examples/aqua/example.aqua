@@ -1,0 +1,8 @@
+import "@fluencelabs/aqua-dht/pubsub.aqua"
+import "@fluencelabs/aqua-dht/dht.aqua"
+
+func initTopicAndFindSubscribers(relay: string, topic: string) -> []Record:
+    on relay:
+        initTopicAndSubscribe(relay, topic, "", nil, nil)
+        subscribers <- findSubscribers(relay, topic)
+    <- subscribers

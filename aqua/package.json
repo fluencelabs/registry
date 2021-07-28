@@ -1,0 +1,34 @@
+{
+  "name": "@fluencelabs/aqua-dht",
+  "version": "0.2.0",
+  "description": "Aqua DHT library",
+  "files": [
+    "*.aqua"
+  ],
+  "dependencies": {
+    "@fluencelabs/aqua-lib": "^0.1.10"
+  },
+  "scripts": {
+    "compile-aqua": "aqua-cli -i ./ -o ./target/typescript",
+    "generate-aqua": "../service/build.sh",
+    "build": "npm run compile-aqua",
+    "prepare": "npm run generate-aqua && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluencelabs/aqua-dht.git"
+  },
+  "keywords": [
+    "aqua",
+    "fluence"
+  ],
+  "author": "Fluence Labs",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fluencelabs/aqua-dht/issues"
+  },
+  "homepage": "https://github.com/fluencelabs/aqua-dht",
+  "devDependencies": {
+    "@fluencelabs/aqua-cli": "^0.1.9-165"
+  }
+}

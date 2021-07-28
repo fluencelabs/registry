@@ -14,5 +14,5 @@
  * limitations under the License.
  */
 
-export * from './dht-api';
+export * from './pubsub';
 export * from './dht-scheduled-scripts';

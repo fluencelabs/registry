@@ -1,0 +1,23 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "description": "An example of how to use AquaDHT in TypeScript",
+  "main": "dist/example.js",
+  "scripts": {
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node dist/example.js"
+  },
+  "keywords": [
+    "aqua",
+    "dht",
+    "p2p"
+  ],
+  "author": "Fluence Labs",
+  "license": "MIT",
+  "dependencies": {
+    "@fluencelabs/aqua-dht-ts": "../../aqua/target/typescript",
+    "@fluencelabs/fluence": "0.9.53",
+    "@fluencelabs/fluence-network-environment": "1.0.10"
+  }
+}

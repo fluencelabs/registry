@@ -4,43 +4,17 @@
 
 ## Learn Aqua
 
-* [Aqua Book](https://app.gitbook.com/@fluence/s/aqua-book/)
+* [Aqua Book](https://fluence.dev/aqua-book/)
 * [Aqua Playground](https://github.com/fluencelabs/aqua-playground)
 * [Aqua repo](https://github.com/fluencelabs/aqua)
 
-## Getting started
-
-* Install dependencies
-
-```bash
-rustup toolchain install nightly-2021-03-24-x86_64-unknown-linux-gnu
-rustup default nightly-2021-03-24-x86_64-unknown-linux-gnu
-rustup target add wasm32-wasi
-cargo install +nightly marine
-```
-
-* Compile compile .wasm and generate aqua file
-
-```bash
-./build.sh
-```
-
-* Run tests
-
-```bash
-cargo test --release
-```
-
-* Deploy service
-
-```bash
-./deploy.sh
-```
-
 ## How to Use
 
-See the Aqua [PubSub](./npm/pubsub.aqua) script
+See two examples in the [examples](./examples) directory:
+- Writing an Aqua script using `aqua-dht`: [example.aqua](./examples/aqua/example.aqua)
+- Calling `aqua-dht` functions in TS/JS: [examples/typescript](./examples/typescript)
 
-## Deploy As A Builtin Service
+## API
+Documentation for `aqua-dht` can be found in [aqua-book](https://fluence.dev/aqua-book/libraries/aqua-dht).
 
-See [Tutorials](https://doc.fluence.dev/docs/tutorials_tutorials/add-your-own-builtin)
+API is defined in the [pubsub.aqua](./aqua/pubsub.aqua) module.

@@ -1,9 +1,0 @@
-*.tgz
-node_modules
-target
-dist
-
-# ignore generated sources
-src/dht-api.ts
-src/dht-scheduled-scripts.ts
-src/pubsub.ts

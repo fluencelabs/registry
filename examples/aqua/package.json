@@ -1,0 +1,15 @@
+{
+  "name": "aqua-example",
+  "version": "1.0.0",
+  "description": "An example of how to use aqua-dht in Aqua",
+  "author": "Fluence Labs",
+  "license": "MIT",
+  "scripts": {
+    "compile-aqua": "aqua-cli -i . -o .",
+    "build": "npm run compile-aqua"
+  },
+  "dependencies": {
+    "@fluencelabs/aqua-dht": "latest",
+    "@fluencelabs/aqua-cli": "0.1.10-167"
+  }
+}
