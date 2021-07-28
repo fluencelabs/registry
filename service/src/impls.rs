@@ -66,8 +66,9 @@ pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_n
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
     let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID &&
-        tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
-        && tetraplet.peer_pk == call_parameters.host_id).then(|| ()).wrap_err(error_msg)
+        tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME &&
+        tetraplet.peer_pk == call_parameters.host_id
+    ).then(|| ()).wrap_err(error_msg)
 }
 
 pub(crate) fn check_host_value_tetraplets(call_parameters: &CallParameters, arg_number: usize, host_value: &Record) -> eyre::Result<()> {
@@ -75,8 +76,9 @@ pub(crate) fn check_host_value_tetraplets(call_parameters: &CallParameters, arg_
     let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
     let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
     (tetraplet.service_id == "aqua-dht" &&
-        tetraplet.function_name == "put_host_value"
-        && tetraplet.peer_pk == host_value.peer_id).then(|| ()).wrap_err(error_msg)
+        tetraplet.function_name == "put_host_value" &&
+        tetraplet.peer_pk == host_value.peer_id
+    ).then(|| ()).wrap_err(error_msg)
 }
 
 #[inline]
@@ -245,10 +247,10 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
             value,
             peer_id,
             set_by,
-            relay_id:vec![relay_id],
+            relay_id: vec![relay_id],
             service_id: vec![service_id],
             timestamp_created: current_timestamp_sec,
-            weight
+            weight,
         })
     } else {
         Err(SqliteError { code: None, message: Some("values limit is exceeded".to_string()) })
@@ -287,10 +289,15 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
 }
 
 /// If the key exists, then merge new records with existing (last-write-wins) and put
-pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
+pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+
+    republish_values_helper(key, records, current_timestamp_sec)
+}
+
+pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
     let connection = get_connection()?;
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
@@ -301,10 +308,9 @@ pub fn republish_values_impl(key: String, mut records: Vec<Record>, current_time
     for record in records.iter() {
         let relay_id = if record.relay_id.is_empty() { "".to_string() } else { record.relay_id[0].clone() };
         let service_id = if record.service_id.is_empty() { "".to_string() } else { record.service_id[0].clone() };
-
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
-                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.peer_id}, '{relay_id}',\
+                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.peer_id}', '{relay_id}', \
                     '{service_id}', '{record.timestamp_created}', '{current_timestamp_sec}', '{record.weight}')"))?;
 
         updated += connection.changes() as u64;
@@ -449,19 +455,20 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
 /// Similar to republish_values but with an additional check that value.set_by == init_peer_id
 pub fn propagate_host_value_impl(mut set_host_value: PutHostValueResult, current_timestamp_sec: u64, weight: u32) -> SqliteResult<()> {
     if !set_host_value.success || set_host_value.value.len() != 1 {
-        return Err( SqliteError { code: None, message: Some("invalid set_host_value".to_string()) });
+        return Err(SqliteError { code: None, message: Some("invalid set_host_value".to_string()) });
     }
 
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])
+        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
     if set_host_value.value[0].set_by != call_parameters.init_peer_id {
-        return Err( SqliteError { code: None, message: Some("value is set by another peer".to_string()) });
+        return Err(SqliteError { code: None, message: Some("value is set by another peer".to_string()) });
     }
 
     set_host_value.value[0].weight = weight;
-    republish_values_impl(set_host_value.key, set_host_value.value, current_timestamp_sec).map(|_| ())
+    set_host_value.value[0].peer_id = call_parameters.init_peer_id;
+    republish_values_helper(set_host_value.key, set_host_value.value, current_timestamp_sec).map(|_| ())
 }

@@ -61,6 +61,7 @@ mod tests {
 
                 assert_eq!(result.error, "");
                 assert!(result.success);
+                result
             }
         }
     }
@@ -770,5 +771,51 @@ mod tests {
         let result = aqua_dht.merge_two(vec![record1], vec![record2]);
 
         assert_eq!(result.result.len(), 2);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn init_topic_and_subscribe_node_test() {
+        clear_env();
+        let key_str = "some_key".to_string();
+        let timestamp = 123u64;
+        let weight = 8u32;
+        let pin = false;
+        let value = "some_value".to_string();
+        let peer_id = "some_peer_id".to_string();
+        let mut cp = get_correct_timestamp_cp(1);
+        cp.init_peer_id = peer_id.clone();
+        register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
+
+        let mut cp = get_correct_timestamp_cp(2);
+        cp.init_peer_id = peer_id.clone();
+
+        let result = put_host_value_and_check!(aqua_dht, key_str, value, timestamp, vec![], vec![], 0u32, cp);
+        assert!(result.success);
+
+        // clear db to imitate other node
+        clear_env();
+        let mut cp = get_correct_timestamp_cp(1);
+        cp.init_peer_id = peer_id.clone();
+        register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
+        let mut cp = get_correct_timestamp_cp(1);
+        cp.tetraplets[0] = vec![SecurityTetraplet {
+            peer_pk: HOST_ID.to_string(),
+            service_id: "aqua-dht".to_string(),
+            function_name: "put_host_value".to_string(),
+            json_path: "".to_string()
+        }];
+
+        cp.init_peer_id = peer_id.clone();
+
+        let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
+        assert!(result.success);
+        let result = aqua_dht.get_values_cp(key_str, 123u64, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.result.len(), 1);
+        let record = result.result[0].clone();
+        assert_eq!(record.value, value);
+        assert_eq!(record.peer_id, peer_id);
+        assert_eq!(record.set_by, peer_id);
     }
 }
