@@ -815,7 +815,7 @@ mod tests {
         assert_eq!(result.result.len(), 1);
         let record = result.result[0].clone();
         assert_eq!(record.value, value);
-        assert_eq!(record.peer_id, peer_id);
+        assert_eq!(record.peer_id, HOST_ID);
         assert_eq!(record.set_by, peer_id);
     }
 

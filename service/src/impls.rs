@@ -222,7 +222,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
-    let values: Vec<Record> = get_values_helper(&connection, key.clone())?.into_iter().filter(|item| item.peer_id == item.set_by).collect();
+    let values: Vec<Record> = get_values_helper(&connection, key.clone())?.into_iter().filter(|item| item.peer_id != call_parameters.host_id).collect();
     let min_weight_record = values.iter().last();
 
     if host || values.len() < VALUES_LIMIT || min_weight_record.unwrap().weight < weight {
@@ -310,7 +310,7 @@ pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_ti
         let service_id = if record.service_id.is_empty() { "".to_string() } else { record.service_id[0].clone() };
         connection.execute(
             f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
-                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.peer_id}', '{relay_id}', \
+                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.set_by}', '{relay_id}', \
                     '{service_id}', '{record.timestamp_created}', '{current_timestamp_sec}', '{record.weight}')"))?;
 
         updated += connection.changes() as u64;
@@ -469,6 +469,5 @@ pub fn propagate_host_value_impl(mut set_host_value: PutHostValueResult, current
     }
 
     set_host_value.value[0].weight = weight;
-    set_host_value.value[0].peer_id = call_parameters.init_peer_id;
     republish_values_helper(set_host_value.key, set_host_value.value, current_timestamp_sec).map(|_| ())
 }
