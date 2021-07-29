@@ -818,4 +818,63 @@ mod tests {
         assert_eq!(record.peer_id, peer_id);
         assert_eq!(record.set_by, peer_id);
     }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn evict_republish_clear_expired() {
+        clear_env();
+        let key = "some_key".to_string();
+        let value = "some_value".to_string();
+        let stale_timestamp = 0u64;
+        register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
+        put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+
+        let current_timestamp = stale_timestamp + DEFAULT_STALE_VALUE_AGE;
+
+        let result = aqua_dht.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.results.len(), 1);
+
+        let item = &result.results[0];
+        assert_eq!(item.key.key, key);
+        assert_eq!(item.records.len(), 1);
+
+        let key_to_republish = item.key.clone();
+        let records_to_republish = item.records.clone();
+
+        let record = &item.records[0];
+        assert_eq!(record.value, value);
+        assert_eq!(record.timestamp_created, stale_timestamp);
+
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+        assert!(!result.success);
+        assert_eq!(result.error, "not found");
+
+        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+
+        let result = aqua_dht.republish_key_cp(key_to_republish, current_timestamp, get_correct_timestamp_cp(1));
+        assert!(result.success);
+
+        let result = aqua_dht.republish_values_cp(key.clone(), records_to_republish.clone(), current_timestamp, get_correct_timestamp_cp(2));
+        assert!(result.success);
+
+        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 1);
+
+        let result = aqua_dht.clear_expired_cp(current_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        assert!(result.success);
+        assert_eq!(result.count_keys, 1);
+        assert_eq!(result.count_values, 1);
+
+        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(1));
+
+        assert!(result.success);
+        assert_eq!(result.error, "");
+        assert_eq!(result.result.len(), 0);
+    }
 }
