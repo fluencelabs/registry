@@ -782,26 +782,29 @@ mod tests {
         let weight = 8u32;
         let pin = false;
         let value = "some_value".to_string();
-        let peer_id = "some_peer_id".to_string();
+        let subscriber_peer_id = "some_peer_id".to_string();
         let mut cp = get_correct_timestamp_cp(1);
-        cp.init_peer_id = peer_id.clone();
+        cp.init_peer_id = subscriber_peer_id.clone();
+
+        // === init topic and subscribe to it
 
         // register topic
         register_key_and_check!(aqua_dht, topic, timestamp, pin, weight, cp);
 
         let mut cp = get_correct_timestamp_cp(2);
-        cp.init_peer_id = peer_id.clone();
+        cp.init_peer_id = subscriber_peer_id.clone();
 
-        // make node a subscriber to it
+        // make a subscription
         let result = put_host_value_and_check!(aqua_dht, topic, value, timestamp, vec![], vec![], 0u32, cp);
         assert!(result.success);
 
-        // clear db to imitate other node
+        // clear db to imitate switching to neighbor
         clear_env();
 
-        // notify neighbor about subscription
+        // === notify neighbor about subscription
+
         let mut cp = get_correct_timestamp_cp(1);
-        cp.init_peer_id = peer_id.clone();
+        cp.init_peer_id = subscriber_peer_id.clone();
 
         // register topic on neighbor
         register_key_and_check!(aqua_dht, topic, timestamp, pin, weight, cp);
@@ -812,13 +815,13 @@ mod tests {
             function_name: "put_host_value".to_string(),
             json_path: "".to_string()
         }];
-        cp.init_peer_id = peer_id.clone();
+        cp.init_peer_id = subscriber_peer_id.clone();
 
-        // leave record about initial node subscription to topic
+        // leave record about subscription
         let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
         assert!(result.success);
 
-        // check record existence
+        // check subscription (mimics findSubscribers but for one node without merging)
         let result = aqua_dht.get_values_cp(topic, 123u64, get_correct_timestamp_cp(1));
 
         assert!(result.success);
@@ -826,7 +829,7 @@ mod tests {
         let record = result.result[0].clone();
         assert_eq!(record.value, value);
         assert_eq!(record.peer_id, HOST_ID);
-        assert_eq!(record.set_by, peer_id);
+        assert_eq!(record.set_by, subscriber_peer_id);
     }
 
     // checks evict_stale -> republish_key[values] -> clear_expired lifecycle
