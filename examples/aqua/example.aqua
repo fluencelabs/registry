@@ -1,8 +1,30 @@
+-- This file demonstrates how send events to subscribers of a topic
+-- Detailed explanation can be found in the Aqua Book: https://doc.fluence.dev/aqua-book/libraries/aqua-dht#passing-data-to-subscribers
+
 import "@fluencelabs/aqua-dht/pubsub.aqua"
 import "@fluencelabs/aqua-dht/dht.aqua"
 
-func initTopicAndFindSubscribers(relay: string, topic: string) -> []Record:
-    on relay:
-        initTopicAndSubscribe(relay, topic, "", nil, nil)
-        subscribers <- findSubscribers(relay, topic)
-    <- subscribers
+-- Application event
+data Event:
+    value: string
+
+-- API that every subscriber must adhere to
+-- You can think of it as an application protocol
+service SubscriberAPI:
+    receive_event(event: Event)
+
+func call_subscriber(sub: Record, event: Event):
+    -- topological move to subscriber via relay
+    on sub.peer_id via sub.relay_id:
+        -- resolve service on a subscriber
+        SubscriberAPI sub.service_id
+        -- call function
+        SubscriberAPI.receive_event(event)
+
+-- send event to every subscriber
+func send_everyone(relay: PeerId, topic: string, event: Event):
+    -- retrieve all subscribers of a topic
+    subscribers <- findSubscribers(relay, topic)
+    -- iterate through them
+    for sub <- subscribers par:
+        call_subscriber(sub, event)
