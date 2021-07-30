@@ -773,10 +773,11 @@ mod tests {
         assert_eq!(result.result.len(), 2);
     }
 
+    // test repeats initTopicAndSubscribeNode method from pubsub api
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn init_topic_and_subscribe_node_test() {
         clear_env();
-        let key_str = "some_key".to_string();
+        let topic = "some_key".to_string();
         let timestamp = 123u64;
         let weight = 8u32;
         let pin = false;
@@ -784,19 +785,26 @@ mod tests {
         let peer_id = "some_peer_id".to_string();
         let mut cp = get_correct_timestamp_cp(1);
         cp.init_peer_id = peer_id.clone();
-        register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
+
+        // register topic
+        register_key_and_check!(aqua_dht, topic, timestamp, pin, weight, cp);
 
         let mut cp = get_correct_timestamp_cp(2);
         cp.init_peer_id = peer_id.clone();
 
-        let result = put_host_value_and_check!(aqua_dht, key_str, value, timestamp, vec![], vec![], 0u32, cp);
+        // make node a subscriber to it
+        let result = put_host_value_and_check!(aqua_dht, topic, value, timestamp, vec![], vec![], 0u32, cp);
         assert!(result.success);
 
         // clear db to imitate other node
         clear_env();
+
+        // notify neighbor about subscription
         let mut cp = get_correct_timestamp_cp(1);
         cp.init_peer_id = peer_id.clone();
-        register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
+
+        // register topic on neighbor
+        register_key_and_check!(aqua_dht, topic, timestamp, pin, weight, cp);
         let mut cp = get_correct_timestamp_cp(1);
         cp.tetraplets[0] = vec![SecurityTetraplet {
             peer_pk: HOST_ID.to_string(),
@@ -806,9 +814,12 @@ mod tests {
         }];
         cp.init_peer_id = peer_id.clone();
 
+        // leave record about initial node subscription to topic
         let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
         assert!(result.success);
-        let result = aqua_dht.get_values_cp(key_str, 123u64, get_correct_timestamp_cp(1));
+
+        // check record existence
+        let result = aqua_dht.get_values_cp(topic, 123u64, get_correct_timestamp_cp(1));
 
         assert!(result.success);
         assert_eq!(result.result.len(), 1);
@@ -818,17 +829,22 @@ mod tests {
         assert_eq!(record.set_by, peer_id);
     }
 
+    // checks evict_stale -> republish_key[values] -> clear_expired lifecycle
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn evict_republish_clear_expired() {
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let stale_timestamp = 0u64;
+
+        // register key and put some value
         register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
         put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
 
+        // increase timestamp to make value and key stale
         let current_timestamp = stale_timestamp + DEFAULT_STALE_VALUE_AGE;
 
+        // retrieve values and keys to republish
         let result = aqua_dht.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
         assert!(result.success);
         assert_eq!(result.error, "");
@@ -845,32 +861,37 @@ mod tests {
         assert_eq!(record.value, value);
         assert_eq!(record.timestamp_created, stale_timestamp);
 
-        let result = aqua_dht.get_key_metadata_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
-        assert!(!result.success);
-        assert_eq!(result.error, "not found");
-
+        // check that key not exists and values are empty (because node is neighbor to itself and should republish values to itself)
+        // get_values checks key existence
         let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
         assert!(result.success);
         assert_eq!(result.error, "");
         assert_eq!(result.result.len(), 0);
 
+        // republish key and values
         let result = aqua_dht.republish_key_cp(key_to_republish, current_timestamp, get_correct_timestamp_cp(1));
         assert!(result.success);
 
         let result = aqua_dht.republish_values_cp(key.clone(), records_to_republish.clone(), current_timestamp, get_correct_timestamp_cp(2));
         assert!(result.success);
 
+        // check values' existence
         let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
         assert!(result.success);
         assert_eq!(result.error, "");
         assert_eq!(result.result.len(), 1);
 
-        let result = aqua_dht.clear_expired_cp(current_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        // increase timestamp to make value and key expired
+        let current_timestamp = current_timestamp + DEFAULT_EXPIRED_VALUE_AGE;
+
+        // clear expired values and keys
+        let result = aqua_dht.clear_expired_cp(current_timestamp, get_correct_timestamp_cp(0));
         assert!(result.success);
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
-        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(1));
+        // check that values and keys not exists anymore (get_values checks key existence)
+        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
 
         assert!(result.success);
         assert_eq!(result.error, "");
