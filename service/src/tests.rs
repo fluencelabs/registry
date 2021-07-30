@@ -885,7 +885,7 @@ mod tests {
         assert_eq!(result.result.len(), 1);
 
         // increase timestamp to make value and key expired
-        let current_timestamp = current_timestamp + DEFAULT_EXPIRED_VALUE_AGE;
+        let expired_timestamp = current_timestamp + DEFAULT_EXPIRED_VALUE_AGE;
 
         // clear expired values and keys
         let result = aqua_dht.clear_expired_cp(current_timestamp, get_correct_timestamp_cp(0));
