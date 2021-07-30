@@ -2,7 +2,8 @@
 
 [Distributed Hash Table](https://en.wikipedia.org/wiki/Distributed_hash_table) (DHT) implementation for the Fluence network with an Aqua interface.
 
-Documentation for `aqua-dht` can be found in the [Aqua Book](https://fluence.dev/aqua-book/libraries/aqua-dht).
+## Documentation
+See [Aqua Book](https://fluence.dev/aqua-book/libraries/aqua-dht).
 
 ## How to Use
 

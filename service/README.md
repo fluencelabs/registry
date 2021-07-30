@@ -1,5 +1,7 @@
 # Aqua DHT service
 
+Rust implementation of the AquaDHT service.
+
 ## How to build .wasm
 * Install dependencies
 
