@@ -20,5 +20,5 @@ cargo install +nightly marine
 
 ## How to run tests
 ```bash
-cargo test --release
+cargo test --release -- --test-threads=1
 ```
