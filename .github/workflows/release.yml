@@ -26,6 +26,11 @@ jobs:
       - name: Download marine
         run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
 
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "14"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Cache cargo
         uses: actions/cache@v2
         with:
@@ -101,11 +106,6 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-node@v1
-        with:
-          node-version: "14"
-          registry-url: "https://registry.npmjs.org"
 
 ### Publish Aqua API
       - run: |
