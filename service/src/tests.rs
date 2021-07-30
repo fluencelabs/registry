@@ -804,7 +804,6 @@ mod tests {
             function_name: "put_host_value".to_string(),
             json_path: "".to_string()
         }];
-
         cp.init_peer_id = peer_id.clone();
 
         let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
