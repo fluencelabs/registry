@@ -82,6 +82,7 @@ jobs:
       - name: Compile TypeScript to .js + .d.ts
         working-directory: ./aqua/target/typescript
         run: |
+          ls
           npm i
           npm run build
 
