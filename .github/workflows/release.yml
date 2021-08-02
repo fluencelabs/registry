@@ -84,7 +84,13 @@ jobs:
       - name: Compile TypeScript to .js + .d.ts
         working-directory: ./aqua/target/typescript
         run: |
-          ls
+          echo "GITHUB_WORKSPACE=" $GITHUB_WORKSPACE
+          echo "GITHUB_ACTION_PATH=" $GITHUB_ACTION_PATH
+          echo "RUNNER_TEMP=" $RUNNER_TEMP
+          pwd
+          ls -l ..
+          ls -l /
+          ls -l /__w
           npm i
           npm run build
 
