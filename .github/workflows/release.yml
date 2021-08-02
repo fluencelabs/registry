@@ -90,8 +90,8 @@ jobs:
           echo "RUNNER_TEMP=" $RUNNER_TEMP
           pwd
           ls -l ..
-          ls -l /
-          ls -l /__w
+          whoami
+        
           npm i
           npm run build
 
