@@ -84,9 +84,18 @@ jobs:
       - name: Install bcrypt globally
         run: npm i -g bcrypt
 
-      - name: Install bcrypt locally
+      - name: Install bcrypt locally to ${{ env.GITHUB_WORKSPACE }}
+        run: npm i bcrypt
+        working-directory: ${{ env.GITHUB_WORKSPACE }}
+
+      - name: Install bcrypt locally to ./aqua
+        run: npm i bcrypt
+        working-directory: ./aqua
+
+      - name: Install bcrypt locally to ./aqua/target/typescript
         run: npm i bcrypt
         working-directory: ./aqua/target/typescript
+
 
       - name: Compile TypeScript to .js + .d.ts
         working-directory: ./aqua/target/typescript
