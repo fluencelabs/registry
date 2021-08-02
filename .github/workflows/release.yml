@@ -90,6 +90,9 @@ jobs:
           pwd
           ls -l ..
           whoami
+
+          echo "$NPM_CONFIG_USERCONFIG=" $NPM_CONFIG_USERCONFIG
+          cat $NPM_CONFIG_USERCONFIG
         
           npm i
           npm run build
