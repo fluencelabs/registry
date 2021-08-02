@@ -29,6 +29,6 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht",
   "devDependencies": {
-    "@fluencelabs/aqua-cli": "^0.1.9-165"
+    "@fluencelabs/aqua-cli": "0.1.10-188"
   }
 }
