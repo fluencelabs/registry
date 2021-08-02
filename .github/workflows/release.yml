@@ -86,17 +86,7 @@ jobs:
 
       - name: Compile TypeScript to .js + .d.ts
         working-directory: ./aqua/target/typescript
-        run: |
-          echo "GITHUB_WORKSPACE=" $GITHUB_WORKSPACE
-          echo "GITHUB_ACTION_PATH=" $GITHUB_ACTION_PATH
-          echo "RUNNER_TEMP=" $RUNNER_TEMP
-          pwd
-          ls -l ..
-          whoami
-
-          echo "NPM_CONFIG_USERCONFIG=" $NPM_CONFIG_USERCONFIG
-          cat $NPM_CONFIG_USERCONFIG
-        
+        run: |        
           npm i
           npm run build
 
@@ -123,7 +113,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       ### Publish Aqua API
-      - run: |
+      - name: Publish Aqua API
+        run: |
           npm version ${{ env.RELEASE_VERSION }}
           npm publish --access public
         env:
@@ -131,7 +122,8 @@ jobs:
         working-directory: ./aqua
       
       ### Publish TS API
-      - run: |
+      - name: Publish TS API
+        run: |
           npm version ${{ env.RELEASE_VERSION }}
           npm publish --access public
         env:

@@ -11,8 +11,7 @@
   "scripts": {
     "compile-aqua": "aqua-cli -i ./ -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
-    "build": "npm run compile-aqua",
-    "prepare": "npm run generate-aqua && npm run build"
+    "build": "npm run compile-aqua"
   },
   "repository": {
     "type": "git",
