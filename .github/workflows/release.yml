@@ -31,8 +31,8 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: "14"
-          # registry-url: "https://registry.npmjs.org"
+          node-version: "15"
+          registry-url: "https://registry.npmjs.org"
 
       # - name: Cache cargo
       #   uses: actions/cache@v2
@@ -75,18 +75,18 @@ jobs:
       #     mv artifacts aqua-dht
       #     tar -zcvf aqua-dht.tar.gz aqua-dht
 
-      - name: Install bcrypt locally to project root
-        run: |
-          npm i --loglevel verbose bcrypt
+      # - name: Install bcrypt locally to project root
+      #   run: |
+      #     npm i bcrypt
 
-      - name: Install bcrypt locally to ./aqua
-        run: |
-          npm i --loglevel verbose bcrypt
-        working-directory: ./aqua
+      # - name: Install bcrypt locally to ./aqua
+      #   run: |
+      #     npm i bcrypt
+      #   working-directory: ./aqua
 
-      - name: Install bcrypt locally to ./aqua/target/typescript
-        run: npm i bcrypt
-        working-directory: ./aqua/target/typescript
+      # - name: Install bcrypt locally to ./aqua/target/typescript
+      #   run: npm i bcrypt
+      #   working-directory: ./aqua/target/typescript
 
       - name: Compile Aqua to TypeScript
         working-directory: ./aqua
