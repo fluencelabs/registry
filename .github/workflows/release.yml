@@ -81,6 +81,7 @@ jobs:
 
       - name: Install bcrypt locally to ./aqua
         run: |
+          mkdir ./node_modules/bcrypt
           npm i bcrypt
         working-directory: ./aqua
 
