@@ -26,8 +26,8 @@ jobs:
       #     curl -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o /usr/local/bin/jq
       #     chmod +x /usr/local/bin/jq
 
-      # - name: Download marine
-      #   run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
+      - name: Download marine
+        run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
 
       - uses: actions/setup-node@v2
         with:
