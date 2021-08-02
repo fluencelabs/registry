@@ -515,7 +515,9 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
-    delete_value(&connection, key, call_parameters.host_id, call_parameters.init_peer_id)?;
+    let peer_id = call_parameters.host_id;
+    let set_by = call_parameters.init_peer_id;
+    delete_value(&connection, key, peer_id, set_by)?;
 
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
