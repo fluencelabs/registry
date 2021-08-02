@@ -888,13 +888,13 @@ mod tests {
         let expired_timestamp = current_timestamp + DEFAULT_EXPIRED_VALUE_AGE;
 
         // clear expired values and keys
-        let result = aqua_dht.clear_expired_cp(current_timestamp, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(expired_timestamp, get_correct_timestamp_cp(0));
         assert!(result.success);
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
         // check that values and keys not exists anymore (get_values checks key existence)
-        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+        let result = aqua_dht.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
 
         assert!(result.success);
         assert_eq!(result.error, "");

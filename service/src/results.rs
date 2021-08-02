@@ -40,7 +40,7 @@ impl From<SqliteResult<()>> for DhtResult {
 }
 
 #[marine]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Record {
     pub value: String,
     pub peer_id: String,
