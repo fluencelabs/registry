@@ -75,14 +75,9 @@ jobs:
       #     mv artifacts aqua-dht
       #     tar -zcvf aqua-dht.tar.gz aqua-dht
 
-      - run: |
-          chown -R root:root .
-          chmod -R 777 .
-
       - name: Install bcrypt locally to ./aqua
         run: |
-          mkdir -p ./node_modules/bcrypt
-          npm i bcrypt
+          npm i --loglevel verbose bcrypt
         working-directory: ./aqua
 
       - name: Install bcrypt locally to ./aqua/target/typescript
