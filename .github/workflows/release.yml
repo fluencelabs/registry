@@ -89,7 +89,10 @@ jobs:
         working-directory: ${{ env.GITHUB_WORKSPACE }}
 
       - name: Install bcrypt locally to ./aqua
-        run: npm i bcrypt
+        run: |
+          ls -l 
+          ls -l node_modules || true
+          npm i bcrypt
         working-directory: ./aqua
 
       - name: Install bcrypt locally to ./aqua/target/typescript
