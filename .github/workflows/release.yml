@@ -84,6 +84,10 @@ jobs:
       - name: Install bcrypt globally
         run: npm i -g bcrypt
 
+      - name: Install bcrypt locally
+        run: npm i bcrypt
+        working-directory: ./aqua/target/typescript
+
       - name: Compile TypeScript to .js + .d.ts
         working-directory: ./aqua/target/typescript
         run: |
