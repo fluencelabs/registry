@@ -84,16 +84,11 @@ jobs:
 
       - name: Install bcrypt locally to ./aqua
         run: |
-          ls -l 
-          ls -l node_modules || true
-          npm i request
-          npm i --unsafe-perm=true --allow-root bcrypt || echo "failed, mkdir"
-          ls -l node_modules
-          ls -l node_modules/bcrypt || true
+          npm i --unsafe-perm=true bcrypt
         working-directory: ./aqua
 
       - name: Install bcrypt locally to ./aqua/target/typescript
-        run: npm i bcrypt
+        run: npm i --allow-root bcrypt
         working-directory: ./aqua/target/typescript
 
       - name: Compile Aqua to TypeScript
@@ -115,7 +110,7 @@ jobs:
           echo "NPM_CONFIG_USERCONFIG=" $NPM_CONFIG_USERCONFIG
           cat $NPM_CONFIG_USERCONFIG
         
-          npm i
+          npm --allow-root i
           npm run build
 
 #       - name: Build Changelog
