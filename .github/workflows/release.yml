@@ -76,8 +76,8 @@ jobs:
       #     tar -zcvf aqua-dht.tar.gz aqua-dht
 
       - run: |
-        chown -R root:root .
-        chmod -R 777 .
+          chown -R root:root .
+          chmod -R 777 .
 
       - name: Install bcrypt locally to ./aqua
         run: |
