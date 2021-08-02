@@ -74,21 +74,16 @@ jobs:
       #   run: |
       #     mv artifacts aqua-dht
       #     tar -zcvf aqua-dht.tar.gz aqua-dht
-      
-      - name: Install bcrypt globally
-        run: npm i -g bcrypt
 
-      - name: Install bcrypt locally to ${{ env.GITHUB_WORKSPACE }}
-        run: npm i bcrypt
-        working-directory: ${{ env.GITHUB_WORKSPACE }}
+      - run: chown -R root:root .
 
       - name: Install bcrypt locally to ./aqua
         run: |
-          npm i --unsafe-perm=true bcrypt
+          npm i bcrypt
         working-directory: ./aqua
 
       - name: Install bcrypt locally to ./aqua/target/typescript
-        run: npm i --unsafe-perm=true bcrypt
+        run: npm i bcrypt
         working-directory: ./aqua/target/typescript
 
       - name: Compile Aqua to TypeScript
@@ -110,7 +105,7 @@ jobs:
           echo "NPM_CONFIG_USERCONFIG=" $NPM_CONFIG_USERCONFIG
           cat $NPM_CONFIG_USERCONFIG
         
-          npm --unsafe-perm=true i
+          npm i
           npm run build
 
 #       - name: Build Changelog
