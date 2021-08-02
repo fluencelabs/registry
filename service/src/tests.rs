@@ -900,4 +900,18 @@ mod tests {
         assert_eq!(result.error, "");
         assert_eq!(result.result.len(), 0);
     }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    pub fn sql_injection_test() {
+        clear_env();
+        let key = "blabla".to_string();
+        let injection_key = f!("{key}', '123', '123', 'abc', '0', '0'); DELETE FROM TABLE {KEYS_TABLE_NAME};");
+
+        let result = aqua_dht.register_key_cp(injection_key.clone(), 123u64, false, 0u32, get_correct_timestamp_cp(1));
+        assert!(result.success);
+
+        let result = aqua_dht.get_key_metadata_cp(injection_key.clone(), 123u64, get_correct_timestamp_cp(1));
+        assert!(result.success);
+        assert_eq!(result.key.key, injection_key);
+    }
 }
