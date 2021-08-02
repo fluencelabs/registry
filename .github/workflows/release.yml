@@ -30,25 +30,10 @@ jobs:
       - name: Download marine
         run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "15"
-          registry-url: "https://registry.npmjs.org"
-
       - uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
           java-version: '11'
-
-### Cache
-      - name: Cache cargo
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache npm
         uses: actions/cache@v2
@@ -58,7 +43,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-v03-
 
-      ### Setup Rust after cache in hope that cache will make it faster
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "15"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Cache cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install Rust
         working-directory: ./service
         run: |
