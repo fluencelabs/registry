@@ -75,6 +75,10 @@ jobs:
       #     mv artifacts aqua-dht
       #     tar -zcvf aqua-dht.tar.gz aqua-dht
 
+      - name: Install bcrypt locally to project root
+        run: |
+          npm i --loglevel verbose bcrypt
+
       - name: Install bcrypt locally to ./aqua
         run: |
           npm i --loglevel verbose bcrypt
