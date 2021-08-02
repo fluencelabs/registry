@@ -81,6 +81,9 @@ jobs:
           npm i
           npm run build
       
+      - name: Install bcrypt globally
+        run: npm i -g bcrypt
+
       - name: Compile TypeScript to .js + .d.ts
         working-directory: ./aqua/target/typescript
         run: |
@@ -91,7 +94,7 @@ jobs:
           ls -l ..
           whoami
 
-          echo "$NPM_CONFIG_USERCONFIG=" $NPM_CONFIG_USERCONFIG
+          echo "NPM_CONFIG_USERCONFIG=" $NPM_CONFIG_USERCONFIG
           cat $NPM_CONFIG_USERCONFIG
         
           npm i
