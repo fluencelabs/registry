@@ -15,8 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fluencelabs/aqua-dht.git",
-    "directory": "aqua/target/typescript"
+    "url": "git+https://github.com/fluencelabs/aqua-dht.git"
   },
   "keywords": [
     "aqua",
