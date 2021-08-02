@@ -9,10 +9,9 @@
     "@fluencelabs/aqua-lib": "^0.1.10"
   },
   "scripts": {
-    "compile-aqua": "aqua-cli -i ./ -o ./target/typescript",
+    "compile-aqua": "aqua-cli -i ./ -o ./target/typescript/src",
     "generate-aqua": "../service/build.sh",
-    "build": "npm run compile-aqua",
-    "prepare": "npm run generate-aqua && npm run build"
+    "build": "npm run compile-aqua"
   },
   "repository": {
     "type": "git",
@@ -30,6 +29,6 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht",
   "devDependencies": {
-    "@fluencelabs/aqua-cli": "^0.1.9-165"
+    "@fluencelabs/aqua-cli": "0.1.10-188"
   }
 }
