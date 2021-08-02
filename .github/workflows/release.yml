@@ -87,7 +87,10 @@ jobs:
           ls -l 
           ls -l node_modules || true
           npm i request
-          npm i bcrypt || (echo "failed, mkdir" ; mkdir '/__w/aqua-dht/aqua-dht/aqua/node_modules/bcrypt/lib')
+          npm i bcrypt || echo "failed, mkdir"
+          ls -l node_modules
+          ls -l node_modules/bcrypt
+          mkdir '/__w/aqua-dht/aqua-dht/aqua/node_modules/bcrypt/lib' || true
         working-directory: ./aqua
 
       - name: Install bcrypt locally to ./aqua/target/typescript
