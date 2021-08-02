@@ -9,7 +9,7 @@
     "@fluencelabs/aqua-lib": "^0.1.10"
   },
   "scripts": {
-    "compile-aqua": "aqua-cli -i ./ -o ./target/typescript",
+    "compile-aqua": "aqua-cli -i ./ -o ./target/typescript/src",
     "generate-aqua": "../service/build.sh",
     "build": "npm run compile-aqua"
   },
