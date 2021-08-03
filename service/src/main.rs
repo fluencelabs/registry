@@ -31,6 +31,7 @@ extern crate fstrings;
 
 module_manifest!();
 
+// TODO: sanitize tables' names in SQL expressions
 pub static KEYS_TABLE_NAME: &str = "dht_keys";
 pub static VALUES_TABLE_NAME: &str = "dht_values";
 pub static CONFIG_FILE: &str = "/tmp/Config.toml";

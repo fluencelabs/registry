@@ -16,7 +16,7 @@
 
 use crate::{Config, KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, DEFAULT_EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
 use crate::results::{Key, Record, EvictStaleItem, PutHostValueResult};
-use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement};
+use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement, Value};
 use marine_rs_sdk::{CallParameters};
 use eyre;
 use eyre::ContextCompat;
@@ -59,6 +59,30 @@ fn check_key_existence(connection: &Connection, key: String, current_timestamp_s
     get_key_metadata_helper(&connection, key, current_timestamp_sec).map(|_| ())
 }
 
+fn insert_or_replace_value(connection: &Connection, key: String, record: Record, current_timestamp: u64) -> SqliteResult<()> {
+    let relay_id = if record.relay_id.is_empty() { "".to_string() } else { record.relay_id[0].clone() };
+    let service_id = if record.service_id.is_empty() { "".to_string() } else { record.service_id[0].clone() };
+    let mut statement = connection.prepare(f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"))?;
+
+    statement.bind(1, &Value::String(key))?;
+    statement.bind(2, &Value::String(record.value))?;
+    statement.bind(3, &Value::String(record.peer_id))?;
+    statement.bind(4, &Value::String(record.set_by))?;
+    statement.bind(5, &Value::String(relay_id))?;
+    statement.bind(6, &Value::String(service_id))?;
+    statement.bind(7, &Value::Integer(record.timestamp_created as i64))?;
+    statement.bind(8, &Value::Integer(current_timestamp as i64))?;
+    statement.bind(9, &Value::Integer(record.weight as i64))?;
+    statement.next().map(drop)
+}
+
+fn delete_value(connection: &Connection, key: String, peer_id: String, set_by: String) -> SqliteResult<()> {
+    let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key=? AND peer_id=? AND set_by=?"))?;
+    statement.bind(1, &Value::String(key.clone()))?;
+    statement.bind(2, &Value::String(peer_id))?;
+    statement.bind(3, &Value::String(set_by))?;
+    statement.next().map(drop)
+}
 
 /// Check timestamps are generated on the current host with builtin ("peer" "timestamp_sec")
 pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
@@ -146,14 +170,15 @@ pub(crate) fn create_config() {
 
 /// Update timestamp_accessed and return metadata of the key
 fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
-    connection.execute(
-        f!("UPDATE {KEYS_TABLE_NAME} \
-                     SET timestamp_accessed = '{current_timestamp_sec}' \
-                     WHERE key = '{key}'"))?;
+    let mut statement = connection.prepare(f!("UPDATE {KEYS_TABLE_NAME} SET timestamp_accessed = ? WHERE key = ?"))?;
+    statement.bind(1, &Value::Integer(current_timestamp_sec as i64))?;
+    statement.bind(2, &Value::String(key.clone()))?;
+    statement.next()?;
 
     let mut statement = connection
         .prepare(f!("SELECT key, peer_id, timestamp_created, pinned, weight \
-                              FROM {KEYS_TABLE_NAME} WHERE key = '{key}'"))?;
+                              FROM {KEYS_TABLE_NAME} WHERE key = ?"))?;
+    statement.bind(1, &Value::String(key))?;
 
     if let State::Row = statement.next()? {
         read_key(&statement)
@@ -174,10 +199,18 @@ fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_c
     };
 
     if update_allowed {
-        connection.execute(f!("
-             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} \
-             VALUES ('{key}', '{timestamp_created}', '{timestamp_accessed}', '{peer_id}', '{pinned}', '{weight}');
-         "))
+        let mut statement = connection.prepare(f!("
+             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?);
+         "))?;
+
+        statement.bind(1, &Value::String(key))?;
+        statement.bind(2, &Value::Integer(timestamp_created as i64))?;
+        statement.bind(3, &Value::Integer(timestamp_accessed as i64))?;
+        statement.bind(4, &Value::String(peer_id))?;
+        statement.bind(5, &Value::Integer(pinned as i64))?;
+        statement.bind(6, &Value::Integer(weight as i64))?;
+        statement.next()?;
+        Ok(())
     } else {
         Err(SqliteError { code: None, message: Some("key already exists with different peer_id".to_string()) })
     }
@@ -229,40 +262,34 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
 
         if min_weight_record.weight < weight {
             // delete the lightest record if the new one is heavier
-            connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE set_by='{min_weight_record.set_by}' AND peer_id='{min_weight_record.peer_id}'"))?;
+            delete_value(&connection, key.clone(), min_weight_record.peer_id, min_weight_record.set_by)?;
         } else {
             // return error if limit is exceeded
             return Err(SqliteError { code: None, message: Some("values limit is exceeded".to_string()) });
         }
     }
 
-    let relay_id = if relay_id.len() == 0 { "".to_string() } else { relay_id[0].clone() };
-    let peer_id = if host { call_parameters.host_id } else { call_parameters.init_peer_id.clone() };
-    let set_by = call_parameters.init_peer_id;
-    let service_id = if service_id.len() == 0 { "".to_string() } else { service_id[0].clone() };
-
-    connection.execute(
-        f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
-                    VALUES ('{key}', '{value}', '{peer_id}', '{set_by}', '{relay_id}',\
-                    '{service_id}', '{current_timestamp_sec}', '{current_timestamp_sec}', '{weight}')")
-    )?;
-
-    Ok(Record {
+    let result = Record {
         value,
-        peer_id,
-        set_by,
-        relay_id: vec![relay_id],
-        service_id: vec![service_id],
+        peer_id: if host { call_parameters.host_id } else { call_parameters.init_peer_id.clone() },
+        set_by: call_parameters.init_peer_id,
+        relay_id,
+        service_id,
         timestamp_created: current_timestamp_sec,
         weight,
-    })
+    };
+
+    insert_or_replace_value(&connection, key, result.clone(), current_timestamp_sec)?;
+    Ok(result)
 }
 
 /// Return all values by key
 pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<Vec<Record>> {
     let mut statement = connection.prepare(
         f!("SELECT value, peer_id, set_by, relay_id, service_id, timestamp_created, weight FROM {VALUES_TABLE_NAME} \
-                     WHERE key = '{key}' ORDER BY weight DESC"))?;
+                     WHERE key = ? ORDER BY weight DESC"))?;
+    statement.bind(1, &Value::String(key))?;
+
     let mut result: Vec<Record> = vec![];
 
     while let State::Row = statement.next()? {
@@ -276,9 +303,9 @@ fn get_non_host_records_count_by_key(connection: &Connection, key: String) -> Sq
     let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
     // only only non-host values
-    let mut statement = connection.prepare(
-        f!("SELECT COUNT(*) FROM {VALUES_TABLE_NAME} \
-                     WHERE key = '{key}' AND peer_id != '{host_id}'"))?;
+    let mut statement = connection.prepare(f!("SELECT COUNT(*) FROM {VALUES_TABLE_NAME} WHERE key = ? AND peer_id != ?"))?;
+    statement.bind(1, &Value::String(key))?;
+    statement.bind(2, &Value::String(host_id))?;
 
     if let State::Row = statement.next()? {
         statement.read::<i64>(0).map(|n| n as usize)
@@ -293,7 +320,10 @@ fn get_min_weight_non_host_record_by_key(connection: &Connection, key: String) -
     // only only non-host values
     let mut statement = connection.prepare(
         f!("SELECT value, peer_id, set_by, relay_id, service_id, timestamp_created, weight FROM {VALUES_TABLE_NAME} \
-                     WHERE key = '{key}' AND peer_id != '{host_id}' ORDER BY weight ASC LIMIT 1"))?;
+                     WHERE key = ? AND peer_id != ? ORDER BY weight ASC LIMIT 1"))?;
+
+    statement.bind(1, &Value::String(key.clone()))?;
+    statement.bind(2, &Value::String(host_id))?;
 
     if let State::Row = statement.next()? {
         read_record(&statement)
@@ -310,10 +340,14 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
 
     let connection = get_connection()?;
 
-    connection.execute(
+    let mut statement = connection.prepare(
         f!("UPDATE {VALUES_TABLE_NAME} \
-                     SET timestamp_accessed = '{current_timestamp_sec}' \
-                     WHERE key = '{key}'"))?;
+                  SET timestamp_accessed = ? \
+                  WHERE key = ?"))?;
+
+    statement.bind(1, &Value::Integer(current_timestamp_sec as i64))?;
+    statement.bind(2, &Value::String(key.clone()))?;
+    statement.next()?;
 
     get_values_helper(&connection, key)
 }
@@ -335,14 +369,8 @@ pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_ti
     records = merge_impl(get_values_helper(&connection, key.clone())?.into_iter().chain(records.into_iter()).collect())?;
 
     let mut updated = 0u64;
-    for record in records.iter() {
-        let relay_id = if record.relay_id.is_empty() { "".to_string() } else { record.relay_id[0].clone() };
-        let service_id = if record.service_id.is_empty() { "".to_string() } else { record.service_id[0].clone() };
-        connection.execute(
-            f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} \
-                    VALUES ('{key}', '{record.value}', '{record.peer_id}', '{record.set_by}', '{relay_id}', \
-                    '{service_id}', '{record.timestamp_created}', '{current_timestamp_sec}', '{record.weight}')"))?;
-
+    for record in records.into_iter() {
+        insert_or_replace_value(&connection, key.clone(), record, current_timestamp_sec)?;
         updated += connection.changes() as u64;
     }
 
@@ -350,7 +378,7 @@ pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_ti
 }
 
 /// Remove expired values and expired empty keys. 
-/// Expired means  that `timestamp_created` has surpassed `expired_timeout`.
+/// Expired means that `timestamp_created` has surpassed `expired_timeout`.
 /// Return number of keys and values removed
 pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
@@ -369,19 +397,27 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)
     connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"))?;
     deleted_values += connection.changes() as u64;
 
-    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
-                                    WHERE timestamp_created <= {expired_timestamp}) AND peer_id != '{host_id}'"))?;
+    let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
+                                    WHERE timestamp_created <= {expired_timestamp}) AND peer_id != ?"))?;
+    statement.bind(1, &Value::String(host_id.clone()))?;
+    statement.next()?;
     deleted_values += connection.changes() as u64;
-    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} \
-                                    WHERE timestamp_created <= {expired_timestamp} AND peer_id != '{host_id}'"))?;
+
+    let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} \
+                                    WHERE timestamp_created <= {expired_timestamp} AND peer_id != ?"))?;
+    statement.bind(1, &Value::String(host_id.clone()))?;
+    statement.next()?;
     deleted_values += connection.changes() as u64;
 
 
     connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"))?;
     let mut deleted_keys = connection.changes() as u64;
-    connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} \
+
+    let mut statement = connection.prepare(f!("DELETE FROM {KEYS_TABLE_NAME} \
                                     WHERE timestamp_created <= {expired_timestamp} AND pinned=0 AND \
-                                    key NOT IN (SELECT key FROM {VALUES_TABLE_NAME} WHERE peer_id='{host_id}')"))?;
+                                    key NOT IN (SELECT key FROM {VALUES_TABLE_NAME} WHERE peer_id = ?)"))?;
+    statement.bind(1, &Value::String(host_id.clone()))?;
+    statement.next()?;
     deleted_keys += connection.changes() as u64;
 
     Ok((deleted_keys, deleted_values))
@@ -411,10 +447,15 @@ pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictSta
     let host_id = call_parameters.host_id;
     for key in stale_keys.into_iter() {
         let values = get_values_helper(&connection, key.key.clone())?;
-        connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key = '{key.key}' AND set_by != '{host_id}'"))?;
+        let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key = ? AND set_by != ?"))?;
+        statement.bind(1, &Value::String(key.key.clone()))?;
+        statement.bind(2, &Value::String(host_id.clone()))?;
+        statement.next()?;
 
         if !key.pinned && !values.iter().any(|val| val.peer_id == host_id) {
-            connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key='{key.key}'"))?;
+            let mut statement = connection.prepare(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key = ?"))?;
+            statement.bind(1, &Value::String(key.key.clone()))?;
+            statement.next()?;
         }
 
         results.push(EvictStaleItem { key, records: values });
@@ -454,10 +495,16 @@ pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
     let set_by = call_parameters.init_peer_id;
     let host_id = call_parameters.host_id;
 
-    connection.execute(
+    let mut statement = connection.prepare(
         f!("UPDATE {VALUES_TABLE_NAME} \
-                     SET timestamp_created = '{current_timestamp_sec}', timestamp_accessed = '{current_timestamp_sec}' \
-                     WHERE key = '{key}' AND set_by = '{set_by}' AND peer_id = '{host_id}'"))?;
+                     SET timestamp_created = ?, timestamp_accessed = ? \
+                     WHERE key = ? AND set_by = ? AND peer_id = ?"))?;
+    statement.bind(1, &Value::Integer(current_timestamp_sec as i64))?;
+    statement.bind(2, &Value::Integer(current_timestamp_sec as i64))?;
+    statement.bind(3, &Value::String(key))?;
+    statement.bind(4, &Value::String(set_by))?;
+    statement.bind(5, &Value::String(host_id))?;
+    statement.next()?;
 
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
@@ -471,12 +518,9 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
-    let host_id = call_parameters.host_id;
+    let peer_id = call_parameters.host_id;
     let set_by = call_parameters.init_peer_id;
-
-    connection.execute(
-        f!("DELETE FROM {VALUES_TABLE_NAME} \
-                     WHERE key = '{key}' AND set_by = '{set_by}' AND peer_id = '{host_id}'"))?;
+    delete_value(&connection, key, peer_id, set_by)?;
 
     (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
 }
