@@ -1,0 +1,16 @@
+name: "test"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: "test"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Calcucate SHA256
+        run: |
+          which sha256 || true
+          which sha256sum || true
+          
