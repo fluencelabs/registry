@@ -98,6 +98,7 @@ jobs:
 
 ## Publish
       - name: Release
+        id: release
         uses: softprops/action-gh-release@v1
         with:
           name: aqua-dht ${{ env.RELEASE_VERSION }}
@@ -128,11 +129,48 @@ jobs:
             NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: ./aqua/target/typescript
 
-# ### TODO: Rebuild node-distro
-#       - name: Trigger new node-distro container
-#         uses: benc-uk/workflow-dispatch@v1
-#         with:
-#           workflow: Publish Container
-#           repo: fluencelabs/node-distro
-#           ref: 'main'
-#           token: ${{ secrets.PERSONAL_TOKEN }}
+## Update Builtin Services repo
+      - name: Get tar.gz URL
+        id: package-url
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            try {
+                let assets = await github.repos.listReleaseAssets({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: "${{ steps.release.outputs.id }}",
+                });
+                console.dir(assets);
+                let package = assets.data.find((a) => a.name === 'aqua-dht.tar.gz');
+                let url = package.browser_download_url;
+                console.log("URL: " + url);
+                core.notice("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
+                return url;
+            } catch (e) {
+              console.log("Err: " + e);
+              throw e;
+            }
+
+      - name: Update version in builtins repo
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Update service
+          repo: fluencelabs/builtin-services
+          ref: 'main'
+          token: ${{ secrets.PERSONAL_TOKEN }}
+          inputs: '{ 
+            "name": "aqua-dht",
+            "version": "${{ env.RELEASE_VERSION }}",
+            "url": "${{ steps.package-url.outputs.result }}",
+            "sha256": "${{ }}"
+          }'
+
+      - name: Log notice
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              core.notice("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
