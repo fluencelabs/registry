@@ -13,3 +13,17 @@ jobs:
         run: |
           which sha256 || true
           which sha256sum || true
+      
+      - name: Update version in builtins repo
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: update_service
+          repo: fluencelabs/builtin-services
+          ref: 'main'
+          token: ${{ secrets.PERSONAL_TOKEN }}
+          inputs: '{ 
+            "name": "aqua-dht",
+            "version": "test",
+            "url": "test",
+            "sha256": "test"
+          }'
