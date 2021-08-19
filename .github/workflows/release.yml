@@ -161,7 +161,7 @@ jobs:
       - name: Update version in builtins repo
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: Update service
+          workflow: update_service
           repo: fluencelabs/builtin-services
           ref: 'main'
           token: ${{ secrets.PERSONAL_TOKEN }}
