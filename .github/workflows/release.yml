@@ -154,6 +154,12 @@ jobs:
               throw e;
             }
 
+      - name: Calcucate SHA256
+        run: |
+          apropos sha256
+          echo $(sha256sum ./service/aqua-dht.tar.gz)
+          echo "SHA256=$(sha256sum ./service/aqua-dht.tar.gz)" >> $GITHUB_ENV
+
       - name: Update version in builtins repo
         uses: benc-uk/workflow-dispatch@v1
         with:
@@ -165,7 +171,7 @@ jobs:
             "name": "aqua-dht",
             "version": "${{ env.RELEASE_VERSION }}",
             "url": "${{ steps.package-url.outputs.result }}",
-            "sha256": "${{ }}"
+            "sha256": "${{ env.SHA256 }}"
           }'
 
       - name: Log notice
