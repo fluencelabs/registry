@@ -147,7 +147,6 @@ jobs:
                 let package = assets.data.find((a) => a.name === 'aqua-dht.tar.gz');
                 let url = package.browser_download_url;
                 console.log("URL: " + url);
-                core.notice("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
                 return url;
             } catch (e) {
               console.log("Err: " + e);
@@ -179,4 +178,5 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+              const core = require('@actions/core');
               core.notice("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
