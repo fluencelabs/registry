@@ -155,7 +155,6 @@ jobs:
 
       - name: Calcucate SHA256
         run: |
-          apropos sha256
           echo $(sha256sum ./service/aqua-dht.tar.gz)
           echo "SHA256=$(sha256sum ./service/aqua-dht.tar.gz)" >> $GITHUB_ENV
 
