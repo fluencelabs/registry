@@ -84,7 +84,9 @@ jobs:
 
       - name: Create builtin distribution package
         run: |
-          tar -s '/builtin-package/aqua-dht/' -f aqua-dht.tar.gz -zcv builtin-package
+          mv builtin-package aqua-dht
+          tar -f aqua-dht.tar.gz -zcv ./aqua-dht
+          mv aqua-dht builtin-package
 
       - name: Build Changelog
         id: github_release
