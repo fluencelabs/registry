@@ -177,4 +177,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
               console.dir(core);
-              core.notice("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
+              core.info("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
