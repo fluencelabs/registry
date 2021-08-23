@@ -102,7 +102,7 @@ jobs:
           name: aqua-dht ${{ env.RELEASE_VERSION }}
           tag_name: ${{ env.RELEASE_VERSION }}
           files: |
-            ./service/aqua-dht.tar.gz
+            aqua-dht.tar.gz
           body: ${{steps.github_release.outputs.changelog}}
           draft: false
           prerelease: false
@@ -153,9 +153,9 @@ jobs:
 
       - name: Calculate SHA256
         run: |
-          du -hs ./service/aqua-dht.tar.gz
-          echo $(sha256sum ./service/aqua-dht.tar.gz)
-          echo "SHA256=$(sha256sum ./service/aqua-dht.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
+          du -hs aqua-dht.tar.gz
+          echo $(sha256sum aqua-dht.tar.gz)
+          echo "SHA256=$(sha256sum aqua-dht.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
 
       - name: Update version in builtins repo
         uses: benc-uk/workflow-dispatch@v1
