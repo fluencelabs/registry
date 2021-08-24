@@ -5,11 +5,11 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "scripts": {
-    "compile-aqua": "aqua-cli -i . -o .",
+    "compile-aqua": "aqua -i . -o .",
     "build": "npm run compile-aqua"
   },
   "dependencies": {
     "@fluencelabs/aqua-dht": "latest",
-    "@fluencelabs/aqua-cli": "0.1.10-167"
+    "@fluencelabs/aqua": "0.1.14-207"
   }
 }

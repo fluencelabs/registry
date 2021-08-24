@@ -70,12 +70,6 @@ jobs:
         working-directory: ./service
         run: ./build.sh
 
-      - name: Create builtin distribution package
-        working-directory: ./service
-        run: |
-          mv artifacts aqua-dht
-          tar -zcvf aqua-dht.tar.gz aqua-dht
-
       - name: Compile Aqua to TypeScript
         working-directory: ./aqua
         run: |
@@ -88,6 +82,12 @@ jobs:
           npm i
           npm run build
 
+      - name: Create builtin distribution package
+        run: |
+          mv builtin-package aqua-dht
+          tar -f aqua-dht.tar.gz -zcv ./aqua-dht
+          mv aqua-dht builtin-package
+
       - name: Build Changelog
         id: github_release
         uses: mikepenz/release-changelog-builder-action@v1
@@ -98,12 +98,13 @@ jobs:
 
 ## Publish
       - name: Release
+        id: release
         uses: softprops/action-gh-release@v1
         with:
           name: aqua-dht ${{ env.RELEASE_VERSION }}
           tag_name: ${{ env.RELEASE_VERSION }}
           files: |
-            ./service/aqua-dht.tar.gz
+            aqua-dht.tar.gz
           body: ${{steps.github_release.outputs.changelog}}
           draft: false
           prerelease: false
@@ -128,11 +129,54 @@ jobs:
             NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: ./aqua/target/typescript
 
-# ### TODO: Rebuild node-distro
-#       - name: Trigger new node-distro container
-#         uses: benc-uk/workflow-dispatch@v1
-#         with:
-#           workflow: Publish Container
-#           repo: fluencelabs/node-distro
-#           ref: 'main'
-#           token: ${{ secrets.PERSONAL_TOKEN }}
+## Update Builtin Services repo
+      - name: Get tar.gz URL
+        id: package-url
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            try {
+                let assets = await github.repos.listReleaseAssets({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: "${{ steps.release.outputs.id }}",
+                });
+                console.dir(assets);
+                let package = assets.data.find((a) => a.name === 'aqua-dht.tar.gz');
+                let url = package.browser_download_url;
+                console.log("URL: " + url);
+                return url;
+            } catch (e) {
+              console.log("Err: " + e);
+              throw e;
+            }
+
+      - name: Calculate SHA256
+        run: |
+          du -hs aqua-dht.tar.gz
+          echo $(sha256sum aqua-dht.tar.gz)
+          echo "SHA256=$(sha256sum aqua-dht.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
+
+      - name: Update version in builtins repo
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: update_service
+          repo: fluencelabs/builtin-services
+          ref: 'main'
+          token: ${{ secrets.PERSONAL_TOKEN }}
+          inputs: '{ 
+            "name": "aqua-dht",
+            "version": "${{ env.RELEASE_VERSION }}",
+            "url": "${{ steps.package-url.outputs.result }}",
+            "sha256": "${{ env.SHA256 }}"
+          }'
+
+      - name: Log notice
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              console.dir(core);
+              core.info("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
