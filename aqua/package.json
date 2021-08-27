@@ -6,7 +6,7 @@
     "*.aqua"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "^0.1.10"
+    "@fluencelabs/aqua-lib": "^0.1.14"
   },
   "scripts": {
     "compile-aqua": "aqua -i ./ -o ./target/typescript/src",
@@ -29,6 +29,6 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht",
   "devDependencies": {
-    "@fluencelabs/aqua": "0.1.14-207"
+    "@fluencelabs/aqua": "^0.2.0-208"
   }
 }
