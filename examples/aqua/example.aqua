@@ -4,6 +4,8 @@
 import "@fluencelabs/aqua-dht/pubsub.aqua"
 import "@fluencelabs/aqua-dht/dht.aqua"
 
+alias PeerId: string
+
 -- Application event
 data Event:
     value: string
@@ -17,7 +19,7 @@ func call_subscriber(sub: Record, event: Event):
     -- topological move to subscriber via relay
     on sub.peer_id via sub.relay_id:
         -- resolve service on a subscriber
-        SubscriberAPI sub.service_id
+        SubscriberAPI sub.service_id!
         -- call function
         SubscriberAPI.receive_event(event)
 
