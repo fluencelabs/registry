@@ -129,7 +129,7 @@ jobs:
             NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: ./aqua/target/typescript
 
-## Update Builtin Services repo
+## Update node-distro repo
       - name: Get tar.gz URL
         id: package-url
         uses: actions/github-script@v4
@@ -179,4 +179,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
               console.dir(core);
-              core.info("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in Builtin Services Repo");
+              core.info("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in node-distro repo");
