@@ -89,7 +89,7 @@ jobs:
           mv aqua-dht builtin-package
 
       - name: Build Changelog
-        id: github_release
+        id: changelog
         uses: mikepenz/release-changelog-builder-action@v1
         with:
           configuration: ".github/workflows/changelog_config.json"
@@ -105,7 +105,7 @@ jobs:
           tag_name: ${{ env.RELEASE_VERSION }}
           files: |
             aqua-dht.tar.gz
-          body: ${{steps.github_release.outputs.changelog}}
+          body: ${{steps.changelog.outputs.changelog}}
           draft: false
           prerelease: false
         env:
