@@ -6,7 +6,7 @@
  * Aqua version: Unknown (JS)
  *
  */
-import { RequestFlowBuilder } from '@fluencelabs/fluence/dist/api.unstable';
+import { RequestFlowBuilder } from '@fluencelabs/fluence/dist/api.unstable.js';
 
 
 
