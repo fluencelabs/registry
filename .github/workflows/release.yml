@@ -159,11 +159,11 @@ jobs:
           echo $(sha256sum aqua-dht.tar.gz)
           echo "SHA256=$(sha256sum aqua-dht.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
 
-      - name: Update version in builtins repo
+      - name: Update version in node-distro repo
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: update_service
-          repo: fluencelabs/builtin-services
+          repo: fluencelabs/node-distro
           ref: 'main'
           token: ${{ secrets.PERSONAL_TOKEN }}
           inputs: '{ 
