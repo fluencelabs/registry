@@ -16,11 +16,11 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "dependencies": {
-    "@fluencelabs/fluence": "^0.10.0",
+    "@fluencelabs/fluence": "^0.11.0",
     "@fluencelabs/fluence-network-environment": "^1.0.10"
   },
   "devDependencies": {
     "@fluencelabs/aqua-dht": "0.1.37",
-    "@fluencelabs/aqua": "0.2.1-219"
+    "@fluencelabs/aqua": "0.3.0-222"
   }
 }

@@ -1,15 +1,17 @@
+module Aqua.DHT.Scheduled declares *
+
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
 -- clears expired records
 func clearExpired_86400():
-  on host_peer_id:
+  on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
     AquaDHT.clear_expired(t)
 
 -- get all old records and replicate it by keys
 func replicate_3600():
-  on host_peer_id:
+  on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
     res <- AquaDHT.evict_stale(t)
     for r <- res.results par:

@@ -10,6 +10,6 @@
   },
   "dependencies": {
     "@fluencelabs/aqua-dht": "latest",
-    "@fluencelabs/aqua": "0.1.14-207"
+    "@fluencelabs/aqua": "0.3.0-222"
   }
 }

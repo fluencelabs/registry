@@ -8,7 +8,7 @@
     "dist/*"
   ],
   "dependencies": {
-    "@fluencelabs/fluence": "^0.10.0"
+    "@fluencelabs/fluence": "^0.11.0"
   },
   "scripts": {
     "build": "tsc"
