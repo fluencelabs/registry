@@ -1,4 +1,4 @@
-module Aqua.DHT.PubSub declares *
+-- module Aqua.DHT.PubSub declares *
 
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"

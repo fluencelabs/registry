@@ -1,4 +1,4 @@
-module Aqua.DHT.Scheduled declares *
+-- module Aqua.DHT.Scheduled declares *
 
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
