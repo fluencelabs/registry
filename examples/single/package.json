@@ -4,7 +4,8 @@
   "description": "An example of how to use AquaDHT in TypeScript",
   "main": "dist/example.js",
   "scripts": {
-    "build": "tsc",
+    "compile-aqua": "aqua -i . -o generated",
+    "build": "npm run compile-aqua && tsc",
     "prestart": "npm run build",
     "start": "node dist/example.js"
   },
@@ -16,7 +17,9 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "dependencies": {
-    "@fluencelabs/aqua": "../../aqua",
+    "@fluencelabs/aqua-dht": "../../aqua",
+    "@fluencelabs/aqua-lib": "0.1.14",
+    "@fluencelabs/aqua": "0.3.0-224",
     "@fluencelabs/fluence": "^0.11.0",
     "@fluencelabs/fluence-network-environment": "^1.0.10"
   }
