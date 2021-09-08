@@ -3,6 +3,7 @@ module Aqua.DHT.PubSub declares *
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
+
 -- Get peers closest to the topic's hash in Kademlia network
 -- These peers are expected to store list of subscribers of this topic
 func getNeighbours(topic: string) -> []PeerId:
