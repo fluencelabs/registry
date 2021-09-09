@@ -1,5 +1,0 @@
-import initTopicAndSubscribe, findSubscribers from "@fluencelabs/aqua-dht/pubsub.aqua"
-
-export initTopicAndSubscribe, findSubscribers
-
-alias A: string
