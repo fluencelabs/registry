@@ -4,7 +4,7 @@ import { initTopicAndSubscribe, findSubscribers } from "./generated/export";
 
 async function main() {
     // connect to the Fluence network
-    const peer = new FluencePeer;
+    const peer = FluencePeer.default;
     await peer.init({ connectTo: krasnodar[1] });
     let topic = "myTopic";
     let value = "myValue";
@@ -12,7 +12,7 @@ async function main() {
     let relay = peer.connectionInfo.connectedRelay!;
     await initTopicAndSubscribe(peer, topic, value, relay, null);
     // find other peers subscribed to that topic
-    let subscribers = await findSubscribers(peer, topic);
+    let subscribers = await findSubscribers(peer, topic, { ttl: 10000 });
     console.log("found subscribers:", subscribers);
 }
 

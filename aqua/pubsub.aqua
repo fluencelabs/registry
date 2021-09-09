@@ -91,7 +91,6 @@ func findSubscribers(topic: string) -> []Record:
         try:
           t <- Peer.timestamp_sec()
           res <- AquaDHT.get_values(topic, t)
-  on HOST_PEER_ID:
     v <- AquaDHT.merge_two(res!.result, res!1.result)
   <- v.result
 

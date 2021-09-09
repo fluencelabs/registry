@@ -154,11 +154,11 @@ config = args[1];
  (seq
   (seq
    (seq
+    (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
+    (call %init_peer_id% ("getDataSrv" "topic") [] topic)
+   )
+   (xor
     (seq
-     (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
-     (call %init_peer_id% ("getDataSrv" "topic") [] topic)
-    )
-    (xor
      (seq
       (seq
        (call -relay- ("op" "string_to_b58") [topic] k)
@@ -174,26 +174,23 @@ config = args[1];
           )
           (null)
          )
-         (call %init_peer_id% ("op" "noop") [])
+         (call -relay- ("op" "noop") [])
         )
         (next n)
        )
       )
      )
-     (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+     (call -relay- ("aqua-dht" "merge_two") [$res.$.[0].result! $res.$.[1].result!] v)
     )
-   )
-   (xor
-    (call -relay- ("aqua-dht" "merge_two") [$res.$.[0].result! $res.$.[1].result!] v)
-    (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
+    (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
    )
   )
   (xor
    (call %init_peer_id% ("callbackSrv" "response") [v.$.result!])
-   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
   )
  )
- (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 4])
+ (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
 )
 
                  `,

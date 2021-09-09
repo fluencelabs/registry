@@ -232,8 +232,8 @@ config = args[2];
   )
   (xor
    (seq
-    (seq
-     (xor
+    (xor
+     (seq
       (seq
        (seq
         (call -relay- ("op" "string_to_b58") [topic] k)
@@ -249,18 +249,15 @@ config = args[2];
            )
            (null)
           )
-          (call %init_peer_id% ("op" "noop") [])
+          (call -relay- ("op" "noop") [])
          )
          (next n)
         )
        )
       )
-      (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
-     )
-     (xor
       (call -relay- ("aqua-dht" "merge_two") [$res.$.[0].result! $res.$.[1].result!] v)
-      (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
      )
+     (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
     )
     (fold v.$.result! sub
      (par
@@ -291,7 +288,7 @@ config = args[2];
           )
           (call -relay- ("op" "noop") [])
          )
-         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
         )
        )
       )
@@ -299,10 +296,10 @@ config = args[2];
      )
     )
    )
-   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 4])
+   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
   )
  )
- (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 5])
+ (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 4])
 )
 
                  `,
