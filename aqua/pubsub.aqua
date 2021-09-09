@@ -1,9 +1,7 @@
 module Aqua.DHT.PubSub declares *
-export getNeighbours, removeSubscriber, initTopic, initTopicAndSubscribe, initTopicAndSubscribeNode, subscribe, subscribeNode, findSubscribers, executeOnSubscribers
 
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
-
 
 -- Get peers closest to the topic's hash in Kademlia network
 -- These peers are expected to store list of subscribers of this topic

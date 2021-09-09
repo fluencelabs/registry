@@ -1,3 +1,0 @@
-# HACK: this is needed to keep .aqua files in the project root
-#       moving .aqua files to ./src would solve that, but would break imports
-target/typescript/node_modules

@@ -1,4 +1,7 @@
 service/target
+aqua/target/typescript/**
+example/src/generated/**
+
 **/*.rs.bk
 **/.idea
 **/artifacts
