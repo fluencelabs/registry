@@ -1,4 +1,5 @@
--- module Aqua.DHT.PubSub declares *
+module Aqua.DHT.PubSub declares *
+export getNeighbours, removeSubscriber, initTopic, initTopicAndSubscribe, initTopicAndSubscribeNode, subscribe, subscribeNode, findSubscribers, executeOnSubscribers
 
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"

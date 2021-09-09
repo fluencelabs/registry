@@ -4,7 +4,7 @@
   "description": "An example of how to use AquaDHT in TypeScript",
   "main": "dist/example.js",
   "scripts": {
-    "compile-aqua": "aqua -i . -o generated",
+    "compile-aqua": "aqua -i ./src -o ./src/generated",
     "build": "npm run compile-aqua && tsc",
     "prestart": "npm run build",
     "start": "node dist/example.js"
