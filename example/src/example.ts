@@ -12,7 +12,7 @@ async function main() {
     let relay = peer.connectionInfo.connectedRelay!;
     await initTopicAndSubscribe(peer, topic, value, relay, null);
     // find other peers subscribed to that topic
-    let subscribers = await findSubscribers(peer, topic, { ttl: 10000 });
+    let subscribers = await findSubscribers(peer, topic);
     console.log("found subscribers:", subscribers);
 }
 
