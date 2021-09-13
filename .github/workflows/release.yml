@@ -108,7 +108,7 @@ jobs:
       ### Publish Aqua API
       - name: Publish Aqua API
         run: |
-          npm version ${{ env.RELEASE_VERSION }}
+          npm version ${{ env.RELEASE_VERSION }} --allow-same-version
           npm publish --access public
         env:
             NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
