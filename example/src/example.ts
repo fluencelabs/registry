@@ -1,6 +1,6 @@
 import { Fluence } from "@fluencelabs/fluence";
 import { krasnodar } from "@fluencelabs/fluence-network-environment";
-import { initTopicAndSubscribe, findSubscribers } from "./generated/export";
+import { initTopicAndSubscribeBlocking, findSubscribers } from "./generated/export";
 
 async function main() {
     // connect to the Fluence network
@@ -9,7 +9,10 @@ async function main() {
     let value = "myValue";
     // create topic (if not exists) and subscribe on it
     let relay = Fluence.getStatus().relayPeerId;
-    await initTopicAndSubscribe(topic, value, relay, null);
+    await initTopicAndSubscribeBlocking(
+      topic, value, relay, null, 
+      (s) => console.log(`node ${s} saved the record`)
+    );
     // find other peers subscribed to that topic
     let subscribers = await findSubscribers(topic);
     console.log("found subscribers:", subscribers);
