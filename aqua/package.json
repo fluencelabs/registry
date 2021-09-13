@@ -29,6 +29,6 @@
   },
   "homepage": "https://github.com/fluencelabs/aqua-dht",
   "devDependencies": {
-    "@fluencelabs/aqua": "0.3.0-224"
+    "@fluencelabs/aqua": "0.3.0-226"
   }
 }
