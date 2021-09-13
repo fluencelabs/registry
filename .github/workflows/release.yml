@@ -76,12 +76,6 @@ jobs:
           npm i
           npm run build
 
-      - name: Compile TypeScript to .js + .d.ts
-        working-directory: ./aqua/target/typescript
-        run: |        
-          npm i
-          npm run build
-
       - name: Create builtin distribution package
         run: |
           mv builtin-package aqua-dht
