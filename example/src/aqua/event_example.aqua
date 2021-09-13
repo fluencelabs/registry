@@ -24,9 +24,10 @@ func call_subscriber(sub: Record, event: Event):
         SubscriberAPI.receive_event(event)
 
 -- send event to every subscriber
-func send_everyone(relay: PeerId, topic: string, event: Event):
-    -- retrieve all subscribers of a topic
-    subscribers <- findSubscribers(relay, topic)
-    -- iterate through them
-    for sub <- subscribers par:
-        call_subscriber(sub, event)
+func send_everyone(topic: string, event: Event):
+    on HOST_PEER_ID:
+        -- retrieve all subscribers of a topic
+        subscribers <- findSubscribers(topic)
+        -- iterate through them
+        for sub <- subscribers par:
+            call_subscriber(sub, event)
