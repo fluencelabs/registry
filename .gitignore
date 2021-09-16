@@ -1,4 +1,6 @@
 service/target
+builtin-package/*.wasm
+builtin-package/scheduled/*.air
 
 **/*.rs.bk
 **/.idea

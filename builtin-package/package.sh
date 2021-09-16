@@ -11,13 +11,19 @@ SCHEDULED="${SCRIPT_DIR}/scheduled"
     cd ../aqua
     npx aqua --no-relay --air -i ./dht-scheduled-scripts.aqua -o "$SCHEDULED"
 )
-# mv "${SCHEDULED}/dht-scheduled-scripts.clearExpired.air" "clearExpired_86400.air"
-# mv "${SCHEDULED}/dht-scheduled-scripts.replicate.air" "replicate_3600.air"
 
 (
     echo "*** copy wasm files ***"
     cd ../service
     cp artifacts/*.wasm "$SCRIPT_DIR"
+)
+
+(
+    echo "*** create builtin distribution package ***"
+        cd ..
+        mv builtin-package aqua-dht
+        tar --exclude="package.sh" -f aqua-dht.tar.gz -zcv ./aqua-dht
+        mv aqua-dht builtin-package
 )
 
 echo "*** done ***"

@@ -78,9 +78,7 @@ jobs:
 
       - name: Create builtin distribution package
         run: |
-          mv builtin-package aqua-dht
-          tar -f aqua-dht.tar.gz -zcv ./aqua-dht
-          mv aqua-dht builtin-package
+          ./builtin-package/package.sh
 
       - name: Build Changelog
         id: changelog

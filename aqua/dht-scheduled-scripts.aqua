@@ -1,5 +1,7 @@
 module Aqua.DHT.Scheduled declares *
 
+export clearExpired_86400, replicate_3600
+
 import "dht.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
