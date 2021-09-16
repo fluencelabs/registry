@@ -20,10 +20,10 @@ SCHEDULED="${SCRIPT_DIR}/scheduled"
 
 (
     echo "*** create builtin distribution package ***"
-        cd ..
-        mv builtin-package aqua-dht
-        tar --exclude="package.sh" -f aqua-dht.tar.gz -zcv ./aqua-dht
-        mv aqua-dht builtin-package
+    cd ..
+    mv builtin-package aqua-dht
+    tar --exclude="package.sh" -f aqua-dht.tar.gz -zcv ./aqua-dht
+    mv aqua-dht builtin-package
 )
 
 echo "*** done ***"
