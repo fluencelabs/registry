@@ -5,8 +5,9 @@ import { initTopicAndSubscribeBlocking, findSubscribers } from "./generated/expo
 async function main() {
     // connect to the Fluence network
     await Fluence.start({ connectTo: krasnodar[1] });
-    let topic = "myTopic";
+    let topic = "myTopic" + new Date().valueOf();
     let value = "myValue";
+    console.log("Will create topic", topic);
     // create topic (if not exists) and subscribe on it
     let relay = Fluence.getStatus().relayPeerId;
     await initTopicAndSubscribeBlocking(

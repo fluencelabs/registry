@@ -59,7 +59,7 @@ func initTopicAndSubscribeBlocking(
           result <- AquaDHT.put_value(topic, value, t, relay_id, service_id, 0)
           if result.success:
             results <<- result
-            co progress(n)
+            progress(n)
   <- results!0
 
 -- Create a topic and make the given node a subscriber to it
