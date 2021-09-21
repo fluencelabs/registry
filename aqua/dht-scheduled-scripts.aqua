@@ -1,4 +1,4 @@
-module Aqua.DHT.Scheduled declares *
+module AquaDHT.Scheduled declares *
 
 export clearExpired_86400, replicate_3600
 

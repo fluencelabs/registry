@@ -178,12 +178,12 @@ fn get_key_metadata_helper(connection: &Connection, key: String, current_timesta
     let mut statement = connection
         .prepare(f!("SELECT key, peer_id, timestamp_created, pinned, weight \
                               FROM {KEYS_TABLE_NAME} WHERE key = ?"))?;
-    statement.bind(1, &Value::String(key))?;
+    statement.bind(1, &Value::String(key.clone()))?;
 
     if let State::Row = statement.next()? {
         read_key(&statement)
     } else {
-        Err(SqliteError { code: None, message: Some("not found".to_string()) })
+        Err(SqliteError { code: None, message: Some(f!("Requested key {key} does not exist on this peer")) })
     }
 }
 
@@ -339,6 +339,7 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
     let connection = get_connection()?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
 
     let mut statement = connection.prepare(
         f!("UPDATE {VALUES_TABLE_NAME} \
