@@ -1,4 +1,4 @@
-module Aqua.DHT declares *
+module AquaDHT declares *
 
 data ClearExpiredResult:
   success: bool

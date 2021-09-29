@@ -182,9 +182,10 @@ mod tests {
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn get_key_metadata_not_found() {
         clear_env();
-        let result = aqua_dht.get_key_metadata_cp("invalid_key".to_string(), 123u64, get_correct_timestamp_cp(1));
+        let key = "invalid_key".to_string();
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -313,11 +314,24 @@ mod tests {
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn get_values_key_not_exists() {
+        clear_env();
+
+        let key = "invalid_key".to_string();
+        let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+
+        assert!(!result.success);
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
+        assert_eq!(result.result.len(), 0);
+    }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
     fn put_value_key_not_exists() {
         clear_env();
-        let result = aqua_dht.put_value_cp("some_key".to_string(), "value".to_string(), 123u64, vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        let key = "some_key".to_string();
+        let result = aqua_dht.put_value_cp(key.clone(), "value".to_string(), 123u64, vec![], vec![], 8u32, get_correct_timestamp_cp(2));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -523,9 +537,9 @@ mod tests {
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 0);
 
-        let result = aqua_dht.get_key_metadata_cp(key, 123u64, get_correct_timestamp_cp(1));
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -577,13 +591,12 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
-        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+        let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
-        assert_eq!(result.result.len(), 0);
+        assert!(!result.success);
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -606,13 +619,12 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
-        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+        let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
-        assert_eq!(result.result.len(), 0);
+        assert!(!result.success);
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -667,9 +679,9 @@ mod tests {
         assert_eq!(item.key.key, key);
         assert_eq!(item.records.len(), 0);
 
-        let result = aqua_dht.get_key_metadata_cp(key, 123u64, get_correct_timestamp_cp(1));
+        let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -697,13 +709,12 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "not found");
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
-        let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+        let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
-        assert_eq!(result.result.len(), 0);
+        assert!(!result.success);
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -867,9 +878,8 @@ mod tests {
         // check that key not exists and values are empty (because node is neighbor to itself and should republish values to itself)
         // get_values checks key existence
         let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
-        assert!(result.success);
-        assert_eq!(result.error, "");
-        assert_eq!(result.result.len(), 0);
+        assert!(!result.success);
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
         // republish key and values
         let result = aqua_dht.republish_key_cp(key_to_republish, current_timestamp, get_correct_timestamp_cp(1));
@@ -896,9 +906,8 @@ mod tests {
         // check that values and keys not exists anymore (get_values checks key existence)
         let result = aqua_dht.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
-        assert_eq!(result.result.len(), 0);
+        assert!(!result.success);
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
