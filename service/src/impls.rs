@@ -183,7 +183,7 @@ fn get_key_metadata_helper(connection: &Connection, key: String, current_timesta
     if let State::Row = statement.next()? {
         read_key(&statement)
     } else {
-        Err(SqliteError { code: None, message: Some(f!("Requested key {key} does not exist on this peer")) })
+        Err(SqliteError { code: None, message: Some(f!("Requested key {key} does not exist")) })
     }
 }
 

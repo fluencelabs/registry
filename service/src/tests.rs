@@ -185,7 +185,7 @@ mod tests {
         let key = "invalid_key".to_string();
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -321,7 +321,7 @@ mod tests {
         let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
         assert_eq!(result.result.len(), 0);
     }
 
@@ -331,7 +331,7 @@ mod tests {
         let key = "some_key".to_string();
         let result = aqua_dht.put_value_cp(key.clone(), "value".to_string(), 123u64, vec![], vec![], 8u32, get_correct_timestamp_cp(2));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -539,7 +539,7 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -591,12 +591,12 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
         let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -619,12 +619,12 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
         let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -681,7 +681,7 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -709,12 +709,12 @@ mod tests {
 
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
         let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
 
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
@@ -879,7 +879,7 @@ mod tests {
         // get_values checks key existence
         let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
         // republish key and values
         let result = aqua_dht.republish_key_cp(key_to_republish, current_timestamp, get_correct_timestamp_cp(1));
@@ -907,7 +907,7 @@ mod tests {
         let result = aqua_dht.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
 
         assert!(!result.success);
-        assert_eq!(result.error, f!("Requested key {key} does not exist on this peer"));
+        assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
