@@ -231,7 +231,7 @@ pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, wei
     check_timestamp_tetraplets(&call_parameters, 1)
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
-    update_key(&get_connection()?, key, peer_id, current_timestamp_sec.clone(), current_timestamp_sec, pin, weight)
+    update_key(&get_connection()?, key, peer_id, current_timestamp_sec, current_timestamp_sec, pin, weight)
 }
 
 /// Used for replication, same as register_key, but key.pinned is ignored, updates timestamp_accessed
@@ -253,7 +253,7 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
 
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
     let records_count = get_non_host_records_count_by_key(&connection, key.clone())?;
 
     // check values limits for non-host values
@@ -339,7 +339,7 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
 
     let connection = get_connection()?;
-    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
     let mut statement = connection.prepare(
         f!("UPDATE {VALUES_TABLE_NAME} \
@@ -365,7 +365,7 @@ pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestam
 pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
     records = merge_impl(get_values_helper(&connection, key.clone())?.into_iter().chain(records.into_iter()).collect())?;
 
@@ -491,7 +491,7 @@ pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
     let set_by = call_parameters.init_peer_id;
     let host_id = call_parameters.host_id;
@@ -517,7 +517,7 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
         .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
     let connection = get_connection()?;
 
-    check_key_existence(&connection, key.clone(), current_timestamp_sec.clone())?;
+    check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
     let peer_id = call_parameters.host_id;
     let set_by = call_parameters.init_peer_id;
