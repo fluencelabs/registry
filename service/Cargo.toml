@@ -1,6 +1,6 @@
 [package]
 name = "aqua-dht"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Fluence Labs"]
 edition = "2018"
 publish = false
