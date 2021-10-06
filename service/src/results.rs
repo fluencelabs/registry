@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
+use crate::error::ServiceError;
 use marine_rs_sdk::marine;
-use marine_sqlite_connector::Result as SqliteResult;
 
 #[marine]
 #[derive(Debug)]
@@ -24,8 +24,8 @@ pub struct DhtResult {
     pub error: String,
 }
 
-impl From<SqliteResult<()>> for DhtResult {
-    fn from(result: SqliteResult<()>) -> Self {
+impl From<Result<(), ServiceError>> for DhtResult {
+    fn from(result: Result<(), ServiceError>) -> Self {
         match result {
             Ok(_) => Self {
                 success: true,
@@ -59,8 +59,8 @@ pub struct GetValuesResult {
     pub result: Vec<Record>,
 }
 
-impl From<SqliteResult<Vec<Record>>> for GetValuesResult {
-    fn from(result: SqliteResult<Vec<Record>>) -> Self {
+impl From<Result<Vec<Record>, ServiceError>> for GetValuesResult {
+    fn from(result: Result<Vec<Record>, ServiceError>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
@@ -85,8 +85,8 @@ pub struct ClearExpiredResult {
     pub count_values: u64,
 }
 
-impl From<SqliteResult<(u64, u64)>> for ClearExpiredResult {
-    fn from(result: SqliteResult<(u64, u64)>) -> Self {
+impl From<Result<(u64, u64), ServiceError>> for ClearExpiredResult {
+    fn from(result: Result<(u64, u64), ServiceError>) -> Self {
         match result {
             Ok((keys, values)) => Self {
                 success: true,
@@ -112,8 +112,8 @@ pub struct GetStaleRecordsResult {
     pub result: Vec<Record>,
 }
 
-impl From<SqliteResult<Vec<Record>>> for GetStaleRecordsResult {
-    fn from(result: SqliteResult<Vec<Record>>) -> Self {
+impl From<Result<Vec<Record>, ServiceError>> for GetStaleRecordsResult {
+    fn from(result: Result<Vec<Record>, ServiceError>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
@@ -146,8 +146,8 @@ pub struct GetKeyMetadataResult {
     pub key: Key,
 }
 
-impl From<SqliteResult<Key>> for GetKeyMetadataResult {
-    fn from(result: SqliteResult<Key>) -> Self {
+impl From<Result<Key, ServiceError>> for GetKeyMetadataResult {
+    fn from(result: Result<Key, ServiceError>) -> Self {
         match result {
             Ok(key) => Self {
                 success: true,
@@ -170,8 +170,8 @@ pub struct RepublishValuesResult {
     pub updated: u64,
 }
 
-impl From<SqliteResult<u64>> for RepublishValuesResult {
-    fn from(result: SqliteResult<u64>) -> Self {
+impl From<Result<u64, ServiceError>> for RepublishValuesResult {
+    fn from(result: Result<u64, ServiceError>) -> Self {
         match result {
             Ok(count) => Self {
                 success: true,
@@ -200,8 +200,8 @@ pub struct EvictStaleResult {
     pub results: Vec<EvictStaleItem>,
 }
 
-impl From<SqliteResult<Vec<EvictStaleItem>>> for EvictStaleResult {
-    fn from(result: SqliteResult<Vec<EvictStaleItem>>) -> Self {
+impl From<Result<Vec<EvictStaleItem>, ServiceError>> for EvictStaleResult {
+    fn from(result: Result<Vec<EvictStaleItem>, ServiceError>) -> Self {
         match result {
             Ok(results) => Self {
                 success: true,
@@ -225,8 +225,8 @@ pub struct MergeResult {
     pub result: Vec<Record>,
 }
 
-impl From<SqliteResult<Vec<Record>>> for MergeResult {
-    fn from(result: SqliteResult<Vec<Record>>) -> Self {
+impl From<Result<Vec<Record>, ServiceError>> for MergeResult {
+    fn from(result: Result<Vec<Record>, ServiceError>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
@@ -247,23 +247,23 @@ pub struct PutHostValueResult {
     pub success: bool,
     pub error: String,
     pub key: String,
-    pub value: Vec<Record>
+    pub value: Vec<Record>,
 }
 
-impl From<SqliteResult<Record>> for PutHostValueResult {
-    fn from(result: SqliteResult<Record>) -> Self {
+impl From<Result<Record, ServiceError>> for PutHostValueResult {
+    fn from(result: Result<Record, ServiceError>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
                 error: "".to_string(),
                 key: "".to_string(),
-                value: vec![result]
+                value: vec![result],
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
                 key: "".to_string(),
-                value: vec![]
+                value: vec![],
             },
         }
     }
