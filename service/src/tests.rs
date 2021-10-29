@@ -20,8 +20,9 @@ mod tests {
     use std::time::SystemTime;
 
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
-    use marine_rs_sdk_test::marine_test;
     use rusqlite::Connection;
+    marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
+    use marine_test_env::aqua_dht::{Key, Record};
 
     use crate::defaults::{
         CONFIG_FILE, DB_PATH, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, KEYS_TABLE_NAME,
@@ -31,6 +32,7 @@ mod tests {
     use crate::error::ServiceError::{
         InvalidTimestampTetraplet, KeyAlreadyExists, ValuesLimitExceeded,
     };
+    use crate::tests::tests::marine_test_env::aqua_dht::ServiceInterface;
 
     const HOST_ID: &str = "some_host_id";
 
@@ -163,8 +165,9 @@ mod tests {
         }};
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         register_key_and_check!(
             aqua_dht,
@@ -176,16 +179,18 @@ mod tests {
         );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.register_key("some_key".to_string(), 123u64, false, 0u32);
         assert!(!result.success);
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -202,8 +207,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_twice_same_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let timestamp = 123u64;
@@ -216,8 +222,9 @@ mod tests {
         register_key_and_check!(aqua_dht, key, timestamp + 1, pin, weight, cp);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_twice_other_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let timestamp = 123u64;
@@ -233,8 +240,9 @@ mod tests {
         assert_eq!(result.error, KeyAlreadyExists.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_key_metadata_not_found() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "invalid_key".to_string();
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
@@ -242,10 +250,12 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn republish_key_not_exists() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
-        let key = aqua_dht_structs::Key {
+
+        let key = Key {
             key: "some_key".to_string(),
             peer_id: "some_peer".to_string(),
             timestamp_created: 0,
@@ -256,8 +266,9 @@ mod tests {
         republish_key_and_check!(aqua_dht, key, 123u64, get_correct_timestamp_cp(1));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn republish_key_same_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key_str = "some_key".to_string();
         let timestamp = 123u64;
@@ -267,7 +278,7 @@ mod tests {
         cp.init_peer_id = "some_peer_id".to_string();
         register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
 
-        let key = aqua_dht_structs::Key {
+        let key = Key {
             key: key_str.clone(),
             peer_id: cp.init_peer_id,
             timestamp_created: timestamp + 1,
@@ -278,8 +289,9 @@ mod tests {
         republish_key_and_check!(aqua_dht, key, 123123u64, get_correct_timestamp_cp(1));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn republish_key_other_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key_str = "some_key".to_string();
         let timestamp = 123u64;
@@ -289,7 +301,7 @@ mod tests {
         cp.init_peer_id = "some_peer_id".to_string();
         register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
 
-        let key = aqua_dht_structs::Key {
+        let key = Key {
             key: key_str.clone(),
             peer_id: "OTHER_PEER_ID".to_string(),
             timestamp_created: timestamp + 1,
@@ -302,8 +314,9 @@ mod tests {
         assert_eq!(result.error, KeyAlreadyExists.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.put_value(
             "some_key".to_string(),
@@ -317,8 +330,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let mut invalid_cp = CallParameters::default();
@@ -343,16 +357,18 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.get_values("some_key".to_string(), 123u64);
         assert!(!result.success);
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -368,8 +384,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_empty() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let key = "some_key".to_string();
@@ -389,8 +406,9 @@ mod tests {
         assert_eq!(result.result.len(), 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_key_not_exists() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let key = "invalid_key".to_string();
@@ -401,8 +419,9 @@ mod tests {
         assert_eq!(result.result.len(), 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_key_not_exists() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let result = aqua_dht.put_value_cp(
@@ -418,8 +437,9 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let key = "some_key".to_string();
@@ -466,8 +486,9 @@ mod tests {
         assert_eq!(record.weight, weight);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_update() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value1 = "some_value".to_string();
@@ -525,8 +546,9 @@ mod tests {
         assert_eq!(record.weight, weight);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_limit() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
@@ -607,8 +629,9 @@ mod tests {
         );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_multiple_values_for_key() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
@@ -677,8 +700,9 @@ mod tests {
         assert_eq!(record.weight, weight);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let result = aqua_dht.clear_expired(124u64);
@@ -686,8 +710,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let mut invalid_cp = CallParameters::default();
@@ -704,8 +729,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_empty() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
         assert_eq!(result.error, "");
@@ -713,8 +739,9 @@ mod tests {
         assert_eq!(result.count_keys + result.count_values, 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_key_without_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now()
@@ -745,8 +772,9 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_host_key() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now()
@@ -783,8 +811,9 @@ mod tests {
         assert_eq!(result.count_values, 1);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_host_value() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now()
@@ -821,8 +850,9 @@ mod tests {
         assert_eq!(result.count_values, 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_key_with_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now()
@@ -868,8 +898,9 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_change_timeout() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let expired_timestamp = SystemTime::now()
@@ -918,8 +949,9 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let result = aqua_dht.evict_stale(124u64);
@@ -927,8 +959,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let mut invalid_cp = CallParameters::default();
@@ -945,8 +978,9 @@ mod tests {
         assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_empty() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
         assert!(result.success);
@@ -954,8 +988,9 @@ mod tests {
         assert_eq!(result.results.len(), 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_key_without_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let stale_timestamp = 0u64;
@@ -985,8 +1020,9 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_key_with_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
@@ -1037,10 +1073,12 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn merge_test() {
+        let mut aqua_dht = ServiceInterface::new();
+
         let peer_id = "some_peer_id".to_string();
-        let stale_record = aqua_dht_structs::Record {
+        let stale_record = Record {
             value: "stale".to_string(),
             peer_id: peer_id.clone(),
             relay_id: vec![],
@@ -1050,7 +1088,7 @@ mod tests {
             weight: 8u32,
         };
 
-        let new_record = aqua_dht_structs::Record {
+        let new_record = Record {
             value: "new".to_string(),
             peer_id: peer_id.clone(),
             relay_id: vec![],
@@ -1075,11 +1113,13 @@ mod tests {
         assert_eq!(record.timestamp_created, new_record.timestamp_created);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn merge_test_different_peer_ids() {
+        let mut aqua_dht = ServiceInterface::new();
+
         let peer_id1 = "some_peer_id1".to_string();
         let peer_id2 = "some_peer_id2".to_string();
-        let record1 = aqua_dht_structs::Record {
+        let record1 = Record {
             value: "value1".to_string(),
             peer_id: peer_id1.clone(),
             relay_id: vec![],
@@ -1089,7 +1129,7 @@ mod tests {
             weight: 8u32,
         };
 
-        let record2 = aqua_dht_structs::Record {
+        let record2 = Record {
             value: "value2".to_string(),
             peer_id: peer_id2.clone(),
             relay_id: vec![],
@@ -1105,8 +1145,9 @@ mod tests {
     }
 
     // test repeats initTopicAndSubscribeNode method from pubsub api
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn init_topic_and_subscribe_node_test() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let topic = "some_key".to_string();
         let timestamp = 123u64;
@@ -1131,6 +1172,7 @@ mod tests {
         assert!(result.success);
 
         // clear db to imitate switching to neighbor
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         // === notify neighbor about subscription
@@ -1165,8 +1207,9 @@ mod tests {
     }
 
     // checks evict_stale -> republish_key[values] -> clear_expired lifecycle
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_republish_clear_expired() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
@@ -1259,8 +1302,9 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     pub fn sql_injection_test() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "blabla".to_string();
         let injection_key =

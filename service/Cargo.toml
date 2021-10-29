@@ -19,5 +19,8 @@ serde = { version = "1.0.118", features = ["derive"] }
 thiserror = "1.0.29"
 
 [dev-dependencies]
-marine-rs-sdk-test = "0.1.11"
+marine-rs-sdk-test = "0.4.0"
 rusqlite = "0.25.1"
+
+[build-dependencies]
+marine-rs-sdk-test = "0.4.0"
