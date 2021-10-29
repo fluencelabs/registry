@@ -105,6 +105,8 @@ pub fn put_host_value(
         true,
     )
     .into();
+
+    // key is needed to be passed to propagate_host_value
     result.key = key;
 
     result

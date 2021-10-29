@@ -106,14 +106,14 @@ fn insert_or_replace_value(
 
 fn delete_value(
     connection: &Connection,
-    key: &String,
+    key: &str,
     peer_id: String,
     set_by: String,
 ) -> Result<(), ServiceError> {
     let mut statement = connection.prepare(f!(
         "DELETE FROM {VALUES_TABLE_NAME} WHERE key=? AND peer_id=? AND set_by=?"
     ))?;
-    statement.bind(1, &Value::String(key.clone()))?;
+    statement.bind(1, &Value::String(key.to_string()))?;
     statement.bind(2, &Value::String(peer_id))?;
     statement.bind(3, &Value::String(set_by))?;
     statement.next().map(drop)?;
@@ -126,16 +126,23 @@ pub(crate) fn check_timestamp_tetraplets(
     call_parameters: &CallParameters,
     arg_number: usize,
 ) -> Result<(), ServiceError> {
-    let tetraplets = call_parameters
-        .tetraplets
-        .get(arg_number)
-        .ok_or(InvalidTimestampTetraplet)?;
-    let tetraplet = tetraplets.get(0).ok_or(InvalidTimestampTetraplet)?;
+    let tetraplets =
+        call_parameters
+            .tetraplets
+            .get(arg_number)
+            .ok_or(InvalidTimestampTetraplet(format!(
+                "{:?}",
+                call_parameters.tetraplets
+            )))?;
+    let tetraplet = tetraplets.get(0).ok_or(InvalidTimestampTetraplet(format!(
+        "{:?}",
+        call_parameters.tetraplets
+    )))?;
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
         && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
         && tetraplet.peer_pk == call_parameters.host_id)
         .then(|| ())
-        .ok_or(InvalidTimestampTetraplet)
+        .ok_or(InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
 }
 
 pub(crate) fn check_host_value_tetraplets(
@@ -143,16 +150,25 @@ pub(crate) fn check_host_value_tetraplets(
     arg_number: usize,
     host_value: &Record,
 ) -> Result<(), ServiceError> {
-    let tetraplets = call_parameters
-        .tetraplets
-        .get(arg_number)
-        .ok_or(InvalidSetHostValueTetraplet)?;
-    let tetraplet = tetraplets.get(0).ok_or(InvalidSetHostValueTetraplet)?;
+    let tetraplets =
+        call_parameters
+            .tetraplets
+            .get(arg_number)
+            .ok_or(InvalidSetHostValueTetraplet(format!(
+                "{:?}",
+                call_parameters.tetraplets
+            )))?;
+    let tetraplet = tetraplets
+        .get(0)
+        .ok_or(InvalidSetHostValueTetraplet(format!(
+            "{:?}",
+            call_parameters.tetraplets
+        )))?;
     (tetraplet.service_id == "aqua-dht"
         && tetraplet.function_name == "put_host_value"
         && tetraplet.peer_pk == host_value.peer_id)
         .then(|| ())
-        .ok_or(InvalidSetHostValueTetraplet)
+        .ok_or(InvalidSetHostValueTetraplet(format!("{:?}", tetraplet)))
 }
 
 #[inline]
@@ -257,7 +273,7 @@ fn update_key(
         statement.next()?;
         Ok(())
     } else {
-        Err(KeyAlreadyExists)
+        Err(KeyAlreadyExists(key))
     }
 }
 
@@ -340,7 +356,7 @@ pub fn put_value_impl(
             )?;
         } else {
             // return error if limit is exceeded
-            return Err(ValuesLimitExceeded);
+            return Err(ValuesLimitExceeded(key));
         }
     }
 
@@ -656,15 +672,6 @@ pub fn propagate_host_value_impl(
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])?;
     check_timestamp_tetraplets(&call_parameters, 1)?;
-
-    // Is it check needed? Is it possible to call set_host_value as peer1 and use result (with correct tetraplets) as peer2?
-    //
-    // if set_host_value.value[0].set_by != call_parameters.init_peer_id {
-    //     return Err(SqliteError {
-    //         code: None,
-    //         message: Some("value is set by another peer".to_string()),
-    //     });
-    // }
 
     set_host_value.value[0].weight = weight;
     republish_values_helper(

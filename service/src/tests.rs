@@ -211,7 +211,10 @@ mod tests {
         clear_env();
         let result = aqua_dht.register_key("some_key".to_string(), 123u64, false, 0u32);
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
     #[test]
@@ -227,10 +230,18 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result =
-            aqua_dht.register_key_cp("some_key".to_string(), 123u64, false, 8u32, invalid_cp);
+        let result = aqua_dht.register_key_cp(
+            "some_key".to_string(),
+            123u64,
+            false,
+            8u32,
+            invalid_cp.clone(),
+        );
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets[1][0])).to_string()
+        );
     }
 
     #[test]
@@ -263,7 +274,7 @@ mod tests {
         cp.init_peer_id = "other_peer_id".to_string();
         let result = aqua_dht.register_key_cp(key.clone(), timestamp, pin, weight, cp);
         assert!(!result.success);
-        assert_eq!(result.error, KeyAlreadyExists.to_string());
+        assert_eq!(result.error, KeyAlreadyExists(key).to_string());
     }
 
     #[test]
@@ -337,7 +348,7 @@ mod tests {
 
         let result = aqua_dht.republish_key_cp(key, 123123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, KeyAlreadyExists.to_string());
+        assert_eq!(result.error, KeyAlreadyExists(key_str).to_string());
     }
 
     #[test]
@@ -353,7 +364,10 @@ mod tests {
             8u32,
         );
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
     #[test]
@@ -377,10 +391,13 @@ mod tests {
             vec![],
             vec![],
             8u32,
-            invalid_cp,
+            invalid_cp.clone(),
         );
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets)).to_string()
+        );
     }
 
     #[test]
@@ -389,7 +406,10 @@ mod tests {
         clear_env();
         let result = aqua_dht.get_values("some_key".to_string(), 123u64);
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
     #[test]
@@ -405,9 +425,12 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.get_values_cp("some_key".to_string(), 123u64, invalid_cp);
+        let result = aqua_dht.get_values_cp("some_key".to_string(), 123u64, invalid_cp.clone());
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets[1][0])).to_string()
+        );
     }
 
     #[test]
@@ -623,7 +646,7 @@ mod tests {
             cp,
         );
         assert!(!result.success);
-        assert_eq!(result.error, ValuesLimitExceeded.to_string());
+        assert_eq!(result.error, ValuesLimitExceeded(key.clone()).to_string());
 
         // try to put value with bigger weight
         let bigger_weight = min_weight + 99999;
@@ -731,7 +754,10 @@ mod tests {
 
         let result = aqua_dht.clear_expired(124u64);
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
     #[test]
@@ -748,9 +774,12 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.clear_expired_cp(124u64, invalid_cp);
+        let result = aqua_dht.clear_expired_cp(124u64, invalid_cp.clone());
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets)).to_string()
+        );
     }
 
     #[test]
@@ -980,7 +1009,10 @@ mod tests {
 
         let result = aqua_dht.evict_stale(124u64);
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
     #[test]
@@ -997,9 +1029,12 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.evict_stale_cp(124u64, invalid_cp);
+        let result = aqua_dht.evict_stale_cp(124u64, invalid_cp.clone());
         assert!(!result.success);
-        assert_eq!(result.error, InvalidTimestampTetraplet.to_string());
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets)).to_string()
+        );
     }
 
     #[test]

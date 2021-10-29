@@ -26,10 +26,10 @@ pub enum ServiceError {
     ),
     #[error("Requested key {0} does not exist")]
     KeyNotExists(String),
-    #[error("Key already exists with different peer_id")]
-    KeyAlreadyExists,
-    #[error("Values limit is exceeded")]
-    ValuesLimitExceeded,
+    #[error("Key {0} already exists with different peer_id")]
+    KeyAlreadyExists(String),
+    #[error("Values limit for key {0} is exceeded")]
+    ValuesLimitExceeded(String),
     #[error("Host value for key {0} not found ")]
     HostValueNotFound(String),
     #[error("Invalid set_host_value result: success is false or value is missing")]
@@ -37,11 +37,11 @@ pub enum ServiceError {
     #[error("Internal error: {0}")]
     InternalError(String),
     #[error(
-        "Invalid timestamp tetraplet: you should use host peer.timestamp_sec to pass timestamp"
+        "Invalid timestamp tetraplet: you should use host peer.timestamp_sec to pass timestamp: {0}"
     )]
-    InvalidTimestampTetraplet,
+    InvalidTimestampTetraplet(String),
     #[error(
-        "Invalid set_host_value tetraplet: you should use put_host_value to pass set_host_value"
+        "Invalid set_host_value tetraplet: you should use put_host_value to pass set_host_value: {0}"
     )]
-    InvalidSetHostValueTetraplet,
+    InvalidSetHostValueTetraplet(String),
 }
