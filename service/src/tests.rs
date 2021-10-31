@@ -70,8 +70,8 @@ mod tests {
 
     fn put_host_value_and_check(
         aqua_dht: &mut ServiceInterface,
-        key: &String,
-        value: &String,
+        key: &str,
+        value: &str,
         timestamp: u64,
         relay_id: &Vec<String>,
         service_id: &Vec<String>,
@@ -79,8 +79,8 @@ mod tests {
         cp: &CallParameters,
     ) -> PutHostValueResult {
         let result = aqua_dht.put_host_value_cp(
-            key.clone(),
-            value.clone(),
+            key.to_string(),
+            value.to_string(),
             timestamp.clone(),
             relay_id.clone(),
             service_id.clone(),
@@ -88,15 +88,14 @@ mod tests {
             cp.clone(),
         );
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         result
     }
 
     fn put_value_and_check(
         aqua_dht: &mut ServiceInterface,
-        key: &String,
-        value: &String,
+        key: &str,
+        value: &str,
         timestamp: u64,
         relay_id: &Vec<String>,
         service_id: &Vec<String>,
@@ -104,8 +103,8 @@ mod tests {
         cp: &CallParameters,
     ) -> DhtResult {
         let result = aqua_dht.put_value_cp(
-            key.clone(),
-            value.clone(),
+            key.to_string(),
+            value.to_string(),
             timestamp.clone(),
             relay_id.clone(),
             service_id.clone(),
@@ -113,25 +112,23 @@ mod tests {
             cp.clone(),
         );
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         result
     }
 
     fn check_key_metadata(
         aqua_dht: &mut ServiceInterface,
-        key: &String,
+        key: &str,
         timestamp: u64,
-        peer_id: &String,
+        peer_id: &str,
         current_timestamp: u64,
         pinned: bool,
         weight: u32,
         cp: &CallParameters,
     ) {
         let result =
-            aqua_dht.get_key_metadata_cp(key.clone(), current_timestamp.clone(), cp.clone());
-        assert!(result.success);
-        assert_eq!(result.error, "");
+            aqua_dht.get_key_metadata_cp(key.to_string(), current_timestamp.clone(), cp.clone());
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.key.key, key.clone());
         assert_eq!(result.key.peer_id, peer_id.clone());
         assert_eq!(result.key.timestamp_created, timestamp);
@@ -141,21 +138,21 @@ mod tests {
 
     fn register_key_and_check(
         aqua_dht: &mut ServiceInterface,
-        key: &String,
+        key: &str,
         timestamp: u64,
         pin: bool,
         weight: u32,
         cp: &CallParameters,
     ) {
         let result = aqua_dht.register_key_cp(
-            key.clone(),
+            key.to_string(),
             timestamp.clone(),
             pin.clone(),
             weight.clone(),
             cp.clone(),
         );
-        assert_eq!(result.error, "");
-        assert!(result.success);
+
+        assert!(result.success, "{}", result.error);
 
         check_key_metadata(
             aqua_dht,
@@ -176,8 +173,8 @@ mod tests {
         cp: &CallParameters,
     ) {
         let result = aqua_dht.republish_key_cp(key.clone(), timestamp, cp.clone());
-        assert_eq!(result.error, "");
-        assert!(result.success);
+
+        assert!(result.success, "{}", result.error);
 
         check_key_metadata(
             aqua_dht,
@@ -450,8 +447,8 @@ mod tests {
 
         let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.result.len(), 0);
     }
 
@@ -521,8 +518,7 @@ mod tests {
 
         let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         assert_eq!(result.result.len(), 1);
 
@@ -581,8 +577,7 @@ mod tests {
 
         let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         assert_eq!(result.result.len(), 1);
 
@@ -603,9 +598,9 @@ mod tests {
         let value = "some_value".to_string();
         let timestamp = 123u64;
 
-        let put_value = |aqua_dht: &mut ServiceInterface, peer_id: &String, weight: u32| {
+        let put_value = |aqua_dht: &mut ServiceInterface, peer_id: &str, weight: u32| {
             let mut cp = get_correct_timestamp_cp(2);
-            cp.init_peer_id = peer_id.clone();
+            cp.init_peer_id = peer_id.to_string();
             put_value_and_check(
                 aqua_dht,
                 &key,
@@ -725,8 +720,7 @@ mod tests {
 
         let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         assert_eq!(result.result.len(), 2);
 
@@ -787,8 +781,8 @@ mod tests {
         let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
-        assert_eq!(result.error, "");
-        assert!(result.success);
+
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.count_keys + result.count_values, 0);
     }
 
@@ -815,8 +809,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 0);
 
@@ -858,8 +852,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 0);
         assert_eq!(result.count_values, 1);
     }
@@ -897,8 +891,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 0);
         assert_eq!(result.count_values, 0);
     }
@@ -936,8 +930,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
@@ -987,8 +981,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
@@ -1042,8 +1036,8 @@ mod tests {
         let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 0);
     }
 
@@ -1067,8 +1061,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 1);
         let item = &result.results[0];
         assert_eq!(item.key.key, key);
@@ -1110,8 +1104,8 @@ mod tests {
             get_correct_timestamp_cp(0),
         );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 1);
 
         let item = &result.results[0];
@@ -1236,7 +1230,7 @@ mod tests {
             0u32,
             &cp,
         );
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         // clear db to imitate switching to neighbor
         let mut aqua_dht = ServiceInterface::new();
@@ -1260,12 +1254,12 @@ mod tests {
 
         // leave record about subscription
         let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         // check subscription (mimics findSubscribers but for one node without merging)
         let result = aqua_dht.get_values_cp(topic, 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.result.len(), 1);
         let record = result.result[0].clone();
         assert_eq!(record.value, value);
@@ -1307,8 +1301,8 @@ mod tests {
 
         // retrieve values and keys to republish
         let result = aqua_dht.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 1);
 
         let item = &result.results[0];
@@ -1335,7 +1329,7 @@ mod tests {
             current_timestamp,
             get_correct_timestamp_cp(1),
         );
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         let result = aqua_dht.republish_values_cp(
             key.clone(),
@@ -1343,13 +1337,13 @@ mod tests {
             current_timestamp,
             get_correct_timestamp_cp(2),
         );
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         // check values' existence
         let result =
             aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.result.len(), 1);
 
         // increase timestamp to make value and key expired
@@ -1357,7 +1351,7 @@ mod tests {
 
         // clear expired values and keys
         let result = aqua_dht.clear_expired_cp(expired_timestamp, get_correct_timestamp_cp(0));
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
@@ -1384,14 +1378,14 @@ mod tests {
             0u32,
             get_correct_timestamp_cp(1),
         );
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         let result = aqua_dht.get_key_metadata_cp(
             injection_key.clone(),
             123u64,
             get_correct_timestamp_cp(1),
         );
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.key.key, injection_key);
     }
 }
