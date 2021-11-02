@@ -67,7 +67,7 @@ fn check_key_existence(
     key: String,
     current_timestamp_sec: u64,
 ) -> Result<(), ServiceError> {
-    get_key_metadata_helper(&connection, key, current_timestamp_sec).map(|_| ())
+    get_key_metadata_helper(connection, key, current_timestamp_sec).map(|_| ())
 }
 
 fn insert_or_replace_value(
@@ -126,23 +126,18 @@ pub(crate) fn check_timestamp_tetraplets(
     call_parameters: &CallParameters,
     arg_number: usize,
 ) -> Result<(), ServiceError> {
-    let tetraplets =
-        call_parameters
-            .tetraplets
-            .get(arg_number)
-            .ok_or(InvalidTimestampTetraplet(format!(
-                "{:?}",
-                call_parameters.tetraplets
-            )))?;
-    let tetraplet = tetraplets.get(0).ok_or(InvalidTimestampTetraplet(format!(
-        "{:?}",
-        call_parameters.tetraplets
-    )))?;
+    let tetraplets = call_parameters
+        .tetraplets
+        .get(arg_number)
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    let tetraplet = tetraplets
+        .get(0)
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
         && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
         && tetraplet.peer_pk == call_parameters.host_id)
         .then(|| ())
-        .ok_or(InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
 }
 
 pub(crate) fn check_host_value_tetraplets(
@@ -150,25 +145,18 @@ pub(crate) fn check_host_value_tetraplets(
     arg_number: usize,
     host_value: &Record,
 ) -> Result<(), ServiceError> {
-    let tetraplets =
-        call_parameters
-            .tetraplets
-            .get(arg_number)
-            .ok_or(InvalidSetHostValueTetraplet(format!(
-                "{:?}",
-                call_parameters.tetraplets
-            )))?;
+    let tetraplets = call_parameters
+        .tetraplets
+        .get(arg_number)
+        .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     let tetraplet = tetraplets
         .get(0)
-        .ok_or(InvalidSetHostValueTetraplet(format!(
-            "{:?}",
-            call_parameters.tetraplets
-        )))?;
+        .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     (tetraplet.service_id == "aqua-dht"
         && tetraplet.function_name == "put_host_value"
         && tetraplet.peer_pk == host_value.peer_id)
         .then(|| ())
-        .ok_or(InvalidSetHostValueTetraplet(format!("{:?}", tetraplet)))
+        .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", tetraplet)))
 }
 
 #[inline]
@@ -250,7 +238,7 @@ fn update_key(
     pin: bool,
     weight: u32,
 ) -> Result<(), ServiceError> {
-    let old_key = get_key_metadata_helper(&connection, key.clone(), timestamp_accessed);
+    let old_key = get_key_metadata_helper(connection, key.clone(), timestamp_accessed);
     let pinned = pin as i32;
     let update_allowed = {
         match old_key {
@@ -547,7 +535,7 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> Result<(u64, u64), Serv
     let mut statement = connection.prepare(f!("DELETE FROM {KEYS_TABLE_NAME} \
                                     WHERE timestamp_created <= {expired_timestamp} AND pinned=0 AND \
                                     key NOT IN (SELECT key FROM {VALUES_TABLE_NAME} WHERE peer_id = ?)"))?;
-    statement.bind(1, &Value::String(host_id.clone()))?;
+    statement.bind(1, &Value::String(host_id))?;
     statement.next()?;
     deleted_keys += connection.changes() as u64;
 
