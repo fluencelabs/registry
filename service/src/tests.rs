@@ -16,20 +16,34 @@
 
 #[cfg(test)]
 mod tests {
-    use marine_rs_sdk_test::marine_test;
-    use rusqlite::{Connection};
-    use crate::{KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
-    use marine_rs_sdk::{CallParameters, SecurityTetraplet};
-    use std::time::SystemTime;
     use std::fs;
+    use std::time::SystemTime;
+
+    use marine_rs_sdk::{CallParameters, SecurityTetraplet};
+    use rusqlite::Connection;
+    marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
+    use marine_test_env::aqua_dht::{DhtResult, Key, PutHostValueResult, Record, ServiceInterface};
+
+    use crate::defaults::{
+        CONFIG_FILE, DB_PATH, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, KEYS_TABLE_NAME,
+        TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, VALUES_LIMIT,
+        VALUES_TABLE_NAME,
+    };
+    use crate::error::ServiceError::{
+        InvalidTimestampTetraplet, KeyAlreadyExists, ValuesLimitExceeded,
+    };
 
     const HOST_ID: &str = "some_host_id";
 
     fn clear_env() {
         let connection = Connection::open(DB_PATH).unwrap();
 
-        connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME}").as_str(), []).unwrap();
-        connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME}").as_str(), []).unwrap();
+        connection
+            .execute(f!("DELETE FROM {KEYS_TABLE_NAME}").as_str(), [])
+            .unwrap();
+        connection
+            .execute(f!("DELETE FROM {VALUES_TABLE_NAME}").as_str(), [])
+            .unwrap();
 
         if fs::metadata(CONFIG_FILE).is_ok() {
             fs::remove_file(CONFIG_FILE).unwrap();
@@ -54,85 +68,155 @@ mod tests {
         cp
     }
 
-    macro_rules! put_host_value_and_check {
-        ($aqua_dht:expr, $key:expr, $value:expr, $timestamp:expr, $relay_id:expr, $service_id:expr, $weight:expr, $cp:expr) => {
-            {
-                let result = $aqua_dht.put_host_value_cp($key.clone(), $value.clone(), $timestamp.clone(), $relay_id.clone(), $service_id.clone(), $weight.clone(), $cp.clone());
+    fn put_host_value_and_check(
+        aqua_dht: &mut ServiceInterface,
+        key: &str,
+        value: &str,
+        timestamp: u64,
+        relay_id: &Vec<String>,
+        service_id: &Vec<String>,
+        weight: u32,
+        cp: &CallParameters,
+    ) -> PutHostValueResult {
+        let result = aqua_dht.put_host_value_cp(
+            key.to_string(),
+            value.to_string(),
+            timestamp.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            weight.clone(),
+            cp.clone(),
+        );
 
-                assert_eq!(result.error, "");
-                assert!(result.success);
-                result
-            }
-        }
+        assert!(result.success, "{}", result.error);
+        result
     }
 
-    macro_rules! put_value_and_check {
-        ($aqua_dht:expr, $key:expr, $value:expr, $timestamp:expr, $relay_id:expr, $service_id:expr, $weight:expr, $cp:expr) => {
-            {
-                let result = $aqua_dht.put_value_cp($key.clone(), $value.clone(), $timestamp.clone(), $relay_id.clone(), $service_id.clone(), $weight.clone(), $cp.clone());
+    fn put_value_and_check(
+        aqua_dht: &mut ServiceInterface,
+        key: &str,
+        value: &str,
+        timestamp: u64,
+        relay_id: &Vec<String>,
+        service_id: &Vec<String>,
+        weight: u32,
+        cp: &CallParameters,
+    ) -> DhtResult {
+        let result = aqua_dht.put_value_cp(
+            key.to_string(),
+            value.to_string(),
+            timestamp.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            weight.clone(),
+            cp.clone(),
+        );
 
-                assert_eq!(result.error, "");
-                assert!(result.success);
-            }
-        }
+        assert!(result.success, "{}", result.error);
+        result
     }
 
-    macro_rules! check_key_metadata {
-        ($aqua_dht:expr, $key:expr, $timestamp:expr, $peer_id:expr, $current_timestamp:expr, $pinned:expr, $weight: expr, $cp:expr) => {
-            {
-                let result = $aqua_dht.get_key_metadata_cp($key.clone(), $current_timestamp.clone(), $cp.clone());
-                assert!(result.success);
-                assert_eq!(result.error, "");
-                assert_eq!(result.key.key, $key);
-                assert_eq!(result.key.peer_id, $peer_id);
-                assert_eq!(result.key.timestamp_created, $timestamp);
-                assert_eq!(result.key.pinned, $pinned);
-                assert_eq!(result.key.weight, $weight);
-            }
-        }
+    fn check_key_metadata(
+        aqua_dht: &mut ServiceInterface,
+        key: &str,
+        timestamp: u64,
+        peer_id: &str,
+        current_timestamp: u64,
+        pinned: bool,
+        weight: u32,
+        cp: &CallParameters,
+    ) {
+        let result =
+            aqua_dht.get_key_metadata_cp(key.to_string(), current_timestamp.clone(), cp.clone());
+        assert!(result.success, "{}", result.error);
+        assert_eq!(result.key.key, key.clone());
+        assert_eq!(result.key.peer_id, peer_id.clone());
+        assert_eq!(result.key.timestamp_created, timestamp);
+        assert_eq!(result.key.pinned, pinned);
+        assert_eq!(result.key.weight, weight);
     }
 
-    macro_rules! register_key_and_check {
-        ($aqua_dht:expr, $key:expr, $timestamp:expr, $pin:expr, $weight: expr, $cp:expr) => {
-            {
-                let result = $aqua_dht.register_key_cp($key.clone(), $timestamp.clone(), $pin.clone(), $weight.clone(), $cp.clone());
-                assert_eq!(result.error, "");
-                assert!(result.success);
+    fn register_key_and_check(
+        aqua_dht: &mut ServiceInterface,
+        key: &str,
+        timestamp: u64,
+        pin: bool,
+        weight: u32,
+        cp: &CallParameters,
+    ) {
+        let result = aqua_dht.register_key_cp(
+            key.to_string(),
+            timestamp.clone(),
+            pin.clone(),
+            weight.clone(),
+            cp.clone(),
+        );
 
-                check_key_metadata!($aqua_dht, $key, $timestamp, $cp.init_peer_id, $timestamp, $pin, $weight, $cp);
-            }
+        assert!(result.success, "{}", result.error);
 
-        }
+        check_key_metadata(
+            aqua_dht,
+            key,
+            timestamp,
+            &cp.init_peer_id,
+            timestamp,
+            pin,
+            weight,
+            cp,
+        );
     }
 
-    macro_rules! republish_key_and_check {
-        ($aqua_dht:expr, $key:expr, $timestamp:expr, $cp:expr) => {
-            {
-                let result = $aqua_dht.republish_key_cp($key.clone(), $timestamp, $cp.clone());
-                assert_eq!(result.error, "");
-                assert!(result.success);
+    fn republish_key_and_check(
+        aqua_dht: &mut ServiceInterface,
+        key: &Key,
+        timestamp: u64,
+        cp: &CallParameters,
+    ) {
+        let result = aqua_dht.republish_key_cp(key.clone(), timestamp, cp.clone());
 
-                check_key_metadata!($aqua_dht, $key.key, $key.timestamp_created, $key.peer_id, $timestamp, false, $key.weight, $cp);
-            }
-        }
+        assert!(result.success, "{}", result.error);
+
+        check_key_metadata(
+            aqua_dht,
+            &key.key,
+            key.timestamp_created,
+            &key.peer_id,
+            timestamp,
+            false,
+            key.weight,
+            cp,
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
-        register_key_and_check!(aqua_dht, "some_key".to_string(), 123u64, false, 0u32, get_correct_timestamp_cp(1));
+        register_key_and_check(
+            &mut aqua_dht,
+            &"some_key".to_string(),
+            123u64,
+            false,
+            0u32,
+            &get_correct_timestamp_cp(1),
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.register_key("some_key".to_string(), 123u64, false, 0u32);
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -143,13 +227,23 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.register_key_cp("some_key".to_string(), 123u64, false, 8u32, invalid_cp);
+        let result = aqua_dht.register_key_cp(
+            "some_key".to_string(),
+            123u64,
+            false,
+            8u32,
+            invalid_cp.clone(),
+        );
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets[1][0])).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_twice_same_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let timestamp = 123u64;
@@ -158,12 +252,13 @@ mod tests {
         let mut cp = get_correct_timestamp_cp(1);
         cp.init_peer_id = "some_peer_id".to_string();
 
-        register_key_and_check!(aqua_dht, key, timestamp, pin, weight, cp);
-        register_key_and_check!(aqua_dht, key, timestamp + 1, pin, weight, cp);
+        register_key_and_check(&mut aqua_dht, &key, timestamp, pin, weight, &cp);
+        register_key_and_check(&mut aqua_dht, &key, timestamp + 1, pin, weight, &cp);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn register_key_twice_other_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let timestamp = 123u64;
@@ -171,16 +266,17 @@ mod tests {
         let pin = false;
         let mut cp = get_correct_timestamp_cp(1);
         cp.init_peer_id = "some_peer_id".to_string();
-        register_key_and_check!(aqua_dht, key, timestamp, pin, weight, cp);
+        register_key_and_check(&mut aqua_dht, &key, timestamp, pin, weight, &cp);
 
         cp.init_peer_id = "other_peer_id".to_string();
         let result = aqua_dht.register_key_cp(key.clone(), timestamp, pin, weight, cp);
         assert!(!result.success);
-        assert_eq!(result.error, "key already exists with different peer_id");
+        assert_eq!(result.error, KeyAlreadyExists(key).to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_key_metadata_not_found() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "invalid_key".to_string();
         let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
@@ -188,10 +284,12 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn republish_key_not_exists() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
-        let key = aqua_dht_structs::Key {
+
+        let key = Key {
             key: "some_key".to_string(),
             peer_id: "some_peer".to_string(),
             timestamp_created: 0,
@@ -199,11 +297,12 @@ mod tests {
             weight: 8u32,
         };
 
-        republish_key_and_check!(aqua_dht, key, 123u64, get_correct_timestamp_cp(1));
+        republish_key_and_check(&mut aqua_dht, &key, 123u64, &get_correct_timestamp_cp(1));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn republish_key_same_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key_str = "some_key".to_string();
         let timestamp = 123u64;
@@ -211,9 +310,9 @@ mod tests {
         let pin = false;
         let mut cp = get_correct_timestamp_cp(1);
         cp.init_peer_id = "some_peer_id".to_string();
-        register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
+        register_key_and_check(&mut aqua_dht, &key_str, timestamp, pin, weight, &cp);
 
-        let key = aqua_dht_structs::Key {
+        let key = Key {
             key: key_str.clone(),
             peer_id: cp.init_peer_id,
             timestamp_created: timestamp + 1,
@@ -221,11 +320,12 @@ mod tests {
             weight: weight.clone(),
         };
 
-        republish_key_and_check!(aqua_dht, key, 123123u64, get_correct_timestamp_cp(1));
+        republish_key_and_check(&mut aqua_dht, &key, 123123u64, &get_correct_timestamp_cp(1));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn republish_key_other_peer_id() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key_str = "some_key".to_string();
         let timestamp = 123u64;
@@ -233,9 +333,9 @@ mod tests {
         let pin = false;
         let mut cp = get_correct_timestamp_cp(1);
         cp.init_peer_id = "some_peer_id".to_string();
-        register_key_and_check!(aqua_dht, key_str, timestamp, pin, weight, cp);
+        register_key_and_check(&mut aqua_dht, &key_str, timestamp, pin, weight, &cp);
 
-        let key = aqua_dht_structs::Key {
+        let key = Key {
             key: key_str.clone(),
             peer_id: "OTHER_PEER_ID".to_string(),
             timestamp_created: timestamp + 1,
@@ -245,19 +345,31 @@ mod tests {
 
         let result = aqua_dht.republish_key_cp(key, 123123u64, get_correct_timestamp_cp(1));
         assert!(!result.success);
-        assert_eq!(result.error, "key already exists with different peer_id");
+        assert_eq!(result.error, KeyAlreadyExists(key_str).to_string());
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
-        let result = aqua_dht.put_value("some_key".to_string(), "value".to_string(), 123u64, vec![], vec![], 8u32);
+        let result = aqua_dht.put_value(
+            "some_key".to_string(),
+            "value".to_string(),
+            123u64,
+            vec![],
+            vec![],
+            8u32,
+        );
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let mut invalid_cp = CallParameters::default();
@@ -269,21 +381,37 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.put_value_cp("some_key".to_string(), "value".to_string(), 123u64, vec![], vec![], 8u32, invalid_cp);
+        let result = aqua_dht.put_value_cp(
+            "some_key".to_string(),
+            "value".to_string(),
+            123u64,
+            vec![],
+            vec![],
+            8u32,
+            invalid_cp.clone(),
+        );
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets)).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.get_values("some_key".to_string(), 123u64);
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let mut invalid_cp = CallParameters::default();
         invalid_cp.tetraplets.push(vec![]);
@@ -294,27 +422,39 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.get_values_cp("some_key".to_string(), 123u64, invalid_cp);
+        let result = aqua_dht.get_values_cp("some_key".to_string(), 123u64, invalid_cp.clone());
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets[1][0])).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_empty() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let key = "some_key".to_string();
-        register_key_and_check!(aqua_dht, key, 123u64, false, 8u32, get_correct_timestamp_cp(1));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            123u64,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
 
         let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.result.len(), 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn get_values_key_not_exists() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let key = "invalid_key".to_string();
@@ -325,17 +465,27 @@ mod tests {
         assert_eq!(result.result.len(), 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_key_not_exists() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
-        let result = aqua_dht.put_value_cp(key.clone(), "value".to_string(), 123u64, vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        let result = aqua_dht.put_value_cp(
+            key.clone(),
+            "value".to_string(),
+            123u64,
+            vec![],
+            vec![],
+            8u32,
+            get_correct_timestamp_cp(2),
+        );
         assert!(!result.success);
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let key = "some_key".to_string();
@@ -347,13 +497,28 @@ mod tests {
         let mut cp = get_correct_timestamp_cp(2);
         cp.init_peer_id = "some_peer_id".to_string();
 
-        register_key_and_check!(aqua_dht, key, timestamp, false, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key, value, timestamp, vec![relay_id.clone()], vec![service_id.clone()], weight, cp);
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            timestamp,
+            &vec![relay_id.clone()],
+            &vec![service_id.clone()],
+            weight,
+            &cp,
+        );
 
         let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         assert_eq!(result.result.len(), 1);
 
@@ -366,8 +531,9 @@ mod tests {
         assert_eq!(record.weight, weight);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_update() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value1 = "some_value".to_string();
@@ -379,15 +545,39 @@ mod tests {
         let mut cp = get_correct_timestamp_cp(2);
         cp.init_peer_id = "some_peer_id".to_string();
 
-        register_key_and_check!(aqua_dht, key, timestamp, false, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key, value1, timestamp, vec![relay_id.clone()], vec![service_id.clone()], weight, cp);
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value1,
+            timestamp,
+            &vec![relay_id.clone()],
+            &vec![service_id.clone()],
+            weight,
+            &cp,
+        );
         let value2 = "other_value".to_string();
-        put_value_and_check!(aqua_dht, key, value2, timestamp, vec![relay_id.clone()], vec![service_id.clone()], weight, cp);
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value2,
+            timestamp,
+            &vec![relay_id.clone()],
+            &vec![service_id.clone()],
+            weight,
+            &cp,
+        );
 
         let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         assert_eq!(result.result.len(), 1);
 
@@ -400,104 +590,173 @@ mod tests {
         assert_eq!(record.weight, weight);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_value_limit() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let timestamp = 123u64;
 
-        macro_rules! put_value {
-            ($peer_id:expr, $weight:expr) => {
-                {
-                    let mut cp = get_correct_timestamp_cp(2);
-                    cp.init_peer_id = $peer_id.clone();
-                    put_value_and_check!(aqua_dht, key, value, timestamp, vec![], vec![], $weight.clone(), cp);
-                }
-            }
-        }
+        let put_value = |aqua_dht: &mut ServiceInterface, peer_id: &str, weight: u32| {
+            let mut cp = get_correct_timestamp_cp(2);
+            cp.init_peer_id = peer_id.to_string();
+            put_value_and_check(
+                aqua_dht,
+                &key,
+                &value,
+                timestamp,
+                &vec![],
+                &vec![],
+                weight,
+                &cp,
+            );
+        };
 
-        register_key_and_check!(aqua_dht, key, timestamp, false, 8u32, get_correct_timestamp_cp(1));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
 
         let min_weight = 10u32;
         for i in 0..VALUES_LIMIT {
-            put_value!(i.to_string(), min_weight + i as u32);
+            put_value(&mut aqua_dht, &i.to_string(), min_weight + i as u32);
         }
 
         // try to put value with smaller weight
         let smaller_weight = min_weight - 1;
         let mut cp = get_correct_timestamp_cp(2);
         cp.init_peer_id = "unique_peer_id1".to_string();
-        let result = aqua_dht.put_value_cp(key.clone(), value.clone(), timestamp, vec![], vec![], smaller_weight, cp);
+        let result = aqua_dht.put_value_cp(
+            key.clone(),
+            value.clone(),
+            timestamp,
+            vec![],
+            vec![],
+            smaller_weight,
+            cp,
+        );
         assert!(!result.success);
-        assert_eq!(result.error, "values limit is exceeded");
+        assert_eq!(result.error, ValuesLimitExceeded(key.clone()).to_string());
 
         // try to put value with bigger weight
         let bigger_weight = min_weight + 99999;
         let mut cp = get_correct_timestamp_cp(2);
         cp.init_peer_id = "unique_peer_id2".to_string();
-        put_value_and_check!(aqua_dht, key, value, timestamp, vec![], vec![], bigger_weight, cp);
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            timestamp,
+            &vec![],
+            &vec![],
+            bigger_weight,
+            &cp,
+        );
 
         // try to put host value
-        put_host_value_and_check!(aqua_dht, key, value, timestamp, vec![], vec![], 0u32, get_correct_timestamp_cp(2));
+        put_host_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            timestamp,
+            &vec![],
+            &vec![],
+            0u32,
+            &get_correct_timestamp_cp(2),
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn put_multiple_values_for_key() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let timestamp = 123u64;
         let weight = 8u32;
-        let relay_id = "some_relay".to_string();
-        let service_id = "some_service_id".to_string();
+        let relay_id = vec!["some_relay".to_string()];
+        let service_id = vec!["some_service_id".to_string()];
         let mut cp = get_correct_timestamp_cp(2);
         let peer1_id = "some_peer_id".to_string();
         let peer2_id = "other_peer_id".to_string();
 
-        register_key_and_check!(aqua_dht, key, timestamp, false, 8u32, get_correct_timestamp_cp(1));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
 
         cp.init_peer_id = peer1_id.clone();
-        put_value_and_check!(aqua_dht, key, value, timestamp, vec![relay_id.clone()], vec![service_id.clone()], weight, cp);
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            timestamp,
+            &relay_id,
+            &service_id,
+            weight,
+            &cp,
+        );
 
         cp.init_peer_id = peer2_id.clone();
-        put_value_and_check!(aqua_dht, key, value, timestamp, vec![relay_id.clone()], vec![service_id.clone()], weight, cp);
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            timestamp,
+            &relay_id,
+            &service_id,
+            weight,
+            &cp,
+        );
 
         let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
 
-        assert_eq!(result.error, "");
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         assert_eq!(result.result.len(), 2);
 
         let record = &result.result[0];
         assert_eq!(record.value, value);
         assert_eq!(record.peer_id, peer2_id);
-        assert_eq!(record.relay_id[0], relay_id);
-        assert_eq!(record.service_id[0], service_id);
+        assert_eq!(record.relay_id, relay_id);
+        assert_eq!(record.service_id, service_id);
         assert_eq!(record.timestamp_created, timestamp);
         assert_eq!(record.weight, weight);
 
         let record = &result.result[1];
         assert_eq!(record.value, value);
         assert_eq!(record.peer_id, peer1_id);
-        assert_eq!(record.relay_id[0], relay_id);
-        assert_eq!(record.service_id[0], service_id);
+        assert_eq!(record.relay_id, relay_id);
+        assert_eq!(record.service_id, service_id);
         assert_eq!(record.timestamp_created, timestamp);
         assert_eq!(record.weight, weight);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let result = aqua_dht.clear_expired(124u64);
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let mut invalid_cp = CallParameters::default();
@@ -509,31 +768,49 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.clear_expired_cp(124u64, invalid_cp);
+        let result = aqua_dht.clear_expired_cp(124u64, invalid_cp.clone());
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets)).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_empty() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
-        assert_eq!(result.error, "");
-        assert!(result.success);
+
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.count_keys + result.count_values, 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_key_without_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
-        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
+        let expired_timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            expired_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(
+            expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 0);
 
@@ -542,50 +819,119 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_host_key() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
-        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), true, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        let expired_timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            expired_timestamp,
+            true,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &"some_value".to_string(),
+            expired_timestamp,
+            &vec![],
+            &vec![],
+            8u32,
+            &get_correct_timestamp_cp(2),
+        );
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(
+            expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 0);
         assert_eq!(result.count_values, 1);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_host_value() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
-        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
-        put_host_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        let expired_timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            expired_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_host_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &"some_value".to_string(),
+            expired_timestamp,
+            &vec![],
+            &vec![],
+            8u32,
+            &get_correct_timestamp_cp(2),
+        );
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(
+            expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 0);
         assert_eq!(result.count_values, 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_key_with_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
-        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        let expired_timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            expired_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &"some_value".to_string(),
+            expired_timestamp,
+            &vec![],
+            &vec![],
+            8u32,
+            &get_correct_timestamp_cp(2),
+        );
 
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(
+            expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
@@ -599,21 +945,44 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn clear_expired_change_timeout() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
-        let expired_timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+        let expired_timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
-        register_key_and_check!(aqua_dht, key.clone(), expired_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key.clone(), "some_value".to_string(), expired_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            expired_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &"some_value".to_string(),
+            expired_timestamp,
+            &vec![],
+            &vec![],
+            8u32,
+            &get_correct_timestamp_cp(2),
+        );
 
         let new_expired_timeout = DEFAULT_EXPIRED_VALUE_AGE - 100u64;
         aqua_dht.set_expired_timeout(new_expired_timeout.clone());
-        let result = aqua_dht.clear_expired_cp(expired_timestamp + new_expired_timeout, get_correct_timestamp_cp(0));
+        let result = aqua_dht.clear_expired_cp(
+            expired_timestamp + new_expired_timeout,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
@@ -627,17 +996,22 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_empty_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let result = aqua_dht.evict_stale(124u64);
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet("[]".to_string()).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_invalid_cp() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         let mut invalid_cp = CallParameters::default();
@@ -649,31 +1023,46 @@ mod tests {
             json_path: "some json path".to_string(),
         }]);
 
-        let result = aqua_dht.evict_stale_cp(124u64, invalid_cp);
+        let result = aqua_dht.evict_stale_cp(124u64, invalid_cp.clone());
         assert!(!result.success);
-        assert_eq!(result.error, "you should use host peer.timestamp_sec to pass timestamp");
+        assert_eq!(
+            result.error,
+            InvalidTimestampTetraplet(format!("{:?}", invalid_cp.tetraplets)).to_string()
+        );
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_empty() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let result = aqua_dht.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 0);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_key_without_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let stale_timestamp = 0u64;
-        register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            stale_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
 
-        let result = aqua_dht.evict_stale_cp(stale_timestamp + DEFAULT_STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.evict_stale_cp(
+            stale_timestamp + DEFAULT_STALE_VALUE_AGE,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 1);
         let item = &result.results[0];
         assert_eq!(item.key.key, key);
@@ -684,19 +1073,39 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_stale_key_with_values() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let stale_timestamp = 0u64;
-        register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            stale_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            stale_timestamp,
+            &vec![],
+            &vec![],
+            8u32,
+            &get_correct_timestamp_cp(2),
+        );
 
-        let result = aqua_dht.evict_stale_cp(stale_timestamp + DEFAULT_STALE_VALUE_AGE, get_correct_timestamp_cp(0));
+        let result = aqua_dht.evict_stale_cp(
+            stale_timestamp + DEFAULT_STALE_VALUE_AGE,
+            get_correct_timestamp_cp(0),
+        );
 
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 1);
 
         let item = &result.results[0];
@@ -717,10 +1126,12 @@ mod tests {
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn merge_test() {
+        let mut aqua_dht = ServiceInterface::new();
+
         let peer_id = "some_peer_id".to_string();
-        let stale_record = aqua_dht_structs::Record {
+        let stale_record = Record {
             value: "stale".to_string(),
             peer_id: peer_id.clone(),
             relay_id: vec![],
@@ -730,7 +1141,7 @@ mod tests {
             weight: 8u32,
         };
 
-        let new_record = aqua_dht_structs::Record {
+        let new_record = Record {
             value: "new".to_string(),
             peer_id: peer_id.clone(),
             relay_id: vec![],
@@ -755,11 +1166,13 @@ mod tests {
         assert_eq!(record.timestamp_created, new_record.timestamp_created);
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn merge_test_different_peer_ids() {
+        let mut aqua_dht = ServiceInterface::new();
+
         let peer_id1 = "some_peer_id1".to_string();
         let peer_id2 = "some_peer_id2".to_string();
-        let record1 = aqua_dht_structs::Record {
+        let record1 = Record {
             value: "value1".to_string(),
             peer_id: peer_id1.clone(),
             relay_id: vec![],
@@ -769,7 +1182,7 @@ mod tests {
             weight: 8u32,
         };
 
-        let record2 = aqua_dht_structs::Record {
+        let record2 = Record {
             value: "value2".to_string(),
             peer_id: peer_id2.clone(),
             relay_id: vec![],
@@ -785,8 +1198,9 @@ mod tests {
     }
 
     // test repeats initTopicAndSubscribeNode method from pubsub api
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn init_topic_and_subscribe_node_test() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let topic = "some_key".to_string();
         let timestamp = 123u64;
@@ -800,16 +1214,26 @@ mod tests {
         // === init topic and subscribe to it
 
         // register topic
-        register_key_and_check!(aqua_dht, topic, timestamp, pin, weight, cp);
+        register_key_and_check(&mut aqua_dht, &topic, timestamp, pin, weight, &cp);
 
         let mut cp = get_correct_timestamp_cp(2);
         cp.init_peer_id = subscriber_peer_id.clone();
 
         // make a subscription
-        let result = put_host_value_and_check!(aqua_dht, topic, value, timestamp, vec![], vec![], 0u32, cp);
-        assert!(result.success);
+        let result = put_host_value_and_check(
+            &mut aqua_dht,
+            &topic,
+            &value,
+            timestamp,
+            &vec![],
+            &vec![],
+            0u32,
+            &cp,
+        );
+        assert!(result.success, "{}", result.error);
 
         // clear db to imitate switching to neighbor
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
 
         // === notify neighbor about subscription
@@ -818,24 +1242,24 @@ mod tests {
         cp.init_peer_id = subscriber_peer_id.clone();
 
         // register topic on neighbor
-        register_key_and_check!(aqua_dht, topic, timestamp, pin, weight, cp);
+        register_key_and_check(&mut aqua_dht, &topic, timestamp, pin, weight, &cp);
         let mut cp = get_correct_timestamp_cp(1);
         cp.tetraplets[0] = vec![SecurityTetraplet {
             peer_pk: HOST_ID.to_string(),
             service_id: "aqua-dht".to_string(),
             function_name: "put_host_value".to_string(),
-            json_path: "".to_string()
+            json_path: "".to_string(),
         }];
         cp.init_peer_id = subscriber_peer_id.clone();
 
         // leave record about subscription
         let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
 
         // check subscription (mimics findSubscribers but for one node without merging)
         let result = aqua_dht.get_values_cp(topic, 123u64, get_correct_timestamp_cp(1));
 
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.result.len(), 1);
         let record = result.result[0].clone();
         assert_eq!(record.value, value);
@@ -844,24 +1268,41 @@ mod tests {
     }
 
     // checks evict_stale -> republish_key[values] -> clear_expired lifecycle
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     fn evict_republish_clear_expired() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "some_key".to_string();
         let value = "some_value".to_string();
         let stale_timestamp = 0u64;
 
         // register key and put some value
-        register_key_and_check!(aqua_dht, key.clone(), stale_timestamp.clone(), false, 8u32, get_correct_timestamp_cp(1));
-        put_value_and_check!(aqua_dht, key.clone(), value.clone(), stale_timestamp.clone(), vec![], vec![], 8u32, get_correct_timestamp_cp(2));
+        register_key_and_check(
+            &mut aqua_dht,
+            &key,
+            stale_timestamp,
+            false,
+            8u32,
+            &get_correct_timestamp_cp(1),
+        );
+        put_value_and_check(
+            &mut aqua_dht,
+            &key,
+            &value,
+            stale_timestamp,
+            &vec![],
+            &vec![],
+            8u32,
+            &get_correct_timestamp_cp(2),
+        );
 
         // increase timestamp to make value and key stale
         let current_timestamp = stale_timestamp + DEFAULT_STALE_VALUE_AGE;
 
         // retrieve values and keys to republish
         let result = aqua_dht.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.results.len(), 1);
 
         let item = &result.results[0];
@@ -877,21 +1318,32 @@ mod tests {
 
         // check that key not exists and values are empty (because node is neighbor to itself and should republish values to itself)
         // get_values checks key existence
-        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+        let result =
+            aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
         assert!(!result.success);
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
 
         // republish key and values
-        let result = aqua_dht.republish_key_cp(key_to_republish, current_timestamp, get_correct_timestamp_cp(1));
-        assert!(result.success);
+        let result = aqua_dht.republish_key_cp(
+            key_to_republish,
+            current_timestamp,
+            get_correct_timestamp_cp(1),
+        );
+        assert!(result.success, "{}", result.error);
 
-        let result = aqua_dht.republish_values_cp(key.clone(), records_to_republish.clone(), current_timestamp, get_correct_timestamp_cp(2));
-        assert!(result.success);
+        let result = aqua_dht.republish_values_cp(
+            key.clone(),
+            records_to_republish.clone(),
+            current_timestamp,
+            get_correct_timestamp_cp(2),
+        );
+        assert!(result.success, "{}", result.error);
 
         // check values' existence
-        let result = aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
-        assert!(result.success);
-        assert_eq!(result.error, "");
+        let result =
+            aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+        assert!(result.success, "{}", result.error);
+
         assert_eq!(result.result.len(), 1);
 
         // increase timestamp to make value and key expired
@@ -899,28 +1351,41 @@ mod tests {
 
         // clear expired values and keys
         let result = aqua_dht.clear_expired_cp(expired_timestamp, get_correct_timestamp_cp(0));
-        assert!(result.success);
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.count_keys, 1);
         assert_eq!(result.count_values, 1);
 
         // check that values and keys not exists anymore (get_values checks key existence)
-        let result = aqua_dht.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
+        let result =
+            aqua_dht.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
 
         assert!(!result.success);
         assert_eq!(result.error, f!("Requested key {key} does not exist"));
     }
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    #[test]
     pub fn sql_injection_test() {
+        let mut aqua_dht = ServiceInterface::new();
         clear_env();
         let key = "blabla".to_string();
-        let injection_key = f!("{key}', '123', '123', 'abc', '0', '0'); DELETE FROM TABLE {KEYS_TABLE_NAME};");
+        let injection_key =
+            f!("{key}', '123', '123', 'abc', '0', '0'); DELETE FROM TABLE {KEYS_TABLE_NAME};");
 
-        let result = aqua_dht.register_key_cp(injection_key.clone(), 123u64, false, 0u32, get_correct_timestamp_cp(1));
-        assert!(result.success);
+        let result = aqua_dht.register_key_cp(
+            injection_key.clone(),
+            123u64,
+            false,
+            0u32,
+            get_correct_timestamp_cp(1),
+        );
+        assert!(result.success, "{}", result.error);
 
-        let result = aqua_dht.get_key_metadata_cp(injection_key.clone(), 123u64, get_correct_timestamp_cp(1));
-        assert!(result.success);
+        let result = aqua_dht.get_key_metadata_cp(
+            injection_key.clone(),
+            123u64,
+            get_correct_timestamp_cp(1),
+        );
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.key.key, injection_key);
     }
 }

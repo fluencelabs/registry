@@ -14,42 +14,32 @@
  * limitations under the License.
  */
 
-mod results;
-mod tests;
-mod impls;
-
-use crate::results::{Key, GetKeyMetadataResult, DhtResult, GetValuesResult, Record, RepublishValuesResult, ClearExpiredResult, EvictStaleResult, MergeResult, PutHostValueResult};
-use crate::impls::{create_keys_table, create_values_table, register_key_impl, get_key_metadata_impl, republish_key_impl, put_value_impl, get_values_impl, republish_values_impl, clear_expired_impl, evict_stale_impl, merge_impl, renew_host_value_impl, clear_host_value_impl, create_config, load_config, write_config, propagate_host_value_impl};
-
 use marine_rs_sdk::marine;
 use marine_rs_sdk::module_manifest;
 
-use serde::{Deserialize, Serialize};
+use crate::config::{create_config, load_config, write_config};
+use crate::impls::{
+    clear_expired_impl, clear_host_value_impl, create_keys_table, create_values_table,
+    evict_stale_impl, get_key_metadata_impl, get_values_impl, merge_impl,
+    propagate_host_value_impl, put_value_impl, register_key_impl, renew_host_value_impl,
+    republish_key_impl, republish_values_impl,
+};
+use crate::results::{
+    ClearExpiredResult, DhtResult, EvictStaleResult, GetKeyMetadataResult, GetValuesResult, Key,
+    MergeResult, PutHostValueResult, Record, RepublishValuesResult,
+};
+
+mod config;
+mod defaults;
+mod error;
+mod impls;
+mod results;
+mod tests;
 
 #[macro_use]
 extern crate fstrings;
 
 module_manifest!();
-
-// TODO: sanitize tables' names in SQL expressions
-pub static KEYS_TABLE_NAME: &str = "dht_keys";
-pub static VALUES_TABLE_NAME: &str = "dht_values";
-pub static CONFIG_FILE: &str = "/tmp/Config.toml";
-pub static DB_PATH: &str = "/tmp/dht.db";
-pub static DEFAULT_STALE_VALUE_AGE: u64 = 60 * 60;
-pub static DEFAULT_EXPIRED_VALUE_AGE: u64 = 24 * 60 * 60;
-pub static DEFAULT_EXPIRED_HOST_VALUE_AGE: u64 = 10 * DEFAULT_EXPIRED_VALUE_AGE;
-pub static VALUES_LIMIT: usize = 20;
-
-pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
-pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
-
-#[derive(Deserialize, Serialize)]
-pub struct Config {
-    pub expired_timeout: u64,
-    pub stale_timeout: u64,
-    pub host_expired_timeout: u64,
-}
 
 fn main() {
     create_keys_table();
@@ -75,20 +65,59 @@ pub fn republish_key(key: Key, current_timestamp_sec: u64) -> DhtResult {
 
 // VALUES
 #[marine]
-pub fn put_value(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32) -> DhtResult {
-    put_value_impl(key, value, current_timestamp_sec, relay_id, service_id, weight, false).map(|_| ()).into()
+pub fn put_value(
+    key: String,
+    value: String,
+    current_timestamp_sec: u64,
+    relay_id: Vec<String>,
+    service_id: Vec<String>,
+    weight: u32,
+) -> DhtResult {
+    put_value_impl(
+        key,
+        value,
+        current_timestamp_sec,
+        relay_id,
+        service_id,
+        weight,
+        false,
+    )
+    .map(|_| ())
+    .into()
 }
 
 #[marine]
-pub fn put_host_value(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32) -> PutHostValueResult {
-    let mut result: PutHostValueResult = put_value_impl(key.clone(), value, current_timestamp_sec, relay_id, service_id, weight, true).into();
+pub fn put_host_value(
+    key: String,
+    value: String,
+    current_timestamp_sec: u64,
+    relay_id: Vec<String>,
+    service_id: Vec<String>,
+    weight: u32,
+) -> PutHostValueResult {
+    let mut result: PutHostValueResult = put_value_impl(
+        key.clone(),
+        value,
+        current_timestamp_sec,
+        relay_id,
+        service_id,
+        weight,
+        true,
+    )
+    .into();
+
+    // key is needed to be passed to propagate_host_value
     result.key = key;
 
     result
 }
 
 #[marine]
-pub fn propagate_host_value(set_host_value: PutHostValueResult, current_timestamp_sec: u64, weight: u32) -> DhtResult {
+pub fn propagate_host_value(
+    set_host_value: PutHostValueResult,
+    current_timestamp_sec: u64,
+    weight: u32,
+) -> DhtResult {
     propagate_host_value_impl(set_host_value, current_timestamp_sec, weight).into()
 }
 
@@ -98,7 +127,11 @@ pub fn get_values(key: String, current_timestamp_sec: u64) -> GetValuesResult {
 }
 
 #[marine]
-pub fn republish_values(key: String, records: Vec<Record>, current_timestamp_sec: u64) -> RepublishValuesResult {
+pub fn republish_values(
+    key: String,
+    records: Vec<Record>,
+    current_timestamp_sec: u64,
+) -> RepublishValuesResult {
     republish_values_impl(key, records, current_timestamp_sec).into()
 }
 
@@ -141,8 +174,9 @@ pub fn merge_hack_get_values(records: Vec<GetValuesResult>) -> MergeResult {
             .filter(|elem| elem.success)
             .map(|elem| elem.result)
             .flatten()
-            .collect()
-    ).into()
+            .collect(),
+    )
+    .into()
 }
 
 #[marine]

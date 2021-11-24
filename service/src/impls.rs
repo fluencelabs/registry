@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-use crate::{Config, KEYS_TABLE_NAME, VALUES_TABLE_NAME, DB_PATH, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, DEFAULT_EXPIRED_HOST_VALUE_AGE, VALUES_LIMIT, CONFIG_FILE};
-use crate::results::{Key, Record, EvictStaleItem, PutHostValueResult};
-use marine_sqlite_connector::{Connection, Result as SqliteResult, Error as SqliteError, State, Statement, Value};
-use marine_rs_sdk::{CallParameters};
-use eyre;
-use eyre::ContextCompat;
 use std::collections::HashMap;
+
 use boolinator::Boolinator;
-use toml;
-use std::fs;
+use marine_rs_sdk::CallParameters;
+use marine_sqlite_connector::{Connection, Result as SqliteResult, State, Statement, Value};
+
+use crate::config::load_config;
+use crate::defaults::{
+    DB_PATH, KEYS_TABLE_NAME, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID,
+    VALUES_LIMIT, VALUES_TABLE_NAME,
+};
+use crate::error::ServiceError;
+use crate::error::ServiceError::{
+    HostValueNotFound, InternalError, InvalidSetHostValueResult, InvalidSetHostValueTetraplet,
+    InvalidTimestampTetraplet, KeyAlreadyExists, KeyNotExists, ValuesLimitExceeded,
+};
+use crate::results::{EvictStaleItem, Key, PutHostValueResult, Record};
 
 fn get_custom_option(value: String) -> Vec<String> {
     if value.is_empty() {
@@ -33,7 +40,7 @@ fn get_custom_option(value: String) -> Vec<String> {
     }
 }
 
-fn read_key(statement: &Statement) -> SqliteResult<Key> {
+fn read_key(statement: &Statement) -> Result<Key, ServiceError> {
     Ok(Key {
         key: statement.read::<String>(0)?,
         peer_id: statement.read::<String>(1)?,
@@ -43,7 +50,7 @@ fn read_key(statement: &Statement) -> SqliteResult<Key> {
     })
 }
 
-fn read_record(statement: &Statement) -> SqliteResult<Record> {
+fn read_record(statement: &Statement) -> Result<Record, ServiceError> {
     Ok(Record {
         value: statement.read::<String>(0)?,
         peer_id: statement.read::<String>(1)?,
@@ -55,14 +62,33 @@ fn read_record(statement: &Statement) -> SqliteResult<Record> {
     })
 }
 
-fn check_key_existence(connection: &Connection, key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
-    get_key_metadata_helper(&connection, key, current_timestamp_sec).map(|_| ())
+fn check_key_existence(
+    connection: &Connection,
+    key: String,
+    current_timestamp_sec: u64,
+) -> Result<(), ServiceError> {
+    get_key_metadata_helper(connection, key, current_timestamp_sec).map(|_| ())
 }
 
-fn insert_or_replace_value(connection: &Connection, key: String, record: Record, current_timestamp: u64) -> SqliteResult<()> {
-    let relay_id = if record.relay_id.is_empty() { "".to_string() } else { record.relay_id[0].clone() };
-    let service_id = if record.service_id.is_empty() { "".to_string() } else { record.service_id[0].clone() };
-    let mut statement = connection.prepare(f!("INSERT OR REPLACE INTO {VALUES_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"))?;
+fn insert_or_replace_value(
+    connection: &Connection,
+    key: String,
+    record: Record,
+    current_timestamp: u64,
+) -> Result<(), ServiceError> {
+    let relay_id = if record.relay_id.is_empty() {
+        "".to_string()
+    } else {
+        record.relay_id[0].clone()
+    };
+    let service_id = if record.service_id.is_empty() {
+        "".to_string()
+    } else {
+        record.service_id[0].clone()
+    };
+    let mut statement = connection.prepare(f!(
+        "INSERT OR REPLACE INTO {VALUES_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ))?;
 
     statement.bind(1, &Value::String(key))?;
     statement.bind(2, &Value::String(record.value))?;
@@ -73,36 +99,64 @@ fn insert_or_replace_value(connection: &Connection, key: String, record: Record,
     statement.bind(7, &Value::Integer(record.timestamp_created as i64))?;
     statement.bind(8, &Value::Integer(current_timestamp as i64))?;
     statement.bind(9, &Value::Integer(record.weight as i64))?;
-    statement.next().map(drop)
+    statement.next().map(drop)?;
+
+    Ok(())
 }
 
-fn delete_value(connection: &Connection, key: String, peer_id: String, set_by: String) -> SqliteResult<()> {
-    let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key=? AND peer_id=? AND set_by=?"))?;
-    statement.bind(1, &Value::String(key.clone()))?;
+fn delete_value(
+    connection: &Connection,
+    key: &str,
+    peer_id: String,
+    set_by: String,
+) -> Result<(), ServiceError> {
+    let mut statement = connection.prepare(f!(
+        "DELETE FROM {VALUES_TABLE_NAME} WHERE key=? AND peer_id=? AND set_by=?"
+    ))?;
+    statement.bind(1, &Value::String(key.to_string()))?;
     statement.bind(2, &Value::String(peer_id))?;
     statement.bind(3, &Value::String(set_by))?;
-    statement.next().map(drop)
+    statement.next().map(drop)?;
+
+    Ok(())
 }
 
 /// Check timestamps are generated on the current host with builtin ("peer" "timestamp_sec")
-pub(crate) fn check_timestamp_tetraplets(call_parameters: &CallParameters, arg_number: usize) -> eyre::Result<()> {
-    let error_msg = "you should use host peer.timestamp_sec to pass timestamp";
-    let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
-    let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
-    (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID &&
-        tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME &&
-        tetraplet.peer_pk == call_parameters.host_id
-    ).then(|| ()).wrap_err(error_msg)
+pub(crate) fn check_timestamp_tetraplets(
+    call_parameters: &CallParameters,
+    arg_number: usize,
+) -> Result<(), ServiceError> {
+    let tetraplets = call_parameters
+        .tetraplets
+        .get(arg_number)
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    let tetraplet = tetraplets
+        .get(0)
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
+        && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
+        && tetraplet.peer_pk == call_parameters.host_id)
+        .then(|| ())
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
 }
 
-pub(crate) fn check_host_value_tetraplets(call_parameters: &CallParameters, arg_number: usize, host_value: &Record) -> eyre::Result<()> {
-    let error_msg = "you should use put_host_value to pass set_host_value";
-    let tetraplets = call_parameters.tetraplets.get(arg_number).wrap_err(error_msg)?;
-    let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
-    (tetraplet.service_id == "aqua-dht" &&
-        tetraplet.function_name == "put_host_value" &&
-        tetraplet.peer_pk == host_value.peer_id
-    ).then(|| ()).wrap_err(error_msg)
+pub(crate) fn check_host_value_tetraplets(
+    call_parameters: &CallParameters,
+    arg_number: usize,
+    host_value: &Record,
+) -> Result<(), ServiceError> {
+    let tetraplets = call_parameters
+        .tetraplets
+        .get(arg_number)
+        .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    let tetraplet = tetraplets
+        .get(0)
+        .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    (tetraplet.service_id == "aqua-dht"
+        && tetraplet.function_name == "put_host_value"
+        && tetraplet.peer_pk == host_value.peer_id)
+        .then(|| ())
+        .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", tetraplet)))
 }
 
 #[inline]
@@ -123,8 +177,8 @@ pub(crate) fn create_keys_table() -> bool {
                 pinned INTEGER,
                 weight INTEGER
             );
-        "),
-        ).is_ok()
+        "))
+        .is_ok()
 }
 
 pub(crate) fn create_values_table() -> bool {
@@ -144,52 +198,47 @@ pub(crate) fn create_values_table() -> bool {
                 weight INTEGER,
                 PRIMARY KEY (key, peer_id, set_by)
             );
-        "),
-        ).is_ok()
-}
-
-pub fn write_config(config: Config) {
-    fs::write(CONFIG_FILE, toml::to_string(&config).unwrap()).unwrap();
-}
-
-pub fn load_config() -> Config {
-    let file_content = fs::read_to_string(CONFIG_FILE).unwrap();
-    let config: Config = toml::from_str(&file_content).unwrap();
-    config
-}
-
-pub(crate) fn create_config() {
-    if fs::metadata(CONFIG_FILE).is_err() {
-        write_config(Config {
-            expired_timeout: DEFAULT_EXPIRED_VALUE_AGE,
-            stale_timeout: DEFAULT_STALE_VALUE_AGE,
-            host_expired_timeout: DEFAULT_EXPIRED_HOST_VALUE_AGE,
-        });
-    }
+        "))
+        .is_ok()
 }
 
 /// Update timestamp_accessed and return metadata of the key
-fn get_key_metadata_helper(connection: &Connection, key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
-    let mut statement = connection.prepare(f!("UPDATE {KEYS_TABLE_NAME} SET timestamp_accessed = ? WHERE key = ?"))?;
+fn get_key_metadata_helper(
+    connection: &Connection,
+    key: String,
+    current_timestamp_sec: u64,
+) -> Result<Key, ServiceError> {
+    let mut statement = connection.prepare(f!(
+        "UPDATE {KEYS_TABLE_NAME} SET timestamp_accessed = ? WHERE key = ?"
+    ))?;
     statement.bind(1, &Value::Integer(current_timestamp_sec as i64))?;
     statement.bind(2, &Value::String(key.clone()))?;
     statement.next()?;
 
-    let mut statement = connection
-        .prepare(f!("SELECT key, peer_id, timestamp_created, pinned, weight \
-                              FROM {KEYS_TABLE_NAME} WHERE key = ?"))?;
+    let mut statement = connection.prepare(f!(
+        "SELECT key, peer_id, timestamp_created, pinned, weight \
+                              FROM {KEYS_TABLE_NAME} WHERE key = ?"
+    ))?;
     statement.bind(1, &Value::String(key.clone()))?;
 
     if let State::Row = statement.next()? {
         read_key(&statement)
     } else {
-        Err(SqliteError { code: None, message: Some(f!("Requested key {key} does not exist")) })
+        Err(KeyNotExists(key))
     }
 }
 
 /// Insert key if not exists or update timestamp if peer_id is same
-fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_created: u64, timestamp_accessed: u64, pin: bool, weight: u32) -> SqliteResult<()> {
-    let old_key = get_key_metadata_helper(&connection, key.clone(), timestamp_accessed);
+fn update_key(
+    connection: &Connection,
+    key: String,
+    peer_id: String,
+    timestamp_created: u64,
+    timestamp_accessed: u64,
+    pin: bool,
+    weight: u32,
+) -> Result<(), ServiceError> {
+    let old_key = get_key_metadata_helper(connection, key.clone(), timestamp_accessed);
     let pinned = pin as i32;
     let update_allowed = {
         match old_key {
@@ -212,44 +261,69 @@ fn update_key(connection: &Connection, key: String, peer_id: String, timestamp_c
         statement.next()?;
         Ok(())
     } else {
-        Err(SqliteError { code: None, message: Some("key already exists with different peer_id".to_string()) })
+        Err(KeyAlreadyExists(key))
     }
 }
 
-pub fn get_key_metadata_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Key> {
+pub fn get_key_metadata_impl(key: String, current_timestamp_sec: u64) -> Result<Key, ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
 
     get_key_metadata_helper(&get_connection()?, key, current_timestamp_sec)
 }
 
 /// register new key if not exists with caller peer_id, update if exists with same peer_id or return error
-pub fn register_key_impl(key: String, current_timestamp_sec: u64, pin: bool, weight: u32) -> SqliteResult<()> {
+pub fn register_key_impl(
+    key: String,
+    current_timestamp_sec: u64,
+    pin: bool,
+    weight: u32,
+) -> Result<(), ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     let peer_id = call_parameters.init_peer_id.clone();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
 
-    update_key(&get_connection()?, key, peer_id, current_timestamp_sec, current_timestamp_sec, pin, weight)
+    update_key(
+        &get_connection()?,
+        key,
+        peer_id,
+        current_timestamp_sec,
+        current_timestamp_sec,
+        pin,
+        weight,
+    )
 }
 
 /// Used for replication, same as register_key, but key.pinned is ignored, updates timestamp_accessed
-pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> SqliteResult<()> {
+pub fn republish_key_impl(key: Key, current_timestamp_sec: u64) -> Result<(), ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
 
     // Key.pinned is ignored in republish
-    update_key(&get_connection()?, key.key, key.peer_id, key.timestamp_created, current_timestamp_sec, false, key.weight)
+    update_key(
+        &get_connection()?,
+        key.key,
+        key.peer_id,
+        key.timestamp_created,
+        current_timestamp_sec,
+        false,
+        key.weight,
+    )
 }
 
-/// Put value with caller peer_id if the key exists. 
+/// Put value with caller peer_id if the key exists.
 /// If the value is NOT a host value and the key already has `VALUES_LIMIT` records, then a value with the smallest weight is removed and the new value is inserted instead.
-pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, relay_id: Vec<String>, service_id: Vec<String>, weight: u32, host: bool) -> SqliteResult<Record> {
+pub fn put_value_impl(
+    key: String,
+    value: String,
+    current_timestamp_sec: u64,
+    relay_id: Vec<String>,
+    service_id: Vec<String>,
+    weight: u32,
+    host: bool,
+) -> Result<Record, ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 2)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 2)?;
 
     let connection = get_connection()?;
 
@@ -262,16 +336,25 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
 
         if min_weight_record.weight < weight {
             // delete the lightest record if the new one is heavier
-            delete_value(&connection, key.clone(), min_weight_record.peer_id, min_weight_record.set_by)?;
+            delete_value(
+                &connection,
+                &key,
+                min_weight_record.peer_id,
+                min_weight_record.set_by,
+            )?;
         } else {
             // return error if limit is exceeded
-            return Err(SqliteError { code: None, message: Some("values limit is exceeded".to_string()) });
+            return Err(ValuesLimitExceeded(key));
         }
     }
 
     let result = Record {
         value,
-        peer_id: if host { call_parameters.host_id } else { call_parameters.init_peer_id.clone() },
+        peer_id: if host {
+            call_parameters.host_id
+        } else {
+            call_parameters.init_peer_id.clone()
+        },
         set_by: call_parameters.init_peer_id,
         relay_id,
         service_id,
@@ -284,7 +367,10 @@ pub fn put_value_impl(key: String, value: String, current_timestamp_sec: u64, re
 }
 
 /// Return all values by key
-pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<Vec<Record>> {
+pub fn get_values_helper(
+    connection: &Connection,
+    key: String,
+) -> Result<Vec<Record>, ServiceError> {
     let mut statement = connection.prepare(
         f!("SELECT value, peer_id, set_by, relay_id, service_id, timestamp_created, weight FROM {VALUES_TABLE_NAME} \
                      WHERE key = ? ORDER BY weight DESC"))?;
@@ -299,22 +385,35 @@ pub fn get_values_helper(connection: &Connection, key: String) -> SqliteResult<V
     Ok(result)
 }
 
-fn get_non_host_records_count_by_key(connection: &Connection, key: String) -> SqliteResult<usize> {
+fn get_non_host_records_count_by_key(
+    connection: &Connection,
+    key: String,
+) -> Result<usize, ServiceError> {
     let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
     // only only non-host values
-    let mut statement = connection.prepare(f!("SELECT COUNT(*) FROM {VALUES_TABLE_NAME} WHERE key = ? AND peer_id != ?"))?;
+    let mut statement = connection.prepare(f!(
+        "SELECT COUNT(*) FROM {VALUES_TABLE_NAME} WHERE key = ? AND peer_id != ?"
+    ))?;
     statement.bind(1, &Value::String(key))?;
     statement.bind(2, &Value::String(host_id))?;
 
     if let State::Row = statement.next()? {
-        statement.read::<i64>(0).map(|n| n as usize)
+        statement
+            .read::<i64>(0)
+            .map(|n| n as usize)
+            .map_err(ServiceError::SqliteError)
     } else {
-        Err(SqliteError { code: None, message: Some(f!("get_non_host_records_count_by_key: something went totally wrong")) })
+        Err(InternalError(f!(
+            "get_non_host_records_count_by_key: something went totally wrong"
+        )))
     }
 }
 
-fn get_min_weight_non_host_record_by_key(connection: &Connection, key: String) -> SqliteResult<Record> {
+fn get_min_weight_non_host_record_by_key(
+    connection: &Connection,
+    key: String,
+) -> Result<Record, ServiceError> {
     let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
     // only only non-host values
@@ -328,21 +427,24 @@ fn get_min_weight_non_host_record_by_key(connection: &Connection, key: String) -
     if let State::Row = statement.next()? {
         read_record(&statement)
     } else {
-        Err(SqliteError { code: None, message: Some(f!("not found non-host records for given key: {key}")) })
+        Err(InternalError(f!(
+            "not found non-host records for given key: {key}"
+        )))
     }
 }
 
 /// Return all values by key and update timestamp_accessed
-pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<Vec<Record>> {
+pub fn get_values_impl(
+    key: String,
+    current_timestamp_sec: u64,
+) -> Result<Vec<Record>, ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
 
     let connection = get_connection()?;
     check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
-    let mut statement = connection.prepare(
-        f!("UPDATE {VALUES_TABLE_NAME} \
+    let mut statement = connection.prepare(f!("UPDATE {VALUES_TABLE_NAME} \
                   SET timestamp_accessed = ? \
                   WHERE key = ?"))?;
 
@@ -354,20 +456,32 @@ pub fn get_values_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<
 }
 
 /// If the key exists, then merge new records with existing (last-write-wins) and put
-pub fn republish_values_impl(key: String, records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
+pub fn republish_values_impl(
+    key: String,
+    records: Vec<Record>,
+    current_timestamp_sec: u64,
+) -> Result<u64, ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 2)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 2)?;
 
     republish_values_helper(key, records, current_timestamp_sec)
 }
 
-pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_timestamp_sec: u64) -> SqliteResult<u64> {
+pub fn republish_values_helper(
+    key: String,
+    mut records: Vec<Record>,
+    current_timestamp_sec: u64,
+) -> Result<u64, ServiceError> {
     let connection = get_connection()?;
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
-    records = merge_impl(get_values_helper(&connection, key.clone())?.into_iter().chain(records.into_iter()).collect())?;
+    records = merge_impl(
+        get_values_helper(&connection, key.clone())?
+            .into_iter()
+            .chain(records.into_iter())
+            .collect(),
+    )?;
 
     let mut updated = 0u64;
     for record in records.into_iter() {
@@ -378,13 +492,12 @@ pub fn republish_values_helper(key: String, mut records: Vec<Record>, current_ti
     Ok(updated)
 }
 
-/// Remove expired values and expired empty keys. 
+/// Remove expired values and expired empty keys.
 /// Expired means that `timestamp_created` has surpassed `expired_timeout`.
 /// Return number of keys and values removed
-pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)> {
+pub fn clear_expired_impl(current_timestamp_sec: u64) -> Result<(u64, u64), ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 0)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 0)?;
     let connection = get_connection()?;
     let config = load_config();
 
@@ -392,10 +505,14 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)
     let expired_timestamp = current_timestamp_sec - config.expired_timeout;
     let mut deleted_values = 0u64;
     let host_id = call_parameters.host_id;
-    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
-                                    WHERE timestamp_created <= {expired_host_timestamp})"))?;
+    connection.execute(f!(
+        "DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
+                                    WHERE timestamp_created <= {expired_host_timestamp})"
+    ))?;
     deleted_values += connection.changes() as u64;
-    connection.execute(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"))?;
+    connection.execute(f!(
+        "DELETE FROM {VALUES_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"
+    ))?;
     deleted_values += connection.changes() as u64;
 
     let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key IN (SELECT key FROM {KEYS_TABLE_NAME} \
@@ -410,35 +527,35 @@ pub fn clear_expired_impl(current_timestamp_sec: u64) -> SqliteResult<(u64, u64)
     statement.next()?;
     deleted_values += connection.changes() as u64;
 
-
-    connection.execute(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"))?;
+    connection.execute(f!(
+        "DELETE FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= {expired_host_timestamp}"
+    ))?;
     let mut deleted_keys = connection.changes() as u64;
 
     let mut statement = connection.prepare(f!("DELETE FROM {KEYS_TABLE_NAME} \
                                     WHERE timestamp_created <= {expired_timestamp} AND pinned=0 AND \
                                     key NOT IN (SELECT key FROM {VALUES_TABLE_NAME} WHERE peer_id = ?)"))?;
-    statement.bind(1, &Value::String(host_id.clone()))?;
+    statement.bind(1, &Value::String(host_id))?;
     statement.next()?;
     deleted_keys += connection.changes() as u64;
 
     Ok((deleted_keys, deleted_values))
 }
 
-/// Delete all stale keys and values except for pinned keys and host values. 
+/// Delete all stale keys and values except for pinned keys and host values.
 /// Stale means that `timestamp_accessed` has surpassed `stale_timeout`.
 /// Returns all deleted items
-pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictStaleItem>> {
+pub fn evict_stale_impl(current_timestamp_sec: u64) -> Result<Vec<EvictStaleItem>, ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 0)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 0)?;
     let connection = get_connection()?;
     let stale_timestamp = current_timestamp_sec - load_config().stale_timeout;
 
     let mut stale_keys: Vec<Key> = vec![];
-    let mut statement =
-        connection.prepare(
-            f!("SELECT key, peer_id, timestamp_created, pinned, weight FROM {KEYS_TABLE_NAME} \
-                         WHERE timestamp_accessed <= {stale_timestamp}"))?;
+    let mut statement = connection.prepare(f!(
+        "SELECT key, peer_id, timestamp_created, pinned, weight FROM {KEYS_TABLE_NAME} \
+                         WHERE timestamp_accessed <= {stale_timestamp}"
+    ))?;
 
     while let State::Row = statement.next()? {
         stale_keys.push(read_key(&statement)?);
@@ -448,25 +565,31 @@ pub fn evict_stale_impl(current_timestamp_sec: u64) -> SqliteResult<Vec<EvictSta
     let host_id = call_parameters.host_id;
     for key in stale_keys.into_iter() {
         let values = get_values_helper(&connection, key.key.clone())?;
-        let mut statement = connection.prepare(f!("DELETE FROM {VALUES_TABLE_NAME} WHERE key = ? AND set_by != ?"))?;
+        let mut statement = connection.prepare(f!(
+            "DELETE FROM {VALUES_TABLE_NAME} WHERE key = ? AND set_by != ?"
+        ))?;
         statement.bind(1, &Value::String(key.key.clone()))?;
         statement.bind(2, &Value::String(host_id.clone()))?;
         statement.next()?;
 
         if !key.pinned && !values.iter().any(|val| val.peer_id == host_id) {
-            let mut statement = connection.prepare(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key = ?"))?;
+            let mut statement =
+                connection.prepare(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key = ?"))?;
             statement.bind(1, &Value::String(key.key.clone()))?;
             statement.next()?;
         }
 
-        results.push(EvictStaleItem { key, records: values });
+        results.push(EvictStaleItem {
+            key,
+            records: values,
+        });
     }
 
     Ok(results)
 }
 
 /// Merge values with same peer_id by timestamp_created (last-write-wins)
-pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
+pub fn merge_impl(records: Vec<Record>) -> Result<Vec<Record>, ServiceError> {
     let mut result: HashMap<String, Record> = HashMap::new();
 
     for rec in records.into_iter() {
@@ -485,10 +608,9 @@ pub fn merge_impl(records: Vec<Record>) -> SqliteResult<Vec<Record>> {
 }
 
 /// Update timestamp_created of host value by key and caller peer_id
-pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
+pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> Result<(), ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
     let connection = get_connection()?;
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
@@ -496,53 +618,54 @@ pub fn renew_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteR
     let set_by = call_parameters.init_peer_id;
     let host_id = call_parameters.host_id;
 
-    let mut statement = connection.prepare(
-        f!("UPDATE {VALUES_TABLE_NAME} \
+    let mut statement = connection.prepare(f!("UPDATE {VALUES_TABLE_NAME} \
                      SET timestamp_created = ?, timestamp_accessed = ? \
                      WHERE key = ? AND set_by = ? AND peer_id = ?"))?;
     statement.bind(1, &Value::Integer(current_timestamp_sec as i64))?;
     statement.bind(2, &Value::Integer(current_timestamp_sec as i64))?;
-    statement.bind(3, &Value::String(key))?;
+    statement.bind(3, &Value::String(key.clone()))?;
     statement.bind(4, &Value::String(set_by))?;
     statement.bind(5, &Value::String(host_id))?;
     statement.next()?;
 
-    (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
+    (connection.changes() == 1).as_result((), HostValueNotFound(key))
 }
 
 /// Remove host value by key and caller peer_id
-pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> SqliteResult<()> {
+pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> Result<(), ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
     let connection = get_connection()?;
 
     check_key_existence(&connection, key.clone(), current_timestamp_sec)?;
 
     let peer_id = call_parameters.host_id;
     let set_by = call_parameters.init_peer_id;
-    delete_value(&connection, key, peer_id, set_by)?;
+    delete_value(&connection, &key, peer_id, set_by)?;
 
-    (connection.changes() == 1).as_result((), SqliteError { code: None, message: Some("host value not found".to_string()) })
+    (connection.changes() == 1).as_result((), HostValueNotFound(key))
 }
 
 /// Used for replication of host values to other nodes.
 /// Similar to republish_values but with an additional check that value.set_by == init_peer_id
-pub fn propagate_host_value_impl(mut set_host_value: PutHostValueResult, current_timestamp_sec: u64, weight: u32) -> SqliteResult<()> {
+pub fn propagate_host_value_impl(
+    mut set_host_value: PutHostValueResult,
+    current_timestamp_sec: u64,
+    weight: u32,
+) -> Result<(), ServiceError> {
     if !set_host_value.success || set_host_value.value.len() != 1 {
-        return Err(SqliteError { code: None, message: Some("invalid set_host_value".to_string()) });
+        return Err(InvalidSetHostValueResult);
     }
 
     let call_parameters = marine_rs_sdk::get_call_parameters();
-    check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
-    check_timestamp_tetraplets(&call_parameters, 1)
-        .map_err(|e| SqliteError { code: None, message: Some(e.to_string()) })?;
-
-    if set_host_value.value[0].set_by != call_parameters.init_peer_id {
-        return Err(SqliteError { code: None, message: Some("value is set by another peer".to_string()) });
-    }
+    check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])?;
+    check_timestamp_tetraplets(&call_parameters, 1)?;
 
     set_host_value.value[0].weight = weight;
-    republish_values_helper(set_host_value.key, set_host_value.value, current_timestamp_sec).map(|_| ())
+    republish_values_helper(
+        set_host_value.key,
+        set_host_value.value,
+        current_timestamp_sec,
+    )
+    .map(|_| ())
 }
