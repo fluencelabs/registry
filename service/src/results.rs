@@ -16,6 +16,8 @@
 
 use crate::error::ServiceError;
 use marine_rs_sdk::marine;
+use crate::key::Key;
+use crate::record::Record;
 
 #[marine]
 #[derive(Debug)]
@@ -37,18 +39,6 @@ impl From<Result<(), ServiceError>> for DhtResult {
             },
         }
     }
-}
-
-#[marine]
-#[derive(Debug, Default, Clone)]
-pub struct Record {
-    pub value: String,
-    pub peer_id: String,
-    pub set_by: String,
-    pub relay_id: Vec<String>,
-    pub service_id: Vec<String>,
-    pub timestamp_created: u64,
-    pub weight: u32,
 }
 
 #[marine]
@@ -127,16 +117,6 @@ impl From<Result<Vec<Record>, ServiceError>> for GetStaleRecordsResult {
             },
         }
     }
-}
-
-#[marine]
-#[derive(Default, Clone)]
-pub struct Key {
-    pub key: String,
-    pub peer_id: String,
-    pub timestamp_created: u64,
-    pub pinned: bool,
-    pub weight: u32,
 }
 
 #[marine]

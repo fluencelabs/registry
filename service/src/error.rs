@@ -28,6 +28,8 @@ pub enum ServiceError {
     KeyNotExists(String),
     #[error("Key {0} already exists with different peer_id")]
     KeyAlreadyExists(String),
+    #[error("Key {0} already exists with same peer_id but with newer timestamp")]
+    KeyAlreadyExistsNewerTimestamp(String),
     #[error("Values limit for key {0} is exceeded")]
     ValuesLimitExceeded(String),
     #[error("Host value for key {0} not found ")]
@@ -48,4 +50,8 @@ pub enum ServiceError {
         "Invalid weight tetraplet: you should use host trust-graph.get_weight to pass weight: {0}"
     )]
     InvalidWeightTetraplet(String),
+    #[error("Invalid key {0} signature")]
+    InvalidKeySignature(String),
+    #[error("Invalid record signature for key {0} and value {1}")]
+    InvalidRecordSignature(String, String),
 }

@@ -17,6 +17,7 @@ boolinator = "2.4.0"
 toml = "0.5.6"
 serde = { version = "1.0.118", features = ["derive"] }
 thiserror = "1.0.29"
+sha2 = "0.10.1"
 
 [dev-dependencies]
 marine-rs-sdk-test = "0.4.0"
