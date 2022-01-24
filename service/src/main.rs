@@ -47,9 +47,23 @@ fn main() {
     create_config();
 }
 
+// TODO: ship tg results as crate, remove duplication
+#[marine]
+pub struct WeightResult {
+    pub success: bool,
+    pub weight: u32,
+    pub peer_id: String,
+    pub error: String,
+}
+
 // KEYS
 #[marine]
-pub fn register_key(key: String, current_timestamp_sec: u64, pin: bool, weight: u32) -> DhtResult {
+pub fn register_key(
+    key: String,
+    current_timestamp_sec: u64,
+    pin: bool,
+    weight: WeightResult,
+) -> DhtResult {
     register_key_impl(key, current_timestamp_sec, pin, weight).into()
 }
 
@@ -71,7 +85,7 @@ pub fn put_value(
     current_timestamp_sec: u64,
     relay_id: Vec<String>,
     service_id: Vec<String>,
-    weight: u32,
+    weight: WeightResult,
 ) -> DhtResult {
     put_value_impl(
         key,
@@ -93,7 +107,7 @@ pub fn put_host_value(
     current_timestamp_sec: u64,
     relay_id: Vec<String>,
     service_id: Vec<String>,
-    weight: u32,
+    weight: WeightResult,
 ) -> PutHostValueResult {
     let mut result: PutHostValueResult = put_value_impl(
         key.clone(),
@@ -116,7 +130,7 @@ pub fn put_host_value(
 pub fn propagate_host_value(
     set_host_value: PutHostValueResult,
     current_timestamp_sec: u64,
-    weight: u32,
+    weight: WeightResult,
 ) -> DhtResult {
     propagate_host_value_impl(set_host_value, current_timestamp_sec, weight).into()
 }

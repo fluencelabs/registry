@@ -28,9 +28,11 @@ use crate::defaults::{
 use crate::error::ServiceError;
 use crate::error::ServiceError::{
     HostValueNotFound, InternalError, InvalidSetHostValueResult, InvalidSetHostValueTetraplet,
-    InvalidTimestampTetraplet, KeyAlreadyExists, KeyNotExists, ValuesLimitExceeded,
+    InvalidTimestampTetraplet, InvalidWeightTetraplet, KeyAlreadyExists, KeyNotExists,
+    ValuesLimitExceeded,
 };
 use crate::results::{EvictStaleItem, Key, PutHostValueResult, Record};
+use crate::WeightResult;
 
 fn get_custom_option(value: String) -> Vec<String> {
     if value.is_empty() {
@@ -159,6 +161,25 @@ pub(crate) fn check_host_value_tetraplets(
         .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", tetraplet)))
 }
 
+pub(crate) fn check_weight_tetraplets(
+    call_parameters: &CallParameters,
+    arg_number: usize,
+    weight: &WeightResult,
+) -> Result<(), ServiceError> {
+    let tetraplets = call_parameters
+        .tetraplets
+        .get(arg_number)
+        .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    let tetraplet = tetraplets
+        .get(0)
+        .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    (tetraplet.service_id == "trust-graph"
+        && tetraplet.function_name == "get_weight"
+        && tetraplet.peer_pk == weight.peer_id)
+        .then(|| ())
+        .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", tetraplet)))
+}
+
 #[inline]
 pub(crate) fn get_connection() -> SqliteResult<Connection> {
     marine_sqlite_connector::open(DB_PATH)
@@ -277,11 +298,12 @@ pub fn register_key_impl(
     key: String,
     current_timestamp_sec: u64,
     pin: bool,
-    weight: u32,
+    weight: WeightResult,
 ) -> Result<(), ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     let peer_id = call_parameters.init_peer_id.clone();
     check_timestamp_tetraplets(&call_parameters, 1)?;
+    check_weight_tetraplets(&call_parameters, 3, &weight)?;
 
     update_key(
         &get_connection()?,
@@ -290,7 +312,7 @@ pub fn register_key_impl(
         current_timestamp_sec,
         current_timestamp_sec,
         pin,
-        weight,
+        weight.weight,
     )
 }
 
@@ -319,11 +341,13 @@ pub fn put_value_impl(
     current_timestamp_sec: u64,
     relay_id: Vec<String>,
     service_id: Vec<String>,
-    weight: u32,
+    weight: WeightResult,
     host: bool,
 ) -> Result<Record, ServiceError> {
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_timestamp_tetraplets(&call_parameters, 2)?;
+    check_weight_tetraplets(&call_parameters, 5, &weight)?;
+    let weight = weight.weight;
 
     let connection = get_connection()?;
 
@@ -651,7 +675,7 @@ pub fn clear_host_value_impl(key: String, current_timestamp_sec: u64) -> Result<
 pub fn propagate_host_value_impl(
     mut set_host_value: PutHostValueResult,
     current_timestamp_sec: u64,
-    weight: u32,
+    weight: WeightResult,
 ) -> Result<(), ServiceError> {
     if !set_host_value.success || set_host_value.value.len() != 1 {
         return Err(InvalidSetHostValueResult);
@@ -660,8 +684,9 @@ pub fn propagate_host_value_impl(
     let call_parameters = marine_rs_sdk::get_call_parameters();
     check_host_value_tetraplets(&call_parameters, 0, &set_host_value.value[0])?;
     check_timestamp_tetraplets(&call_parameters, 1)?;
+    check_weight_tetraplets(&call_parameters, 2, &weight)?;
 
-    set_host_value.value[0].weight = weight;
+    set_host_value.value[0].weight = weight.weight;
     republish_values_helper(
         set_host_value.key,
         set_host_value.value,

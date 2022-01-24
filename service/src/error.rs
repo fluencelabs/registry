@@ -44,4 +44,8 @@ pub enum ServiceError {
         "Invalid set_host_value tetraplet: you should use put_host_value to pass set_host_value: {0}"
     )]
     InvalidSetHostValueTetraplet(String),
+    #[error(
+        "Invalid weight tetraplet: you should use host trust-graph.get_weight to pass weight: {0}"
+    )]
+    InvalidWeightTetraplet(String),
 }
