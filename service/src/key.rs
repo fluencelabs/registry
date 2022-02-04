@@ -15,21 +15,52 @@
  */
 
 use crate::error::ServiceError;
+use crate::misc::extract_public_key;
+use fluence_keypair::Signature;
 use marine_rs_sdk::marine;
 use sha2::{Digest, Sha256};
 
 #[marine]
 #[derive(Default, Clone)]
 pub struct Key {
+    pub key_id: String,
     pub key: String,
     pub peer_id: String,
     pub timestamp_created: u64,
     pub signature: Vec<u8>,
+    pub timestamp_published: u64,
     pub pinned: bool,
     pub weight: u32,
 }
 
 impl Key {
+    pub fn new(
+        key: String,
+        peer_id: String,
+        timestamp_created: u64,
+        signature: Vec<u8>,
+        timestamp_published: u64,
+        pinned: bool,
+        weight: u32,
+    ) -> Self {
+        let key_id = Self::get_key_id(&key, &peer_id);
+
+        Self {
+            key_id,
+            key,
+            peer_id,
+            timestamp_created,
+            signature,
+            timestamp_published,
+            pinned,
+            weight,
+        }
+    }
+
+    pub fn get_key_id(key: &str, peer_id: &str) -> String {
+        format!("{}{}", key, peer_id)
+    }
+
     pub fn signature_bytes(key: String, peer_id: String, timestamp_created: u64) -> Vec<u8> {
         let mut metadata = Vec::new();
         metadata.extend(key.as_bytes());
@@ -41,29 +72,23 @@ impl Key {
         hasher.finalize().to_vec()
     }
 
-    pub fn verify(&self) -> Result<(), ServiceError> {
-        Self::verify_signature(
+    pub fn verify(&self, current_timestamp_sec: u64) -> Result<(), ServiceError> {
+        if self.timestamp_created > current_timestamp_sec {
+            return Err(ServiceError::InvalidKeyTimestamp);
+        }
+
+        self.verify_signature()
+    }
+
+    pub fn verify_signature(&self) -> Result<(), ServiceError> {
+        let pk = extract_public_key(self.peer_id.clone())?;
+        let bytes = &Self::signature_bytes(
             self.key.clone(),
             self.peer_id.clone(),
             self.timestamp_created,
-            self.signature.clone(),
-        )
-    }
-
-    pub fn verify_signature(
-        key: String,
-        peer_id: String,
-        timestamp_created: u64,
-        signature: Vec<u8>,
-    ) -> Result<(), ServiceError> {
-        if signature.eq(&Self::signature_bytes(
-            key.clone(),
-            peer_id,
-            timestamp_created,
-        )) {
-            Ok(())
-        } else {
-            Err(ServiceError::InvalidKeySignature(key))
-        }
+        );
+        let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
+        pk.verify(&bytes, &signature)
+            .map_err(|e| ServiceError::InvalidKeySignature(self.key.clone(), e))
     }
 }

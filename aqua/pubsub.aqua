@@ -19,7 +19,7 @@ func removeSubscriber(topic: string):
     AquaDHT.clear_host_value(topic, t)
 
 -- Create a topic: register it on the closest peers
-func initTopic(topic: string):
+func initTopic(topic: string) -> route_id:
   on HOST_PEER_ID:
     nodes <- getNeighbours(topic)
     for n <- nodes par:

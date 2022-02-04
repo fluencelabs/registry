@@ -14,12 +14,19 @@
  * limitations under the License.
  */
 
+use crate::config::load_config;
 use crate::defaults::DB_PATH;
+use crate::error::ServiceError;
+use crate::results::EvictStaleItem;
 use marine_sqlite_connector::{Connection, Result as SqliteResult};
 
+pub struct Storage {
+    pub(crate) connection: Connection,
+}
+
 #[inline]
-pub(crate) fn get_connection() -> SqliteResult<Connection> {
-    marine_sqlite_connector::open(DB_PATH)
+pub(crate) fn get_storage() -> SqliteResult<Storage> {
+    marine_sqlite_connector::open(DB_PATH).map(|c| Storage { connection: c })
 }
 
 pub fn get_custom_option(value: String) -> Vec<String> {
@@ -35,5 +42,61 @@ pub fn from_custom_option(value: Vec<String>) -> String {
         "".to_string()
     } else {
         value[0].clone()
+    }
+}
+
+impl Storage {
+    /// Remove expired values and expired empty keys.
+    /// Expired means that `timestamp_created` has surpassed `expired_timeout`.
+    /// Return number of keys and values removed
+    pub fn clear_expired(&self, current_timestamp_sec: u64) -> Result<(u64, u64), ServiceError> {
+        let config = load_config();
+
+        let expired_timestamp = current_timestamp_sec - config.expired_timeout;
+        let mut deleted_values = 0u64;
+        let mut deleted_keys = 0u64;
+
+        // delete expired non-host records
+        deleted_values += self.clear_expired_records(expired_timestamp)?;
+        let expired_keys = self.get_expired_keys(expired_timestamp)?;
+
+        for key in expired_keys {
+            self.delete_key(key.key_id)?;
+            deleted_keys += self.connection.changes() as u64;
+        }
+
+        // TODO: clear expired timestamp accessed for keys
+        Ok((deleted_keys, deleted_values))
+    }
+
+    /// Delete all stale keys and values except for pinned keys and host values.
+    /// Stale means that `timestamp_accessed` has surpassed `stale_timeout`.
+    /// Returns all deleted items
+    pub fn evict_stale(
+        &self,
+        current_timestamp_sec: u64,
+    ) -> Result<Vec<EvictStaleItem>, ServiceError> {
+        let stale_timestamp = current_timestamp_sec - load_config().stale_timeout;
+
+        let stale_keys = self.get_stale_keys(stale_timestamp)?;
+        let mut key_to_delete: Vec<String> = vec![];
+        let mut results: Vec<EvictStaleItem> = vec![];
+        let host_id = marine_rs_sdk::get_call_parameters().host_id;
+        for key in stale_keys.into_iter() {
+            let records = self.get_records(key.key_id.clone())?;
+
+            if !key.pinned && !records.iter().any(|r| r.peer_id == host_id) {
+                key_to_delete.push(key.key_id.clone());
+            }
+
+            results.push(EvictStaleItem { key, records });
+        }
+
+        for key_id in key_to_delete {
+            self.delete_key(key_id.clone())?;
+            self.delete_records_by_key(key_id)?;
+        }
+
+        Ok(results)
     }
 }

@@ -13,30 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 use marine_rs_sdk::marine;
 use marine_rs_sdk::module_manifest;
 
 use crate::config::{create_config, load_config, write_config};
-use crate::impls::{clear_expired_impl, evict_stale_impl};
-use crate::key_storage_impl::create_keys_table;
-use crate::record_storage_impl::create_values_table;
 use crate::results::{ClearExpiredResult, EvictStaleResult};
+use crate::storage_impl::get_storage;
+use crate::tetraplets_checkers::check_timestamp_tetraplets;
 
 mod config;
 mod defaults;
 mod error;
-mod impls;
 mod key;
 mod key_api;
 mod key_storage_impl;
+mod misc;
 mod record;
+mod record_api;
 mod record_storage_impl;
 mod results;
 mod storage_impl;
 mod tests;
 mod tetraplets_checkers;
-mod values_api;
 
 #[macro_use]
 extern crate fstrings;
@@ -60,32 +58,36 @@ pub struct WeightResult {
 }
 
 fn main() {
-    create_keys_table();
-    create_values_table();
+    let storage = get_storage().unwrap();
+    storage.create_keys_tables();
+    storage.create_values_table();
     create_config();
 }
 
 #[marine]
 pub fn clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult {
-    clear_expired_impl(current_timestamp_sec).into()
+    wrapped_try(|| {
+        let call_parameters = marine_rs_sdk::get_call_parameters();
+        check_timestamp_tetraplets(&call_parameters, 0)?;
+        get_storage()?.clear_expired(current_timestamp_sec)
+    })
+    .into()
 }
 
 #[marine]
 pub fn evict_stale(current_timestamp_sec: u64) -> EvictStaleResult {
-    evict_stale_impl(current_timestamp_sec).into()
+    wrapped_try(|| {
+        let call_parameters = marine_rs_sdk::get_call_parameters();
+        check_timestamp_tetraplets(&call_parameters, 0)?;
+        get_storage()?.evict_stale(current_timestamp_sec)
+    })
+    .into()
 }
 
 #[marine]
 pub fn set_expired_timeout(timeout_sec: u64) {
     let mut config = load_config();
     config.expired_timeout = timeout_sec;
-    write_config(config);
-}
-
-#[marine]
-pub fn set_host_expired_timeout(timeout_sec: u64) {
-    let mut config = load_config();
-    config.host_expired_timeout = timeout_sec;
     write_config(config);
 }
 

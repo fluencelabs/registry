@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-use marine_rs_sdk::CallParameters;
-use crate::defaults::{TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID};
+use crate::defaults::{
+    TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_WEIGHT_FUNCTION_NAME,
+    TRUSTED_WEIGHT_SERVICE_ID,
+};
 use crate::error::ServiceError;
-use crate::error::ServiceError::{InvalidSetHostValueTetraplet, InvalidTimestampTetraplet, InvalidWeightTetraplet};
+use crate::error::ServiceError::{
+    InvalidSetHostValueTetraplet, InvalidTimestampTetraplet, InvalidWeightTetraplet,
+};
 use crate::record::Record;
-use crate::WeightResult;
+use marine_rs_sdk::CallParameters;
 
 /// Check timestamps are generated on the current host with builtin ("peer" "timestamp_sec")
 pub(crate) fn check_timestamp_tetraplets(
@@ -62,7 +66,6 @@ pub(crate) fn check_host_value_tetraplets(
 pub(crate) fn check_weight_tetraplets(
     call_parameters: &CallParameters,
     arg_number: usize,
-    weight: &WeightResult,
 ) -> Result<(), ServiceError> {
     let tetraplets = call_parameters
         .tetraplets
@@ -71,9 +74,9 @@ pub(crate) fn check_weight_tetraplets(
     let tetraplet = tetraplets
         .get(0)
         .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
-    (tetraplet.service_id == "trust-graph"
-        && tetraplet.function_name == "get_weight"
-        && tetraplet.peer_pk == weight.peer_id)
+    (tetraplet.service_id == TRUSTED_WEIGHT_SERVICE_ID
+        && tetraplet.function_name == TRUSTED_WEIGHT_FUNCTION_NAME
+        && tetraplet.peer_pk == call_parameters.host_id)
         .then(|| ())
         .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", tetraplet)))
 }

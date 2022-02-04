@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use fluence_keypair::error::DecodingError;
 use marine_sqlite_connector::Error as SqliteError;
 use thiserror::Error as ThisError;
 
@@ -26,13 +27,11 @@ pub enum ServiceError {
     ),
     #[error("Requested key {0} does not exist")]
     KeyNotExists(String),
-    #[error("Key {0} already exists with different peer_id")]
-    KeyAlreadyExists(String),
-    #[error("Key {0} already exists with same peer_id but with newer timestamp")]
-    KeyAlreadyExistsNewerTimestamp(String),
-    #[error("Values limit for key {0} is exceeded")]
+    #[error("Key {0} for {1} peer_id already exists with newer timestamp")]
+    KeyAlreadyExistsNewerTimestamp(String, String),
+    #[error("Values limit for key_d {0} is exceeded")]
     ValuesLimitExceeded(String),
-    #[error("Host value for key {0} not found ")]
+    #[error("Host value for key_id {0} not found ")]
     HostValueNotFound(String),
     #[error("Invalid set_host_value result: success is false or value is missing")]
     InvalidSetHostValueResult,
@@ -50,8 +49,26 @@ pub enum ServiceError {
         "Invalid weight tetraplet: you should use host trust-graph.get_weight to pass weight: {0}"
     )]
     InvalidWeightTetraplet(String),
-    #[error("Invalid key {0} signature")]
-    InvalidKeySignature(String),
+    #[error("Invalid weight peer_id: expected {0}, found {1}")]
+    InvalidWeightPeerId(String, String),
+    #[error("Invalid key {0} signature: {1}")]
+    InvalidKeySignature(String, #[source] fluence_keypair::error::VerificationError),
     #[error("Invalid record signature for key {0} and value {1}")]
     InvalidRecordSignature(String, String),
+    #[error("Key can't be registered in the future")]
+    InvalidKeyTimestamp,
+    #[error("Record can't be registered in the future")]
+    InvalidRecordTimestamp,
+    #[error("Records to publish should belong to one key id")]
+    RecordsPublishingError,
+    #[error("peer id parse error: {0}")]
+    PeerIdParseError(String),
+    #[error("public key extraction from peer id failed: {0}")]
+    PublicKeyExtractionError(String),
+    #[error("{0}")]
+    PublicKeyDecodeError(
+        #[from]
+        #[source]
+        DecodingError,
+    ),
 }

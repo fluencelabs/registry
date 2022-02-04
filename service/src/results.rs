@@ -15,9 +15,9 @@
  */
 
 use crate::error::ServiceError;
-use marine_rs_sdk::marine;
 use crate::key::Key;
 use crate::record::Record;
+use marine_rs_sdk::marine;
 
 #[marine]
 #[derive(Debug)]
@@ -36,6 +36,31 @@ impl From<Result<(), ServiceError>> for DhtResult {
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
+            },
+        }
+    }
+}
+
+#[marine]
+#[derive(Debug)]
+pub struct RegisterKeyResult {
+    pub success: bool,
+    pub error: String,
+    pub key_id: String,
+}
+
+impl From<Result<String, ServiceError>> for RegisterKeyResult {
+    fn from(result: Result<String, ServiceError>) -> Self {
+        match result {
+            Ok(key_id) => Self {
+                success: true,
+                error: "".to_string(),
+                key_id,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                key_id: "".to_string(),
             },
         }
     }
@@ -198,51 +223,23 @@ impl From<Result<Vec<EvictStaleItem>, ServiceError>> for EvictStaleResult {
 }
 
 #[marine]
-#[derive(Debug)]
-pub struct MergeResult {
+pub struct PutHostRecordResult {
     pub success: bool,
     pub error: String,
-    pub result: Vec<Record>,
-}
-
-impl From<Result<Vec<Record>, ServiceError>> for MergeResult {
-    fn from(result: Result<Vec<Record>, ServiceError>) -> Self {
-        match result {
-            Ok(result) => Self {
-                success: true,
-                error: "".to_string(),
-                result,
-            },
-            Err(err) => Self {
-                success: false,
-                error: err.to_string(),
-                result: vec![],
-            },
-        }
-    }
-}
-
-#[marine]
-pub struct PutHostValueResult {
-    pub success: bool,
-    pub error: String,
-    pub key: String,
     pub value: Vec<Record>,
 }
 
-impl From<Result<Record, ServiceError>> for PutHostValueResult {
+impl From<Result<Record, ServiceError>> for PutHostRecordResult {
     fn from(result: Result<Record, ServiceError>) -> Self {
         match result {
             Ok(result) => Self {
                 success: true,
                 error: "".to_string(),
-                key: "".to_string(),
                 value: vec![result],
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                key: "".to_string(),
                 value: vec![],
             },
         }

@@ -21,6 +21,7 @@ use sha2::{Digest, Sha256};
 #[marine]
 #[derive(Debug, Default, Clone)]
 pub struct Record {
+    pub key_id: String,
     pub value: String,
     pub peer_id: String,
     pub set_by: String,
@@ -33,6 +34,7 @@ pub struct Record {
 
 impl Record {
     pub fn signature_bytes(
+        key_id: String,
         value: String,
         peer_id: String,
         set_by: String,
@@ -41,6 +43,7 @@ impl Record {
         timestamp_created: u64,
     ) -> Vec<u8> {
         let mut metadata = Vec::new();
+        metadata.extend(key_id.as_bytes());
         metadata.extend(value.as_bytes());
         metadata.extend(peer_id.as_bytes());
         metadata.extend(set_by.as_bytes());
@@ -67,8 +70,13 @@ impl Record {
         hasher.finalize().to_vec()
     }
 
-    pub fn verify(&self, key: String) -> Result<(), ServiceError> {
+    pub fn verify(&self, current_timestamp_sec: u64) -> Result<(), ServiceError> {
+        if self.timestamp_created > current_timestamp_sec {
+            return Err(ServiceError::InvalidRecordTimestamp);
+        }
+
         if self.signature.eq(&Self::signature_bytes(
+            self.key_id.clone(),
             self.value.clone(),
             self.peer_id.clone(),
             self.set_by.clone(),
@@ -79,7 +87,7 @@ impl Record {
             Ok(())
         } else {
             Err(ServiceError::InvalidRecordSignature(
-                key,
+                self.key_id.clone(),
                 self.value.clone(),
             ))
         }

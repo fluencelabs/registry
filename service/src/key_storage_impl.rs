@@ -14,130 +14,199 @@
  * limitations under the License.
  */
 
-use crate::defaults::KEYS_TABLE_NAME;
+use crate::defaults::{KEYS_TABLE_NAME, KEYS_TIMESTAMPS_TABLE_NAME};
 
 use crate::error::ServiceError;
-use crate::error::ServiceError::KeyNotExists;
+use crate::error::ServiceError::{InternalError, KeyNotExists};
 use crate::key::Key;
-use crate::storage_impl::get_connection;
-use marine_sqlite_connector::{Connection, State, Statement, Value};
+use crate::storage_impl::Storage;
+use marine_sqlite_connector::{State, Statement, Value};
 
-pub(crate) fn create_keys_table() -> bool {
-    let connection = get_connection().unwrap();
-
-    connection
-        .execute(f!("
+impl Storage {
+    pub fn create_keys_tables(&self) -> bool {
+        self.connection
+            .execute(f!("
             CREATE TABLE IF NOT EXISTS {KEYS_TABLE_NAME} (
-                key TEXT PRIMARY KEY,
-                timestamp_created INTEGER,
-                timestamp_accessed INTEGER,
+                key_id TEXT PRIMARY KEY,
+                key TEXT,
                 peer_id TEXT,
+                timestamp_created INTEGER,
+                signature BLOB,
+                timestamp_published INTEGER,
                 pinned INTEGER,
                 weight INTEGER
             );
         "))
-        .is_ok()
+            .is_ok()
+            && self
+                .connection
+                .execute(f!("
+            CREATE TABLE IF NOT EXISTS {KEYS_TIMESTAMPS_TABLE_NAME} (
+                key_id TEXT PRIMARY KEY,
+                timestamp_accessed INTEGER
+            );
+        "))
+                .is_ok()
+    }
+
+    pub fn update_key_timestamp(
+        &self,
+        key_id: &str,
+        current_timestamp_sec: u64,
+    ) -> Result<(), ServiceError> {
+        let mut statement = self.connection.prepare(f!("
+             INSERT OR REPLACE INTO {KEYS_TIMESTAMPS_TABLE_NAME} VALUES (?, ?);
+         "))?;
+
+        statement.bind(1, &Value::String(key_id.to_string()))?;
+        statement.bind(2, &Value::Integer(current_timestamp_sec as i64))?;
+        statement.next()?;
+        Ok(())
+    }
+
+    pub fn get_key(&self, key_id: String) -> Result<Key, ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+        "SELECT key_id, key, peer_id, timestamp_created, signature, timestamp_published, pinned, weight \
+                              FROM {KEYS_TABLE_NAME} WHERE key_id = ?"
+        ))?;
+        statement.bind(1, &Value::String(key_id.clone()))?;
+
+        if let State::Row = statement.next()? {
+            read_key(&statement)
+        } else {
+            Err(KeyNotExists(key_id))
+        }
+    }
+
+    pub fn write_key(&self, key: Key) -> Result<(), ServiceError> {
+        let mut statement = self.connection.prepare(f!("
+             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+         "))?;
+
+        let pinned = if key.pinned { 1 } else { 0 } as i64;
+        statement.bind(1, &Value::String(key.key_id))?;
+        statement.bind(2, &Value::String(key.key))?;
+        statement.bind(3, &Value::String(key.peer_id))?;
+        statement.bind(4, &Value::Integer(key.timestamp_created as i64))?;
+        statement.bind(5, &Value::Binary(key.signature))?;
+        statement.bind(6, &Value::Integer(key.timestamp_published as i64))?;
+        statement.bind(7, &Value::Integer(pinned))?;
+        statement.bind(8, &Value::Integer(key.weight as i64))?;
+        statement.next()?;
+        Ok(())
+    }
+
+    pub fn update_key(&self, key: Key) -> Result<(), ServiceError> {
+        if let Ok(existing_key) = self.get_key(key.key_id.clone()) {
+            if existing_key.timestamp_created > key.timestamp_created {
+                return Err(ServiceError::KeyAlreadyExistsNewerTimestamp(
+                    key.key,
+                    key.peer_id,
+                ));
+            }
+        }
+
+        self.write_key(key)
+    }
+
+    pub fn check_key_existence(&self, key_id: &str) -> Result<(), ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+            "SELECT EXISTS(SELECT 1 FROM {KEYS_TABLE_NAME} WHERE key_id = ? LIMIT 1)"
+        ))?;
+        statement.bind(1, &Value::String(key_id.to_string()))?;
+
+        if let State::Row = statement.next()? {
+            let exists = statement.read::<i64>(0)?;
+            if exists == 1 {
+                Ok(())
+            } else {
+                Err(KeyNotExists(key_id.to_string()))
+            }
+        } else {
+            Err(InternalError(
+                "EXISTS should always return something".to_string(),
+            ))
+        }
+    }
+
+    pub fn get_stale_keys(&self, stale_timestamp: u64) -> Result<Vec<Key>, ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+        "SELECT key, peer_id, timestamp_created, signature, timestamp_published, pinned, weight \
+                              FROM {KEYS_TABLE_NAME} WHERE timestamp_published <= ?"
+        ))?;
+        statement.bind(1, &Value::Integer(stale_timestamp as i64))?;
+
+        let mut stale_keys: Vec<Key> = vec![];
+        while let State::Row = statement.next()? {
+            stale_keys.push(read_key(&statement)?);
+        }
+
+        Ok(stale_keys)
+    }
+
+    pub fn delete_key(&self, key_id: String) -> Result<(), ServiceError> {
+        let mut statement = self
+            .connection
+            .prepare(f!("DELETE FROM {KEYS_TABLE_NAME} WHERE key_id=?"))?;
+        statement.bind(1, &Value::String(key_id.clone()))?;
+        statement.next().map(drop)?;
+
+        if self.connection.changes() == 1 {
+            Ok(())
+        } else {
+            Err(KeyNotExists(key_id))
+        }
+    }
+
+    /// not pinned only
+    pub fn get_expired_keys(&self, expired_timestamp: u64) -> Result<Vec<Key>, ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+        "SELECT key, peer_id, timestamp_created, signature, timestamp_published, pinned, weight \
+                              FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= ? and pinned != 1"
+        ))?;
+        statement.bind(1, &Value::Integer(expired_timestamp as i64))?;
+
+        let mut expired_keys: Vec<Key> = vec![];
+        while let State::Row = statement.next()? {
+            let key = read_key(&statement)?;
+            let timestamp_accessed = self.get_key_timestamp_accessed(&key.key_id)?;
+            let with_host_records =
+                self.get_host_records_count_by_key(key.key.clone(), key.peer_id.clone())? != 0;
+
+            if timestamp_accessed <= expired_timestamp && !with_host_records {
+                expired_keys.push(key);
+            }
+        }
+
+        Ok(expired_keys)
+    }
+
+    pub fn get_key_timestamp_accessed(&self, key_id: &str) -> Result<u64, ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+            "SELECT timestamp_accessed FROM {KEYS_TIMESTAMPS_TABLE_NAME} WHERE key_id != ?"
+        ))?;
+        statement.bind(1, &Value::String(key_id.to_string()))?;
+
+        if let State::Row = statement.next()? {
+            statement
+                .read::<i64>(0)
+                .map(|t| t as u64)
+                .map_err(ServiceError::SqliteError)
+        } else {
+            Err(KeyNotExists(key_id.to_string()))
+        }
+    }
 }
 
 pub fn read_key(statement: &Statement) -> Result<Key, ServiceError> {
     Ok(Key {
-        key: statement.read::<String>(0)?,
-        peer_id: statement.read::<String>(1)?,
-        timestamp_created: statement.read::<i64>(2)? as u64,
-        signature: statement.read::<Vec<u8>>(3)?,
-        pinned: statement.read::<i64>(4)? != 0,
-        weight: statement.read::<i64>(5)? as u32,
+        key_id: statement.read::<String>(0)?,
+        key: statement.read::<String>(1)?,
+        peer_id: statement.read::<String>(2)?,
+        timestamp_created: statement.read::<i64>(3)? as u64,
+        signature: statement.read::<Vec<u8>>(4)?,
+        timestamp_published: statement.read::<i64>(5)? as u64,
+        pinned: statement.read::<i64>(6)? != 0,
+        weight: statement.read::<i64>(7)? as u32,
     })
-}
-
-/// Update timestamp_accessed and return metadata of the key
-pub fn get_key(
-    connection: &Connection,
-    key: String,
-    current_timestamp_sec: u64,
-) -> Result<Key, ServiceError> {
-    let mut statement = connection.prepare(f!(
-        "UPDATE {KEYS_TABLE_NAME} SET timestamp_accessed = ? WHERE key = ?"
-    ))?;
-    statement.bind(1, &Value::Integer(current_timestamp_sec as i64))?;
-    statement.bind(2, &Value::String(key.clone()))?;
-    statement.next()?;
-
-    let mut statement = connection.prepare(f!(
-        "SELECT key, peer_id, timestamp_created, pinned, weight \
-                              FROM {KEYS_TABLE_NAME} WHERE key = ?"
-    ))?;
-    statement.bind(1, &Value::String(key.clone()))?;
-
-    if let State::Row = statement.next()? {
-        read_key(&statement)
-    } else {
-        Err(KeyNotExists(key))
-    }
-}
-
-pub fn write_key(
-    connection: &Connection,
-    key: String,
-    timestamp_created: u64,
-    timestamp_accessed: u64,
-    peer_id: String,
-    signature: Vec<u8>,
-    pin: bool,
-    weight: u32,
-) -> Result<(), ServiceError> {
-    let mut statement = connection.prepare(f!("
-             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?);
-         "))?;
-
-    let pinned = if pin { 1 } else { 0 } as i64;
-    statement.bind(1, &Value::String(key))?;
-    statement.bind(2, &Value::Integer(timestamp_created as i64))?;
-    statement.bind(3, &Value::Integer(timestamp_accessed as i64))?;
-    statement.bind(4, &Value::String(peer_id))?;
-    statement.bind(5, &Value::Binary(signature))?;
-    statement.bind(6, &Value::Integer(pinned))?;
-    statement.bind(7, &Value::Integer(weight as i64))?;
-    statement.next()?;
-    Ok(())
-}
-
-pub fn update_key(
-    connection: &Connection,
-    key: String,
-    timestamp_created: u64,
-    current_timestamp_sec: u64,
-    peer_id: String,
-    signature: Vec<u8>,
-    pin: bool,
-    weight: u32,
-) -> Result<(), ServiceError> {
-    if let Ok(existing_key) = get_key(&connection, key.clone(), current_timestamp_sec) {
-        if existing_key.peer_id != peer_id {
-            return Err(ServiceError::KeyAlreadyExists(key));
-        }
-
-        if existing_key.timestamp_created > timestamp_created {
-            return Err(ServiceError::KeyAlreadyExistsNewerTimestamp(key));
-        }
-    }
-
-    write_key(
-        &connection,
-        key,
-        timestamp_created,
-        current_timestamp_sec,
-        peer_id,
-        signature,
-        pin,
-        weight,
-    )
-}
-
-pub fn check_key_existence(
-    connection: &Connection,
-    key: String,
-    current_timestamp_sec: u64,
-) -> Result<(), ServiceError> {
-    get_key(connection, key, current_timestamp_sec).map(|_| ())
 }
