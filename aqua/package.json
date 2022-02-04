@@ -1,12 +1,13 @@
 {
-  "name": "@fluencelabs/aqua-dht",
+  "name": "@fluencelabs/registry",
   "version": "0.2.0",
-  "description": "Aqua DHT library",
+  "description": "Aqua Registry library",
   "files": [
     "*.aqua"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "^0.1.14"
+    "@fluencelabs/aqua-lib": "^0.3.4",
+    "@fluencelabs/trust-graph": "^3.0.0"
   },
   "scripts": {
     "compile-aqua": "aqua -i . -o ./target/typescript",
@@ -15,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fluencelabs/aqua-dht.git",
+    "url": "git+https://github.com/fluencelabs/registry.git",
     "directory": "aqua"
   },
   "keywords": [
@@ -25,9 +26,9 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/fluencelabs/aqua-dht/issues"
+    "url": "https://github.com/fluencelabs/registry/issues"
   },
-  "homepage": "https://github.com/fluencelabs/aqua-dht",
+  "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
     "@fluencelabs/aqua": "0.3.1-228"
   }

@@ -1,44 +1,83 @@
-module AquaDHT.PubSub declares *
+module Registry.PubSub declares *
 
-import "dht.aqua"
+import "registry.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/trust-graph/trust-graph.aqua"
+
+func get_route_id(topic: string, peer_id: string) -> string:
+  route_id <- Registry.get_key_id(topic, peer_id)
+  <- route_id
+
+func get_key_signature(topic: string) -> []u8:
+  on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    bytes <- Registry.get_key_bytes(topic, nil, t)
+  signature <- Sig.sign(bytes)
+  <- signature.signature!
+
+func get_record_signature(topic: string, value: string, relay_id: ?PeerId, service_id: ?string) -> []u8:
+  on HOST_PEER_ID:
+      t <- Peer.timestamp_sec()
+      route_id <- get_route_id(topic, %init_peer_id%)
+      bytes <- Registry.get_record_bytes(route_id, value, relay_id, service_id, t)
+  signature <- Sig.sign(bytes)
+  <- signature.signature!
+
+func get_host_record_signature(topic: string, value: string, relay_id: ?PeerId, service_id: ?string) -> []u8:
+  on HOST_PEER_ID:
+      t <- Peer.timestamp_sec()
+      route_id <- get_route_id(topic, %init_peer_id%)
+      bytes <- Registry.get_host_record_bytes(route_id, value, relay_id, service_id, t)
+  signature <- Sig.sign(bytes)
+  <- signature.signature!
 
 -- Get peers closest to the topic's hash in Kademlia network
 -- These peers are expected to store list of subscribers of this topic
-func getNeighbours(topic: string) -> []PeerId:
-  k <- Op.string_to_b58(topic)
+func getNeighbours(route_id: string) -> []PeerId:
+  k <- Op.string_to_b58(route_id)
   nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
 
 -- If this peer have set node_id as a subscriber for topic,
 -- this call will prevent subscriber from re-subscribing
 -- so that eventually it will disappear from the subscribers list
-func removeSubscriber(topic: string):
+func removeSubscriber(route_id: string):
   on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
-    AquaDHT.clear_host_value(topic, t)
+    Registry.clear_host_record(route_id, t)
 
 -- Create a topic: register it on the closest peers
-func initTopic(topic: string) -> route_id:
+func initTopic(topic: string) -> string:
+  signature <- get_key_signature(topic)
+
   on HOST_PEER_ID:
-    nodes <- getNeighbours(topic)
+    route_id <- get_route_id(topic, %init_peer_id%)
+    nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
           t <- Peer.timestamp_sec()
-          AquaDHT.register_key(topic, t, false, 0)
+          key_weight <- TrustGraph.get_weight(%init_peer_id%, t)
+          Registry.register_key(topic, nil, t, signature, false, key_weight, t)
+  <- route_id
 
 -- Create a topic and subscribe to it
 -- %init_peer_id% (current client) will become a subscriber
-func initTopicAndSubscribe(topic: string, value: string, relay_id: ?PeerId, service_id: ?string):
+func initTopicAndSubscribe(topic: string, value: string, relay_id: ?PeerId, service_id: ?string) -> string:
+  key_signature <- get_key_signature(topic)
+  record_signature <- get_record_signature(topic, value, relay_id, service_id)
+
   on HOST_PEER_ID:
-    nodes <- getNeighbours(topic)
+    route_id <- get_route_id(topic, %init_peer_id%)
+    nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
           t <- Peer.timestamp_sec()
-          AquaDHT.register_key(topic, t, false, 0)
-          AquaDHT.put_value(topic, value, t, relay_id, service_id, 0)
+          weight <- TrustGraph.get_weight(%init_peer_id%, t)
+          Registry.register_key(topic, nil, t, key_signature, false, weight, t)
+          Registry.put_record(route_id, value, relay_id, service_id, t, record_signature, weight, t)
+  <- route_id
 
 -- Create a topic and subscribe to it
 -- %init_peer_id% (current client) will become a subscriber
@@ -48,76 +87,97 @@ func initTopicAndSubscribeBlocking(
   relay_id: ?PeerId, service_id: ?string, 
   progress: string -> ()
 ) -> DhtResult:
+  key_signature <- get_key_signature(topic)
+  record_signature <- get_record_signature(topic, value, relay_id, service_id)
+
   results: *DhtResult
   on HOST_PEER_ID:
-    nodes <- getNeighbours(topic)
+    route_id <- get_route_id(topic, %init_peer_id%)
+    nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
           t <- Peer.timestamp_sec()
-          AquaDHT.register_key(topic, t, false, 0)
-          result <- AquaDHT.put_value(topic, value, t, relay_id, service_id, 0)
+          weight <- TrustGraph.get_weight(%init_peer_id%, t)
+          Registry.register_key(topic, nil, t, key_signature, false, weight, t)
+          result <- Registry.put_record(route_id, value, relay_id, service_id, t, record_signature, weight, t)
           if result.success:
             results <<- result
             progress(n)
   <- results!0
 
 -- Create a topic and make the given node a subscriber to it
-func initTopicAndSubscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string):
+func initTopicAndSubscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string) -> string:
+  key_signature <- get_key_signature(topic)
+  record_signature <- get_host_record_signature(topic, value, nil, service_id)
   on subscriber_node_id:
+    route_id <- get_route_id(topic, %init_peer_id%)
     t <- Peer.timestamp_sec()
-    AquaDHT.register_key(topic, t, false, 0)
-    r <- AquaDHT.put_host_value(topic, value, t, nil, service_id, 0)
-    nodes <- getNeighbours(topic)
+    weight <- TrustGraph.get_weight(%init_peer_id%, t)
+    Registry.register_key(topic, nil, t, key_signature, false, weight, t)
+    r <- Registry.put_host_record(route_id, value, nil, service_id, t, record_signature, weight, t)
+    nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
           tt <- Peer.timestamp_sec()
-          AquaDHT.register_key(topic, tt, false, 0)
-          AquaDHT.propagate_host_value(r, tt, 0)
+          w <- TrustGraph.get_weight(%init_peer_id%, tt)
+          Registry.register_key(topic, nil, t, key_signature, false, w, tt)
+          Registry.propagate_host_record(r, tt, w)
+  <- route_id
 
 -- Subscribe to a topic
 -- Note: topic must be already initiated
 func subscribe(topic: string, value: string, relay_id: ?PeerId, service_id: ?string):
+  record_signature <- get_record_signature(topic, value, relay_id, service_id)
+
   on HOST_PEER_ID:
-    nodes <- getNeighbours(topic)
+    route_id <- get_route_id(topic, %init_peer_id%)
+    nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
           t <- Peer.timestamp_sec()
-          AquaDHT.put_value(topic, value, t, relay_id, service_id, 0)
+          weight <- TrustGraph.get_weight(%init_peer_id%, t)
+          Registry.put_record(route_id, value, relay_id, service_id, t, record_signature, weight, t)
 
 -- Subscribe a node to the given topic
 -- Note: topic must be already initiated
 func subscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string):
+  key_signature <- get_key_signature(topic)
+  record_signature <- get_host_record_signature(topic, value, nil, service_id)
+
   on subscriber_node_id:
     t <- Peer.timestamp_sec()
-    r <- AquaDHT.put_host_value(topic, value, t, nil, service_id, 0)
-    nodes <- getNeighbours(topic)
+    route_id <- get_route_id(topic, %init_peer_id%)
+    weight <- TrustGraph.get_weight(%init_peer_id%, t)
+    r <- Registry.put_host_record(route_id, value, nil, service_id, t, record_signature, weight, t)
+    nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
           tt <- Peer.timestamp_sec()
-          AquaDHT.register_key(topic, tt, false, 0)
-          AquaDHT.propagate_host_value(r, tt, 0)
+          w <- TrustGraph.get_weight(%init_peer_id%, tt)
+          Registry.register_key(topic, nil, t, key_signature, false, w, tt)
+          Registry.propagate_host_record(r, tt, w)
 
 -- Find the list of subscribers for the given topic
-func findSubscribers(topic: string) -> []Record:
+func findSubscribers(route_id: string) -> []Record:
   on HOST_PEER_ID:
-    nodes <- getNeighbours(topic)
+    nodes <- getNeighbours(route_id)
     res: *GetValuesResult
     for n <- nodes par:
       on n:
         try:
           t <- Peer.timestamp_sec()
-          res <- AquaDHT.get_values(topic, t)
-    v <- AquaDHT.merge_two(res!.result, res!1.result)
+          res <- Registry.get_records(route_id, t)
+    v <- Registry.merge_two(res!.result, res!1.result)
   <- v.result
 
 -- Execute the given code on subscribers
 -- Note that you can provide another Aqua function as an argument to this one
-func executeOnSubscribers(topic: string, call: Record -> ()):
-  subs <- findSubscribers(topic)
+func executeOnSubscribers(route_id: string, call: Record -> ()):
+  subs <- findSubscribers(route_id)
   for r <- subs par:
     on r.peer_id via r.relay_id:
       call(r)

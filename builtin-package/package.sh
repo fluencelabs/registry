@@ -9,7 +9,7 @@ SCHEDULED="${SCRIPT_DIR}/scheduled"
 (
     echo "*** compile scheduled scripts ***"
     cd ../aqua
-    npx aqua --no-relay --air -i ./dht-scheduled-scripts.aqua -o "$SCHEDULED"
+    npx aqua --no-relay --air -i ./registry-scheduled-scripts.aqua -o "$SCHEDULED"
 )
 
 (
@@ -21,9 +21,9 @@ SCHEDULED="${SCRIPT_DIR}/scheduled"
 (
     echo "*** create builtin distribution package ***"
     cd ..
-    mv builtin-package aqua-dht
-    tar --exclude="package.sh" -f aqua-dht.tar.gz -zcv ./aqua-dht
-    mv aqua-dht builtin-package
+    mv builtin-package registry
+    tar --exclude="package.sh" -f registry.tar.gz -zcv ./registry
+    mv registry builtin-package
 )
 
 echo "*** done ***"

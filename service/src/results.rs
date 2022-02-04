@@ -245,3 +245,28 @@ impl From<Result<Record, ServiceError>> for PutHostRecordResult {
         }
     }
 }
+
+#[marine]
+#[derive(Debug)]
+pub struct MergeResult {
+    pub success: bool,
+    pub error: String,
+    pub result: Vec<Record>,
+}
+
+impl From<Result<Vec<Record>, ServiceError>> for MergeResult {
+    fn from(result: Result<Vec<Record>, ServiceError>) -> Self {
+        match result {
+            Ok(result) => Self {
+                success: true,
+                error: "".to_string(),
+                result,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                result: vec![],
+            },
+        }
+    }
+}

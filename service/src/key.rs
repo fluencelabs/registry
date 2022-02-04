@@ -82,7 +82,7 @@ impl Key {
 
     pub fn verify_signature(&self) -> Result<(), ServiceError> {
         let pk = extract_public_key(self.peer_id.clone())?;
-        let bytes = &Self::signature_bytes(
+        let bytes = Self::signature_bytes(
             self.key.clone(),
             self.peer_id.clone(),
             self.timestamp_created,

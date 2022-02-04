@@ -35,9 +35,9 @@ impl Storage {
                 relay_id TEXT,
                 service_id TEXT,
                 timestamp_created INTEGER,
-                signature BLOB,
+                signature TEXT,
                 weight INTEGER,
-                PRIMARY KEY (key_id, record_peer_id, set_by)
+                PRIMARY KEY (key_id, peer_id, set_by)
             );
         "))
             .is_ok()
@@ -53,8 +53,11 @@ impl Storage {
             let min_weight_record =
                 self.get_min_weight_non_host_record_by_key(record.key_id.clone())?;
 
-            if min_weight_record.weight < record.weight {
-                // delete the lightest record if the new one is heavier
+            if min_weight_record.weight < record.weight
+                || (min_weight_record.weight == record.weight
+                    && min_weight_record.timestamp_created < record.timestamp_created)
+            {
+                // delete the lightest record if the new one is heavier or newer
                 self.delete_record(
                     min_weight_record.key_id,
                     min_weight_record.peer_id,
@@ -82,7 +85,10 @@ impl Storage {
         statement.bind(5, &Value::String(from_custom_option(record.relay_id)))?;
         statement.bind(6, &Value::String(from_custom_option(record.service_id)))?;
         statement.bind(7, &Value::Integer(record.timestamp_created as i64))?;
-        statement.bind(8, &Value::Binary(record.signature))?;
+        statement.bind(
+            8,
+            &Value::String(bs58::encode(&record.signature).into_string()),
+        )?;
         statement.bind(9, &Value::Integer(record.weight as i64))?;
         statement.next().map(drop)?;
 
@@ -151,19 +157,14 @@ impl Storage {
         }
     }
 
-    pub fn get_host_records_count_by_key(
-        &self,
-        key: String,
-        key_peer_id: String,
-    ) -> Result<u64, ServiceError> {
+    pub fn get_host_records_count_by_key(&self, key_id: String) -> Result<u64, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
         // only only non-host values
         let mut statement = self.connection.prepare(f!(
-            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key = ? AND key_peer_id = ? AND record_peer_id = ?"
+            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id = ?"
         ))?;
-        statement.bind(1, &Value::String(key))?;
-        statement.bind(1, &Value::String(key_peer_id))?;
+        statement.bind(1, &Value::String(key_id))?;
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
@@ -218,7 +219,7 @@ impl Storage {
     pub fn clear_expired_records(&self, expired_timestamp: u64) -> Result<u64, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
         self.connection.execute(f!(
-            "DELETE FROM {RECORDS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND record_peer_id != {host_id}"
+            "DELETE FROM {RECORDS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND peer_id != {host_id}"
         ))?;
         Ok(self.connection.changes() as u64)
     }
@@ -245,14 +246,16 @@ pub fn read_record(statement: &Statement) -> Result<Record, ServiceError> {
         relay_id: get_custom_option(statement.read::<String>(4)?),
         service_id: get_custom_option(statement.read::<String>(5)?),
         timestamp_created: statement.read::<i64>(6)? as u64,
-        signature: statement.read::<Vec<u8>>(7)?,
+        signature: bs58::decode(&statement.read::<String>(7)?)
+            .into_vec()
+            .map_err(|_| InternalError("".to_string()))?,
         weight: statement.read::<i64>(8)? as u32,
     })
 }
 
 /// Merge values with same peer_id by timestamp_created (last-write-wins)
 pub fn merge_records(records: Vec<Record>) -> Result<Vec<Record>, ServiceError> {
-    // key is (record_peer_id, set_by)
+    // key is (peer_id, set_by)
     let mut result: HashMap<(String, String), Record> = HashMap::new();
 
     for rec in records.into_iter() {

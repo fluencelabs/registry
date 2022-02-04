@@ -29,25 +29,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
 
 [[package]]
-name = "aqua-dht"
-version = "0.1.1"
-dependencies = [
- "boolinator",
- "bs58 0.3.1",
- "fluence-keypair",
- "fstrings",
- "libp2p-core",
- "marine-rs-sdk",
- "marine-rs-sdk-test",
- "marine-sqlite-connector",
- "rusqlite",
- "serde",
- "sha2 0.10.1",
- "thiserror",
- "toml",
-]
-
-[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2152,6 +2133,25 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
+
+[[package]]
+name = "registry"
+version = "0.2.0"
+dependencies = [
+ "boolinator",
+ "bs58 0.3.1",
+ "fluence-keypair",
+ "fstrings",
+ "libp2p-core",
+ "marine-rs-sdk",
+ "marine-rs-sdk-test",
+ "marine-sqlite-connector",
+ "rusqlite",
+ "serde",
+ "sha2 0.10.1",
+ "thiserror",
+ "toml",
+]
 
 [[package]]
 name = "remove_dir_all"

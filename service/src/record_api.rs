@@ -18,7 +18,10 @@ use boolinator::Boolinator;
 use crate::error::ServiceError;
 use crate::misc::check_weight_peer_id;
 use crate::record::Record;
-use crate::results::{DhtResult, GetValuesResult, PutHostRecordResult, RepublishValuesResult};
+use crate::record_storage_impl::merge_records;
+use crate::results::{
+    DhtResult, GetValuesResult, MergeResult, PutHostRecordResult, RepublishValuesResult,
+};
 use crate::storage_impl::get_storage;
 use crate::tetraplets_checkers::{
     check_host_value_tetraplets, check_timestamp_tetraplets, check_weight_tetraplets,
@@ -105,9 +108,9 @@ pub fn get_host_record_bytes(
 pub fn put_host_record(
     key_id: String,
     value: String,
-    timestamp_created: u64,
     relay_id: Vec<String>,
     service_id: Vec<String>,
+    timestamp_created: u64,
     signature: Vec<u8>,
     weight: WeightResult,
     current_timestamp_sec: u64,
@@ -191,6 +194,7 @@ pub fn get_records(key_id: String, current_timestamp_sec: u64) -> GetValuesResul
 #[marine]
 pub fn republish_records(
     records: Vec<Record>,
+    weights: Vec<WeightResult>,
     current_timestamp_sec: u64,
 ) -> RepublishValuesResult {
     wrapped_try(|| {
@@ -227,11 +231,16 @@ pub fn clear_host_record(key_id: String, current_timestamp_sec: u64) -> DhtResul
         storage.check_key_existence(&key_id)?;
         storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
 
-        let record_peer_id = call_parameters.host_id;
+        let peer_id = call_parameters.host_id;
         let set_by = call_parameters.init_peer_id;
-        let deleted = storage.delete_record(key_id.clone(), record_peer_id, set_by)?;
+        let deleted = storage.delete_record(key_id.clone(), peer_id, set_by)?;
 
         deleted.as_result((), ServiceError::HostValueNotFound(key_id))
     })
     .into()
+}
+
+#[marine]
+pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
+    merge_records(a.into_iter().chain(b.into_iter()).collect()).into()
 }

@@ -15,6 +15,8 @@
  */
 
 use crate::error::ServiceError;
+use crate::misc::extract_public_key;
+use fluence_keypair::Signature;
 use marine_rs_sdk::marine;
 use sha2::{Digest, Sha256};
 
@@ -75,21 +77,19 @@ impl Record {
             return Err(ServiceError::InvalidRecordTimestamp);
         }
 
-        if self.signature.eq(&Self::signature_bytes(
+        let pk = extract_public_key(self.peer_id.clone())?;
+        let bytes = Self::signature_bytes(
             self.key_id.clone(),
             self.value.clone(),
             self.peer_id.clone(),
             self.set_by.clone(),
             self.relay_id.clone(),
             self.service_id.clone(),
-            self.timestamp_created.clone(),
-        )) {
-            Ok(())
-        } else {
-            Err(ServiceError::InvalidRecordSignature(
-                self.key_id.clone(),
-                self.value.clone(),
-            ))
-        }
+            self.timestamp_created,
+        );
+        let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
+        pk.verify(&bytes, &signature).map_err(|e| {
+            ServiceError::InvalidRecordSignature(self.key_id.clone(), self.value.clone(), e)
+        })
     }
 }

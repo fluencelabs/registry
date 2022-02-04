@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use crate::error::ServiceError;
 use crate::key::Key;
 use crate::misc::check_weight_peer_id;
 use crate::results::{DhtResult, GetKeyMetadataResult, RegisterKeyResult};
@@ -42,7 +43,6 @@ pub fn get_key_id(key: String, peer_id: String) -> String {
 #[marine]
 pub fn register_key(
     key: String,
-    _shmey: String,
     peer_id: Vec<String>,
     timestamp_created: u64,
     signature: Vec<u8>,
@@ -112,7 +112,11 @@ pub fn republish_key(mut key: Key, weight: WeightResult, current_timestamp_sec: 
         key.pinned = false;
         key.weight = weight.weight;
         key.timestamp_published = 0;
-        storage.update_key(key)
+        match storage.update_key(key) {
+            // we should ignore this error for republish
+            Err(ServiceError::KeyAlreadyExistsNewerTimestamp(_, _)) => Ok(()),
+            other => other,
+        }
     })
     .into()
 }

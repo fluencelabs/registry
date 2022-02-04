@@ -53,8 +53,12 @@ pub enum ServiceError {
     InvalidWeightPeerId(String, String),
     #[error("Invalid key {0} signature: {1}")]
     InvalidKeySignature(String, #[source] fluence_keypair::error::VerificationError),
-    #[error("Invalid record signature for key {0} and value {1}")]
-    InvalidRecordSignature(String, String),
+    #[error("Invalid record signature for key {0} and value {1}: {2}")]
+    InvalidRecordSignature(
+        String,
+        String,
+        #[source] fluence_keypair::error::VerificationError,
+    ),
     #[error("Key can't be registered in the future")]
     InvalidKeyTimestamp,
     #[error("Record can't be registered in the future")]

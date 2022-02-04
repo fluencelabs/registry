@@ -1,3 +1,3 @@
-import initTopicAndSubscribeBlocking, findSubscribers from "@fluencelabs/aqua-dht/pubsub.aqua"
+import initTopicAndSubscribeBlocking, findSubscribers from "@fluencelabs/registry/pubsub.aqua"
 
 export initTopicAndSubscribeBlocking, findSubscribers

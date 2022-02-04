@@ -31,7 +31,7 @@ impl Storage {
                 key TEXT,
                 peer_id TEXT,
                 timestamp_created INTEGER,
-                signature BLOB,
+                signature TEXT,
                 timestamp_published INTEGER,
                 pinned INTEGER,
                 weight INTEGER
@@ -88,7 +88,10 @@ impl Storage {
         statement.bind(2, &Value::String(key.key))?;
         statement.bind(3, &Value::String(key.peer_id))?;
         statement.bind(4, &Value::Integer(key.timestamp_created as i64))?;
-        statement.bind(5, &Value::Binary(key.signature))?;
+        statement.bind(
+            5,
+            &Value::String(bs58::encode(&key.signature).into_string()),
+        )?;
         statement.bind(6, &Value::Integer(key.timestamp_published as i64))?;
         statement.bind(7, &Value::Integer(pinned))?;
         statement.bind(8, &Value::Integer(key.weight as i64))?;
@@ -170,8 +173,7 @@ impl Storage {
         while let State::Row = statement.next()? {
             let key = read_key(&statement)?;
             let timestamp_accessed = self.get_key_timestamp_accessed(&key.key_id)?;
-            let with_host_records =
-                self.get_host_records_count_by_key(key.key.clone(), key.peer_id.clone())? != 0;
+            let with_host_records = self.get_host_records_count_by_key(key.key_id.clone())? != 0;
 
             if timestamp_accessed <= expired_timestamp && !with_host_records {
                 expired_keys.push(key);
@@ -204,7 +206,9 @@ pub fn read_key(statement: &Statement) -> Result<Key, ServiceError> {
         key: statement.read::<String>(1)?,
         peer_id: statement.read::<String>(2)?,
         timestamp_created: statement.read::<i64>(3)? as u64,
-        signature: statement.read::<Vec<u8>>(4)?,
+        signature: bs58::decode(&statement.read::<String>(4)?)
+            .into_vec()
+            .map_err(|_| InternalError("".to_string()))?,
         timestamp_published: statement.read::<i64>(5)? as u64,
         pinned: statement.read::<i64>(6)? != 0,
         weight: statement.read::<i64>(7)? as u32,

@@ -1,0 +1,32 @@
+module Registry.Scheduled declares *
+
+export clearExpired_86400, replicate_3600
+
+import "registry.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/trust-graph/trust-graph.aqua"
+
+-- clears expired records
+func clearExpired_86400():
+  on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    Registry.clear_expired(t)
+
+-- get all old records and replicate it by keys
+func replicate_3600():
+  on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    res <- Registry.evict_stale(t)
+    for r <- res.results par:
+      k <- Op.string_to_b58(r.key.key_id)
+      nodes <- Kademlia.neighborhood(k, nil, nil)
+      for n <- nodes par:
+        on n:
+          tt <- Peer.timestamp_sec()
+          key_weight <- TrustGraph.get_weight(r.key.peer_id, tt)
+          Registry.republish_key(r.key, key_weight, tt)
+
+          records_weights: *WeightResult
+          for record <- r.records:
+            records_weights <- TrustGraph.get_weight(record.peer_id, tt)
+          Registry.republish_records(r.records, records_weights, tt)

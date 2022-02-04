@@ -16,7 +16,7 @@ jobs:
           sudo bash .github/download_marine.sh
       - restore_cache:
           keys:
-            - aqua-dht05-{{ checksum "service/Cargo.lock" }}
+            - registry05-{{ checksum "service/Cargo.lock" }}
       - run: |
           cd ./service
           rustup target add wasm32-wasi
@@ -28,7 +28,7 @@ jobs:
           paths:
             - ~/.cargo
             - ~/.rustup
-          key: aqua-dht05-{{ checksum "service/Cargo.lock" }}
+          key: registry05-{{ checksum "service/Cargo.lock" }}
 
 workflows:
   version: 2

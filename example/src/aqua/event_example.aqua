@@ -1,8 +1,8 @@
 -- This file demonstrates how to send events to subscribers of a topic
 -- Detailed explanation can be found in the Aqua Book: https://doc.fluence.dev/aqua-book/libraries/aqua-dht#passing-data-to-subscribers
 
-import "@fluencelabs/aqua-dht/pubsub.aqua"
-import "@fluencelabs/aqua-dht/dht.aqua"
+import "@fluencelabs/registry/pubsub.aqua"
+import "@fluencelabs/registry/registry.aqua"
 
 alias PeerId: string
 

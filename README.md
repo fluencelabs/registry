@@ -1,4 +1,4 @@
-# aqua-dht
+# Registry
 
 [Distributed Hash Table](https://en.wikipedia.org/wiki/Distributed_hash_table) (DHT) implementation for the Fluence network with an Aqua interface.
 

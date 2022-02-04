@@ -23,7 +23,7 @@ mod tests {
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use rusqlite::Connection;
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
-    use marine_test_env::aqua_dht::{DhtResult, Key, Record, ServiceInterface};
+    use marine_test_env::registry::{DhtResult, Record, ServiceInterface};
 
     use crate::defaults::{
         CONFIG_FILE, DB_PATH, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, KEYS_TABLE_NAME,
@@ -35,21 +35,37 @@ mod tests {
         InvalidKeyTimestamp, InvalidTimestampTetraplet, InvalidWeightPeerId,
         KeyAlreadyExistsNewerTimestamp, ValuesLimitExceeded,
     };
-    use crate::tests::tests::marine_test_env::aqua_dht::WeightResult;
+    use crate::tests::tests::marine_test_env::registry::modules::registry::PutHostRecordResult;
+    use crate::tests::tests::marine_test_env::registry::{Key, RegisterKeyResult, WeightResult};
 
     const HOST_ID: &str = "some_host_id";
+
+    impl PartialEq for Key {
+        fn eq(&self, other: &Self) -> bool {
+            self.key_id == other.key_id
+                && self.key == other.key
+                && self.timestamp_created == other.timestamp_created
+                && self.signature == other.signature
+                && self.peer_id == other.peer_id
+        }
+    }
+
+    impl Eq for Key {}
 
     fn clear_env() {
         let connection = Connection::open(DB_PATH).unwrap();
 
         connection
-            .execute(f!("DELETE FROM {KEYS_TABLE_NAME}").as_str(), [])
+            .execute(f!("DROP TABLE IF EXISTS {KEYS_TABLE_NAME}").as_str(), [])
             .unwrap();
         connection
-            .execute(f!("DELETE FROM {KEYS_TIMESTAMPS_TABLE_NAME}").as_str(), [])
+            .execute(
+                f!("DROP TABLE IF EXISTS {KEYS_TIMESTAMPS_TABLE_NAME}").as_str(),
+                [],
+            )
             .unwrap();
         connection
-            .execute(f!("DELETE FROM {RECORDS_TABLE_NAME}").as_str(), [])
+            .execute(f!("DROP TABLE IF EXISTS {RECORDS_TABLE_NAME}").as_str(), [])
             .unwrap();
 
         if fs::metadata(CONFIG_FILE).is_ok() {
@@ -120,7 +136,7 @@ mod tests {
         current_timestamp: u64,
         pin: bool,
         weight: u32,
-    ) -> DhtResult {
+    ) -> RegisterKeyResult {
         let issuer_peer_id = kp.get_peer_id().to_base58();
 
         let key_bytes =
@@ -142,6 +158,7 @@ mod tests {
             cp,
         )
     }
+
     fn register_key_checked(
         registry: &mut ServiceInterface,
         kp: &KeyPair,
@@ -161,22 +178,89 @@ mod tests {
             weight,
         );
         assert!(result.success, result.error);
-        // result.key_id
-        "".to_string()
+        result.key_id
     }
 
-    // fn get_key_metadata(
-    //     registry: &mut ServiceInterface,
-    //     key: String,
-    //     peer_id: String,
-    //     current_timestamp: String,
-    // ) {
-    //     let mut cp = get_default_cp("peer_id".to_string());
-    //     add_timestamp_tetraplets(&mut cp)
-    // }
+    fn get_key_metadata(
+        registry: &mut ServiceInterface,
+        key_id: String,
+        current_timestamp: u64,
+    ) -> Key {
+        let mut cp = get_default_cp("peer_id".to_string());
+        add_timestamp_tetraplets(&mut cp, 1);
+        let result = registry.get_key_metadata_cp(key_id, current_timestamp, cp);
+        assert!(result.success, result.error);
+        result.key
+    }
+
+    fn put_record(
+        registry: &mut ServiceInterface,
+        kp: &KeyPair,
+        key_id: String,
+        value: String,
+        relay_id: Vec<String>,
+        service_id: Vec<String>,
+        timestamp_created: u64,
+        current_timestamp: u64,
+        weight: u32,
+    ) -> DhtResult {
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+        let mut cp = get_default_cp(issuer_peer_id.clone());
+
+        let record_bytes = registry.get_record_bytes_cp(
+            key_id.clone(),
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            timestamp_created,
+            cp.clone(),
+        );
+        let signature = kp.sign(&record_bytes).unwrap().to_vec().to_vec();
+
+        add_weight_tetraplets(&mut cp, 6);
+        add_timestamp_tetraplets(&mut cp, 7);
+        let weight = get_weight(issuer_peer_id.clone(), weight);
+        registry.put_record_cp(
+            key_id,
+            value,
+            relay_id,
+            service_id,
+            timestamp_created,
+            signature,
+            weight,
+            current_timestamp,
+            cp,
+        )
+    }
+
+    fn put_record_checked(
+        registry: &mut ServiceInterface,
+        kp: &KeyPair,
+        key_id: String,
+        value: String,
+        relay_id: Vec<String>,
+        service_id: Vec<String>,
+        timestamp_created: u64,
+        current_timestamp: u64,
+        weight: u32,
+    ) {
+        let result = put_record(
+            registry,
+            kp,
+            key_id,
+            value,
+            relay_id,
+            service_id,
+            timestamp_created,
+            current_timestamp,
+            weight,
+        );
+        assert!(result.success, result.error);
+    }
 
     #[test]
     fn register_key_invalid_signature() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
@@ -207,6 +291,7 @@ mod tests {
 
     #[test]
     fn register_key_invalid_weight_tetraplet() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
@@ -236,6 +321,7 @@ mod tests {
 
     #[test]
     fn register_key_invalid_weight_peer_id() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
@@ -271,6 +357,7 @@ mod tests {
 
     #[test]
     fn register_key_correct() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let key = "some_key".to_string();
@@ -294,6 +381,7 @@ mod tests {
 
     #[test]
     fn register_key_older_timestamp() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let key = "some_key".to_string();
@@ -332,6 +420,7 @@ mod tests {
 
     #[test]
     fn register_key_in_the_future() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let key = "some_key".to_string();
@@ -354,7 +443,98 @@ mod tests {
     }
 
     #[test]
-    fn get_key_metadata() {
+    fn register_key_update_republish_old() {
+        clear_env();
+        let mut registry = ServiceInterface::new();
+        let kp = KeyPair::generate_ed25519();
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+        let key = "some_key".to_string();
+        let timestamp_created_old = 0u64;
+        let current_timestamp = 100u64;
+        let weight = 0;
+        let pin = false;
+
+        let key_id = register_key_checked(
+            &mut registry,
+            &kp,
+            key.clone(),
+            timestamp_created_old,
+            current_timestamp,
+            pin,
+            weight,
+        );
+
+        let old_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
+
+        let timestamp_created_new = timestamp_created_old + 10u64;
+        register_key_checked(
+            &mut registry,
+            &kp,
+            key,
+            timestamp_created_new,
+            current_timestamp,
+            pin,
+            weight,
+        );
+        let new_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
+        assert_ne!(old_key, new_key);
+
+        let mut cp = get_default_cp(issuer_peer_id.clone());
+        add_weight_tetraplets(&mut cp, 1);
+        add_timestamp_tetraplets(&mut cp, 2);
+        let weight = get_weight(issuer_peer_id.clone(), weight);
+        let result = registry.republish_key_cp(old_key.clone(), weight, current_timestamp, cp);
+        assert!(result.success, result.error);
+
+        let result_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
+        assert_eq!(new_key, result_key);
+    }
+
+    #[test]
+    fn get_key_metadata_test() {
+        clear_env();
+        let mut registry = ServiceInterface::new();
+        let kp = KeyPair::generate_ed25519();
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+        let key = "some_key".to_string();
+        let timestamp_created = 0u64;
+        let current_timestamp = 100u64;
+        let weight = 0;
+        let pin = false;
+
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+
+        let key_bytes =
+            registry.get_key_bytes(key.clone(), vec![issuer_peer_id.clone()], timestamp_created);
+        let signature = kp.sign(&key_bytes).unwrap().to_vec().to_vec();
+
+        let key_id = register_key_checked(
+            &mut registry,
+            &kp,
+            key.clone(),
+            timestamp_created,
+            current_timestamp,
+            pin,
+            weight,
+        );
+
+        let result_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
+        let expected_key = Key {
+            key_id,
+            key,
+            peer_id: issuer_peer_id,
+            timestamp_created,
+            signature,
+            pinned: pin,
+            weight,
+            timestamp_published: 0,
+        };
+        assert_eq!(result_key, expected_key);
+    }
+
+    #[test]
+    fn republish_same_key_test() {
+        clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
@@ -374,15 +554,55 @@ mod tests {
             weight,
         );
 
+        let result_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
         let mut cp = get_default_cp(issuer_peer_id.clone());
-        add_timestamp_tetraplets(&mut cp, 1);
-        let result = registry.get_key_metadata_cp(key_id.clone(), current_timestamp, cp);
+        add_weight_tetraplets(&mut cp, 1);
+        add_timestamp_tetraplets(&mut cp, 2);
+        let weight = get_weight(issuer_peer_id.clone(), weight);
+        let result = registry.republish_key_cp(result_key.clone(), weight, current_timestamp, cp);
         assert!(result.success, result.error);
-        let key = &result.key;
+    }
+
+    #[test]
+    fn test_put_record() {
+        clear_env();
+        let mut registry = ServiceInterface::new();
+        let kp = KeyPair::generate_ed25519();
+        let key = "some_key".to_string();
+        let timestamp_created = 0u64;
+        let current_timestamp = 100u64;
+        let weight = 0;
+        let pin = false;
+
+        let key_id = register_key_checked(
+            &mut registry,
+            &kp,
+            key,
+            timestamp_created,
+            current_timestamp,
+            pin,
+            weight,
+        );
+        let value = "some_value".to_string();
+        let relay_id = vec![];
+        let service_id = vec![];
+        let weight = 0u32;
+
+        put_record_checked(
+            &mut registry,
+            &kp,
+            key_id.clone(),
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            timestamp_created,
+            current_timestamp,
+            weight,
+        );
     }
     //
     // fn put_host_value_and_check(
-    //     aqua_dht: &mut ServiceInterface,
+    //     registry: &mut ServiceInterface,
     //     key: &str,
     //     value: &str,
     //     timestamp: u64,
@@ -391,7 +611,7 @@ mod tests {
     //     weight: u32,
     //     cp: &CallParameters,
     // ) -> PutHostValueResult {
-    //     let result = aqua_dht.put_host_value_cp(
+    //     let result = registry.put_host_value_cp(
     //         key.to_string(),
     //         value.to_string(),
     //         timestamp.clone(),
@@ -406,7 +626,7 @@ mod tests {
     // }
     //
     // fn put_value_and_check(
-    //     aqua_dht: &mut ServiceInterface,
+    //     registry: &mut ServiceInterface,
     //     key: &str,
     //     value: &str,
     //     timestamp: u64,
@@ -415,7 +635,7 @@ mod tests {
     //     weight: u32,
     //     cp: &CallParameters,
     // ) -> DhtResult {
-    //     let result = aqua_dht.put_value_cp(
+    //     let result = registry.put_value_cp(
     //         key.to_string(),
     //         value.to_string(),
     //         timestamp.clone(),
@@ -430,7 +650,7 @@ mod tests {
     // }
     //
     // fn check_key_metadata(
-    //     aqua_dht: &mut ServiceInterface,
+    //     registry: &mut ServiceInterface,
     //     key: &str,
     //     timestamp: u64,
     //     peer_id: &str,
@@ -440,7 +660,7 @@ mod tests {
     //     cp: &CallParameters,
     // ) {
     //     let result =
-    //         aqua_dht.get_key_metadata_cp(key.to_string(), current_timestamp.clone(), cp.clone());
+    //         registry.get_key_metadata_cp(key.to_string(), current_timestamp.clone(), cp.clone());
     //     assert!(result.success, "{}", result.error);
     //     assert_eq!(result.key.key, key.clone());
     //     assert_eq!(result.key.peer_id, peer_id.clone());
@@ -450,14 +670,14 @@ mod tests {
     // }
     //
     // fn register_key_and_check(
-    //     aqua_dht: &mut ServiceInterface,
+    //     registry: &mut ServiceInterface,
     //     key: &str,
     //     timestamp: u64,
     //     pin: bool,
     //     weight: u32,
     //     cp: &CallParameters,
     // ) {
-    //     let result = aqua_dht.register_key_cp(
+    //     let result = registry.register_key_cp(
     //         key.to_string(),
     //         timestamp.clone(),
     //         pin.clone(),
@@ -468,7 +688,7 @@ mod tests {
     //     assert!(result.success, "{}", result.error);
     //
     //     check_key_metadata(
-    //         aqua_dht,
+    //         registry,
     //         key,
     //         timestamp,
     //         &cp.init_peer_id,
@@ -480,17 +700,17 @@ mod tests {
     // }
     //
     // fn republish_key_and_check(
-    //     aqua_dht: &mut ServiceInterface,
+    //     registry: &mut ServiceInterface,
     //     key: &Key,
     //     timestamp: u64,
     //     cp: &CallParameters,
     // ) {
-    //     let result = aqua_dht.republish_key_cp(key.clone(), timestamp, cp.clone());
+    //     let result = registry.republish_key_cp(key.clone(), timestamp, cp.clone());
     //
     //     assert!(result.success, "{}", result.error);
     //
     //     check_key_metadata(
-    //         aqua_dht,
+    //         registry,
     //         &key.key,
     //         key.timestamp_created,
     //         &key.peer_id,
@@ -503,10 +723,10 @@ mod tests {
 
     // #[test]
     // fn register_key() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &"some_key".to_string(),
     //         123u64,
     //         false,
@@ -517,9 +737,9 @@ mod tests {
     //
     // #[test]
     // fn register_key_empty_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
-    //     let result = aqua_dht.register_key("some_key".to_string(), 123u64, false, 0u32);
+    //     let result = registry.register_key("some_key".to_string(), 123u64, false, 0u32);
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -529,7 +749,7 @@ mod tests {
     //
     // #[test]
     // fn register_key_invalid_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let mut invalid_cp = CallParameters::default();
     //     invalid_cp.tetraplets.push(vec![]);
@@ -540,7 +760,7 @@ mod tests {
     //         json_path: "some json path".to_string(),
     //     }]);
     //
-    //     let result = aqua_dht.register_key_cp(
+    //     let result = registry.register_key_cp(
     //         "some_key".to_string(),
     //         123u64,
     //         false,
@@ -556,7 +776,7 @@ mod tests {
     //
     // #[test]
     // fn register_key_twice_same_peer_id() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let timestamp = 123u64;
@@ -565,13 +785,13 @@ mod tests {
     //     let mut cp = get_correct_timestamp_cp(1);
     //     cp.init_peer_id = "some_peer_id".to_string();
     //
-    //     register_key_and_check(&mut aqua_dht, &key, timestamp, pin, weight, &cp);
-    //     register_key_and_check(&mut aqua_dht, &key, timestamp + 1, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &key, timestamp, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &key, timestamp + 1, pin, weight, &cp);
     // }
     //
     // #[test]
     // fn register_key_twice_other_peer_id() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let timestamp = 123u64;
@@ -579,27 +799,27 @@ mod tests {
     //     let pin = false;
     //     let mut cp = get_correct_timestamp_cp(1);
     //     cp.init_peer_id = "some_peer_id".to_string();
-    //     register_key_and_check(&mut aqua_dht, &key, timestamp, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &key, timestamp, pin, weight, &cp);
     //
     //     cp.init_peer_id = "other_peer_id".to_string();
-    //     let result = aqua_dht.register_key_cp(key.clone(), timestamp, pin, weight, cp);
+    //     let result = registry.register_key_cp(key.clone(), timestamp, pin, weight, cp);
     //     assert!(!result.success);
     //     assert_eq!(result.error, KeyAlreadyExists(key).to_string());
     // }
     //
     // #[test]
     // fn get_key_metadata_not_found() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "invalid_key".to_string();
-    //     let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     // }
     //
     // #[test]
     // fn republish_key_not_exists() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let key = Key {
@@ -610,12 +830,12 @@ mod tests {
     //         weight: 8u32,
     //     };
     //
-    //     republish_key_and_check(&mut aqua_dht, &key, 123u64, &get_correct_timestamp_cp(1));
+    //     republish_key_and_check(&mut registry, &key, 123u64, &get_correct_timestamp_cp(1));
     // }
     //
     // #[test]
     // fn republish_key_same_peer_id() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key_str = "some_key".to_string();
     //     let timestamp = 123u64;
@@ -623,7 +843,7 @@ mod tests {
     //     let pin = false;
     //     let mut cp = get_correct_timestamp_cp(1);
     //     cp.init_peer_id = "some_peer_id".to_string();
-    //     register_key_and_check(&mut aqua_dht, &key_str, timestamp, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &key_str, timestamp, pin, weight, &cp);
     //
     //     let key = Key {
     //         key: key_str.clone(),
@@ -633,12 +853,12 @@ mod tests {
     //         weight: weight.clone(),
     //     };
     //
-    //     republish_key_and_check(&mut aqua_dht, &key, 123123u64, &get_correct_timestamp_cp(1));
+    //     republish_key_and_check(&mut registry, &key, 123123u64, &get_correct_timestamp_cp(1));
     // }
     //
     // #[test]
     // fn republish_key_other_peer_id() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key_str = "some_key".to_string();
     //     let timestamp = 123u64;
@@ -646,7 +866,7 @@ mod tests {
     //     let pin = false;
     //     let mut cp = get_correct_timestamp_cp(1);
     //     cp.init_peer_id = "some_peer_id".to_string();
-    //     register_key_and_check(&mut aqua_dht, &key_str, timestamp, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &key_str, timestamp, pin, weight, &cp);
     //
     //     let key = Key {
     //         key: key_str.clone(),
@@ -656,16 +876,16 @@ mod tests {
     //         weight: weight.clone(),
     //     };
     //
-    //     let result = aqua_dht.republish_key_cp(key, 123123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.republish_key_cp(key, 123123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, KeyAlreadyExists(key_str).to_string());
     // }
     //
     // #[test]
     // fn put_value_empty_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
-    //     let result = aqua_dht.put_value(
+    //     let result = registry.put_value(
     //         "some_key".to_string(),
     //         "value".to_string(),
     //         123u64,
@@ -682,7 +902,7 @@ mod tests {
     //
     // #[test]
     // fn put_value_invalid_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let mut invalid_cp = CallParameters::default();
@@ -694,7 +914,7 @@ mod tests {
     //         json_path: "some json path".to_string(),
     //     }]);
     //
-    //     let result = aqua_dht.put_value_cp(
+    //     let result = registry.put_value_cp(
     //         "some_key".to_string(),
     //         "value".to_string(),
     //         123u64,
@@ -712,9 +932,9 @@ mod tests {
     //
     // #[test]
     // fn get_values_empty_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
-    //     let result = aqua_dht.get_values("some_key".to_string(), 123u64);
+    //     let result = registry.get_values("some_key".to_string(), 123u64);
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -724,7 +944,7 @@ mod tests {
     //
     // #[test]
     // fn get_values_invalid_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let mut invalid_cp = CallParameters::default();
     //     invalid_cp.tetraplets.push(vec![]);
@@ -735,7 +955,7 @@ mod tests {
     //         json_path: "some json path".to_string(),
     //     }]);
     //
-    //     let result = aqua_dht.get_values_cp("some_key".to_string(), 123u64, invalid_cp.clone());
+    //     let result = registry.get_values_cp("some_key".to_string(), 123u64, invalid_cp.clone());
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -745,12 +965,12 @@ mod tests {
     //
     // #[test]
     // fn get_values_empty() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let key = "some_key".to_string();
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         123u64,
     //         false,
@@ -758,7 +978,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //
-    //     let result = aqua_dht.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key, 123u64, get_correct_timestamp_cp(1));
     //
     //     assert!(result.success, "{}", result.error);
     //
@@ -767,11 +987,11 @@ mod tests {
     //
     // #[test]
     // fn get_values_key_not_exists() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let key = "invalid_key".to_string();
-    //     let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
@@ -780,10 +1000,10 @@ mod tests {
     //
     // #[test]
     // fn put_value_key_not_exists() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
-    //     let result = aqua_dht.put_value_cp(
+    //     let result = registry.put_value_cp(
     //         key.clone(),
     //         "value".to_string(),
     //         123u64,
@@ -798,7 +1018,7 @@ mod tests {
     //
     // #[test]
     // fn put_value() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let key = "some_key".to_string();
@@ -811,7 +1031,7 @@ mod tests {
     //     cp.init_peer_id = "some_peer_id".to_string();
     //
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         timestamp,
     //         false,
@@ -819,7 +1039,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         timestamp,
@@ -829,7 +1049,7 @@ mod tests {
     //         &cp,
     //     );
     //
-    //     let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
     //
     //     assert!(result.success, "{}", result.error);
     //
@@ -846,7 +1066,7 @@ mod tests {
     //
     // #[test]
     // fn put_value_update() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let value1 = "some_value".to_string();
@@ -859,7 +1079,7 @@ mod tests {
     //     cp.init_peer_id = "some_peer_id".to_string();
     //
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         timestamp,
     //         false,
@@ -867,7 +1087,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value1,
     //         timestamp,
@@ -878,7 +1098,7 @@ mod tests {
     //     );
     //     let value2 = "other_value".to_string();
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value2,
     //         timestamp,
@@ -888,7 +1108,7 @@ mod tests {
     //         &cp,
     //     );
     //
-    //     let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
     //
     //     assert!(result.success, "{}", result.error);
     //
@@ -905,17 +1125,17 @@ mod tests {
     //
     // #[test]
     // fn put_value_limit() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let value = "some_value".to_string();
     //     let timestamp = 123u64;
     //
-    //     let put_value = |aqua_dht: &mut ServiceInterface, peer_id: &str, weight: u32| {
+    //     let put_value = |registry: &mut ServiceInterface, peer_id: &str, weight: u32| {
     //         let mut cp = get_correct_timestamp_cp(2);
     //         cp.init_peer_id = peer_id.to_string();
     //         put_value_and_check(
-    //             aqua_dht,
+    //             registry,
     //             &key,
     //             &value,
     //             timestamp,
@@ -927,7 +1147,7 @@ mod tests {
     //     };
     //
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         timestamp,
     //         false,
@@ -937,14 +1157,14 @@ mod tests {
     //
     //     let min_weight = 10u32;
     //     for i in 0..VALUES_LIMIT {
-    //         put_value(&mut aqua_dht, &i.to_string(), min_weight + i as u32);
+    //         put_value(&mut registry, &i.to_string(), min_weight + i as u32);
     //     }
     //
     //     // try to put value with smaller weight
     //     let smaller_weight = min_weight - 1;
     //     let mut cp = get_correct_timestamp_cp(2);
     //     cp.init_peer_id = "unique_peer_id1".to_string();
-    //     let result = aqua_dht.put_value_cp(
+    //     let result = registry.put_value_cp(
     //         key.clone(),
     //         value.clone(),
     //         timestamp,
@@ -961,7 +1181,7 @@ mod tests {
     //     let mut cp = get_correct_timestamp_cp(2);
     //     cp.init_peer_id = "unique_peer_id2".to_string();
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         timestamp,
@@ -973,7 +1193,7 @@ mod tests {
     //
     //     // try to put host value
     //     put_host_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         timestamp,
@@ -986,7 +1206,7 @@ mod tests {
     //
     // #[test]
     // fn put_multiple_values_for_key() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let value = "some_value".to_string();
@@ -999,7 +1219,7 @@ mod tests {
     //     let peer2_id = "other_peer_id".to_string();
     //
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         timestamp,
     //         false,
@@ -1009,7 +1229,7 @@ mod tests {
     //
     //     cp.init_peer_id = peer1_id.clone();
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         timestamp,
@@ -1021,7 +1241,7 @@ mod tests {
     //
     //     cp.init_peer_id = peer2_id.clone();
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         timestamp,
@@ -1031,7 +1251,7 @@ mod tests {
     //         &cp,
     //     );
     //
-    //     let result = aqua_dht.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key, timestamp.clone(), get_correct_timestamp_cp(1));
     //
     //     assert!(result.success, "{}", result.error);
     //
@@ -1056,10 +1276,10 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_empty_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
-    //     let result = aqua_dht.clear_expired(124u64);
+    //     let result = registry.clear_expired(124u64);
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -1069,7 +1289,7 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_invalid_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let mut invalid_cp = CallParameters::default();
@@ -1081,7 +1301,7 @@ mod tests {
     //         json_path: "some json path".to_string(),
     //     }]);
     //
-    //     let result = aqua_dht.clear_expired_cp(124u64, invalid_cp.clone());
+    //     let result = registry.clear_expired_cp(124u64, invalid_cp.clone());
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -1091,9 +1311,9 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_empty() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
-    //     let result = aqua_dht.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
+    //     let result = registry.clear_expired_cp(124u64, get_correct_timestamp_cp(0));
     //
     //     assert!(result.success, "{}", result.error);
     //     assert_eq!(result.count_keys + result.count_values, 0);
@@ -1101,7 +1321,7 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_key_without_values() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let expired_timestamp = SystemTime::now()
@@ -1109,7 +1329,7 @@ mod tests {
     //         .unwrap()
     //         .as_secs();
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         expired_timestamp,
     //         false,
@@ -1117,7 +1337,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //
-    //     let result = aqua_dht.clear_expired_cp(
+    //     let result = registry.clear_expired_cp(
     //         expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1127,14 +1347,14 @@ mod tests {
     //     assert_eq!(result.count_keys, 1);
     //     assert_eq!(result.count_values, 0);
     //
-    //     let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     // }
     //
     // #[test]
     // fn clear_expired_host_key() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let expired_timestamp = SystemTime::now()
@@ -1142,7 +1362,7 @@ mod tests {
     //         .unwrap()
     //         .as_secs();
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         expired_timestamp,
     //         true,
@@ -1150,7 +1370,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &"some_value".to_string(),
     //         expired_timestamp,
@@ -1160,7 +1380,7 @@ mod tests {
     //         &get_correct_timestamp_cp(2),
     //     );
     //
-    //     let result = aqua_dht.clear_expired_cp(
+    //     let result = registry.clear_expired_cp(
     //         expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1173,7 +1393,7 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_host_value() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let expired_timestamp = SystemTime::now()
@@ -1181,7 +1401,7 @@ mod tests {
     //         .unwrap()
     //         .as_secs();
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         expired_timestamp,
     //         false,
@@ -1189,7 +1409,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_host_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &"some_value".to_string(),
     //         expired_timestamp,
@@ -1199,7 +1419,7 @@ mod tests {
     //         &get_correct_timestamp_cp(2),
     //     );
     //
-    //     let result = aqua_dht.clear_expired_cp(
+    //     let result = registry.clear_expired_cp(
     //         expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1212,7 +1432,7 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_key_with_values() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let expired_timestamp = SystemTime::now()
@@ -1220,7 +1440,7 @@ mod tests {
     //         .unwrap()
     //         .as_secs();
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         expired_timestamp,
     //         false,
@@ -1228,7 +1448,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &"some_value".to_string(),
     //         expired_timestamp,
@@ -1238,7 +1458,7 @@ mod tests {
     //         &get_correct_timestamp_cp(2),
     //     );
     //
-    //     let result = aqua_dht.clear_expired_cp(
+    //     let result = registry.clear_expired_cp(
     //         expired_timestamp + DEFAULT_EXPIRED_VALUE_AGE,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1248,11 +1468,11 @@ mod tests {
     //     assert_eq!(result.count_keys, 1);
     //     assert_eq!(result.count_values, 1);
     //
-    //     let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     //
-    //     let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
@@ -1260,7 +1480,7 @@ mod tests {
     //
     // #[test]
     // fn clear_expired_change_timeout() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let expired_timestamp = SystemTime::now()
@@ -1269,7 +1489,7 @@ mod tests {
     //         .as_secs();
     //
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         expired_timestamp,
     //         false,
@@ -1277,7 +1497,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &"some_value".to_string(),
     //         expired_timestamp,
@@ -1288,8 +1508,8 @@ mod tests {
     //     );
     //
     //     let new_expired_timeout = DEFAULT_EXPIRED_VALUE_AGE - 100u64;
-    //     aqua_dht.set_expired_timeout(new_expired_timeout.clone());
-    //     let result = aqua_dht.clear_expired_cp(
+    //     registry.set_expired_timeout(new_expired_timeout.clone());
+    //     let result = registry.clear_expired_cp(
     //         expired_timestamp + new_expired_timeout,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1299,11 +1519,11 @@ mod tests {
     //     assert_eq!(result.count_keys, 1);
     //     assert_eq!(result.count_values, 1);
     //
-    //     let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     //
-    //     let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
@@ -1311,10 +1531,10 @@ mod tests {
     //
     // #[test]
     // fn evict_stale_empty_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
-    //     let result = aqua_dht.evict_stale(124u64);
+    //     let result = registry.evict_stale(124u64);
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -1324,7 +1544,7 @@ mod tests {
     //
     // #[test]
     // fn evict_stale_invalid_cp() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     let mut invalid_cp = CallParameters::default();
@@ -1336,7 +1556,7 @@ mod tests {
     //         json_path: "some json path".to_string(),
     //     }]);
     //
-    //     let result = aqua_dht.evict_stale_cp(124u64, invalid_cp.clone());
+    //     let result = registry.evict_stale_cp(124u64, invalid_cp.clone());
     //     assert!(!result.success);
     //     assert_eq!(
     //         result.error,
@@ -1346,9 +1566,9 @@ mod tests {
     //
     // #[test]
     // fn evict_stale_empty() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
-    //     let result = aqua_dht.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
+    //     let result = registry.evict_stale_cp(124u64, get_correct_timestamp_cp(0));
     //     assert!(result.success, "{}", result.error);
     //
     //     assert_eq!(result.results.len(), 0);
@@ -1356,12 +1576,12 @@ mod tests {
     //
     // #[test]
     // fn evict_stale_key_without_values() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let stale_timestamp = 0u64;
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         stale_timestamp,
     //         false,
@@ -1369,7 +1589,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //
-    //     let result = aqua_dht.evict_stale_cp(
+    //     let result = registry.evict_stale_cp(
     //         stale_timestamp + DEFAULT_STALE_VALUE_AGE,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1381,20 +1601,20 @@ mod tests {
     //     assert_eq!(item.key.key, key);
     //     assert_eq!(item.records.len(), 0);
     //
-    //     let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     // }
     //
     // #[test]
     // fn evict_stale_key_with_values() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let value = "some_value".to_string();
     //     let stale_timestamp = 0u64;
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         stale_timestamp,
     //         false,
@@ -1402,7 +1622,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         stale_timestamp,
@@ -1412,7 +1632,7 @@ mod tests {
     //         &get_correct_timestamp_cp(2),
     //     );
     //
-    //     let result = aqua_dht.evict_stale_cp(
+    //     let result = registry.evict_stale_cp(
     //         stale_timestamp + DEFAULT_STALE_VALUE_AGE,
     //         get_correct_timestamp_cp(0),
     //     );
@@ -1429,11 +1649,11 @@ mod tests {
     //     assert_eq!(record.value, value);
     //     assert_eq!(record.timestamp_created, stale_timestamp);
     //
-    //     let result = aqua_dht.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_key_metadata_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     //
-    //     let result = aqua_dht.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(key.clone(), 123u64, get_correct_timestamp_cp(1));
     //
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
@@ -1441,7 +1661,7 @@ mod tests {
     //
     // #[test]
     // fn merge_test() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //
     //     let peer_id = "some_peer_id".to_string();
     //     let stale_record = Record {
@@ -1464,14 +1684,14 @@ mod tests {
     //         weight: 8u32,
     //     };
     //
-    //     let result = aqua_dht.merge(vec![vec![stale_record.clone()], vec![new_record.clone()]]);
+    //     let result = registry.merge(vec![vec![stale_record.clone()], vec![new_record.clone()]]);
     //
     //     assert_eq!(result.result.len(), 1);
     //     let record = &result.result[0];
     //     assert_eq!(record.value, new_record.value);
     //     assert_eq!(record.timestamp_created, new_record.timestamp_created);
     //
-    //     let result = aqua_dht.merge_two(vec![stale_record.clone()], vec![new_record.clone()]);
+    //     let result = registry.merge_two(vec![stale_record.clone()], vec![new_record.clone()]);
     //
     //     assert_eq!(result.result.len(), 1);
     //     let record = &result.result[0];
@@ -1481,7 +1701,7 @@ mod tests {
     //
     // #[test]
     // fn merge_test_different_peer_ids() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //
     //     let peer_id1 = "some_peer_id1".to_string();
     //     let peer_id2 = "some_peer_id2".to_string();
@@ -1505,7 +1725,7 @@ mod tests {
     //         weight: 8u32,
     //     };
     //
-    //     let result = aqua_dht.merge_two(vec![record1], vec![record2]);
+    //     let result = registry.merge_two(vec![record1], vec![record2]);
     //
     //     assert_eq!(result.result.len(), 2);
     // }
@@ -1513,7 +1733,7 @@ mod tests {
     // // test repeats initTopicAndSubscribeNode method from pubsub api
     // #[test]
     // fn init_topic_and_subscribe_node_test() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let topic = "some_key".to_string();
     //     let timestamp = 123u64;
@@ -1527,14 +1747,14 @@ mod tests {
     //     // === init topic and subscribe to it
     //
     //     // register topic
-    //     register_key_and_check(&mut aqua_dht, &topic, timestamp, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &topic, timestamp, pin, weight, &cp);
     //
     //     let mut cp = get_correct_timestamp_cp(2);
     //     cp.init_peer_id = subscriber_peer_id.clone();
     //
     //     // make a subscription
     //     let result = put_host_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &topic,
     //         &value,
     //         timestamp,
@@ -1546,7 +1766,7 @@ mod tests {
     //     assert!(result.success, "{}", result.error);
     //
     //     // clear db to imitate switching to neighbor
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //
     //     // === notify neighbor about subscription
@@ -1555,7 +1775,7 @@ mod tests {
     //     cp.init_peer_id = subscriber_peer_id.clone();
     //
     //     // register topic on neighbor
-    //     register_key_and_check(&mut aqua_dht, &topic, timestamp, pin, weight, &cp);
+    //     register_key_and_check(&mut registry, &topic, timestamp, pin, weight, &cp);
     //     let mut cp = get_correct_timestamp_cp(1);
     //     cp.tetraplets[0] = vec![SecurityTetraplet {
     //         peer_pk: HOST_ID.to_string(),
@@ -1566,11 +1786,11 @@ mod tests {
     //     cp.init_peer_id = subscriber_peer_id.clone();
     //
     //     // leave record about subscription
-    //     let result = aqua_dht.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
+    //     let result = registry.propagate_host_value_cp(result, timestamp, weight.clone(), cp);
     //     assert!(result.success, "{}", result.error);
     //
     //     // check subscription (mimics findSubscribers but for one node without merging)
-    //     let result = aqua_dht.get_values_cp(topic, 123u64, get_correct_timestamp_cp(1));
+    //     let result = registry.get_values_cp(topic, 123u64, get_correct_timestamp_cp(1));
     //
     //     assert!(result.success, "{}", result.error);
     //     assert_eq!(result.result.len(), 1);
@@ -1583,7 +1803,7 @@ mod tests {
     // // checks evict_stale -> republish_key[values] -> clear_expired lifecycle
     // #[test]
     // fn evict_republish_clear_expired() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "some_key".to_string();
     //     let value = "some_value".to_string();
@@ -1591,7 +1811,7 @@ mod tests {
     //
     //     // register key and put some value
     //     register_key_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         stale_timestamp,
     //         false,
@@ -1599,7 +1819,7 @@ mod tests {
     //         &get_correct_timestamp_cp(1),
     //     );
     //     put_value_and_check(
-    //         &mut aqua_dht,
+    //         &mut registry,
     //         &key,
     //         &value,
     //         stale_timestamp,
@@ -1613,7 +1833,7 @@ mod tests {
     //     let current_timestamp = stale_timestamp + DEFAULT_STALE_VALUE_AGE;
     //
     //     // retrieve values and keys to republish
-    //     let result = aqua_dht.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
+    //     let result = registry.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
     //     assert!(result.success, "{}", result.error);
     //
     //     assert_eq!(result.results.len(), 1);
@@ -1632,19 +1852,19 @@ mod tests {
     //     // check that key not exists and values are empty (because node is neighbor to itself and should republish values to itself)
     //     // get_values checks key existence
     //     let result =
-    //         aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+    //         registry.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
     //
     //     // republish key and values
-    //     let result = aqua_dht.republish_key_cp(
+    //     let result = registry.republish_key_cp(
     //         key_to_republish,
     //         current_timestamp,
     //         get_correct_timestamp_cp(1),
     //     );
     //     assert!(result.success, "{}", result.error);
     //
-    //     let result = aqua_dht.republish_values_cp(
+    //     let result = registry.republish_values_cp(
     //         key.clone(),
     //         records_to_republish.clone(),
     //         current_timestamp,
@@ -1654,7 +1874,7 @@ mod tests {
     //
     //     // check values' existence
     //     let result =
-    //         aqua_dht.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
+    //         registry.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
     //     assert!(result.success, "{}", result.error);
     //
     //     assert_eq!(result.result.len(), 1);
@@ -1663,14 +1883,14 @@ mod tests {
     //     let expired_timestamp = current_timestamp + DEFAULT_EXPIRED_VALUE_AGE;
     //
     //     // clear expired values and keys
-    //     let result = aqua_dht.clear_expired_cp(expired_timestamp, get_correct_timestamp_cp(0));
+    //     let result = registry.clear_expired_cp(expired_timestamp, get_correct_timestamp_cp(0));
     //     assert!(result.success, "{}", result.error);
     //     assert_eq!(result.count_keys, 1);
     //     assert_eq!(result.count_values, 1);
     //
     //     // check that values and keys not exists anymore (get_values checks key existence)
     //     let result =
-    //         aqua_dht.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
+    //         registry.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
     //
     //     assert!(!result.success);
     //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
@@ -1678,13 +1898,13 @@ mod tests {
     //
     // #[test]
     // pub fn sql_injection_test() {
-    //     let mut aqua_dht = ServiceInterface::new();
+    //     let mut registry = ServiceInterface::new();
     //     clear_env();
     //     let key = "blabla".to_string();
     //     let injection_key =
     //         f!("{key}', '123', '123', 'abc', '0', '0'); DELETE FROM TABLE {KEYS_TABLE_NAME};");
     //
-    //     let result = aqua_dht.register_key_cp(
+    //     let result = registry.register_key_cp(
     //         injection_key.clone(),
     //         123u64,
     //         false,
@@ -1693,7 +1913,7 @@ mod tests {
     //     );
     //     assert!(result.success, "{}", result.error);
     //
-    //     let result = aqua_dht.get_key_metadata_cp(
+    //     let result = registry.get_key_metadata_cp(
     //         injection_key.clone(),
     //         123u64,
     //         get_correct_timestamp_cp(1),
