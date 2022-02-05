@@ -21,5 +21,6 @@ func replicate_3600():
       nodes <- Kademlia.neighborhood(k, nil, nil)
       for n <- nodes par:
         on n:
-          AquaDHT.republish_key(r.key, t)
-          AquaDHT.republish_values(r.key.key, r.records, t)
+          tt <- Peer.timestamp_sec()
+          AquaDHT.republish_key(r.key, tt)
+          AquaDHT.republish_values(r.key.key, r.records, tt)
