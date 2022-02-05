@@ -242,7 +242,7 @@ fn update_key(
     let pinned = pin as i32;
     let update_allowed = {
         match old_key {
-            Ok(key) => key.peer_id == peer_id && key.timestamp_created < timestamp_created,
+            Ok(key) => key.peer_id == peer_id && key.timestamp_created <= timestamp_created,
             Err(_) => true,
         }
     };
@@ -590,10 +590,11 @@ pub fn evict_stale_impl(current_timestamp_sec: u64) -> Result<Vec<EvictStaleItem
 
 /// Merge values with same peer_id by timestamp_created (last-write-wins)
 pub fn merge_impl(records: Vec<Record>) -> Result<Vec<Record>, ServiceError> {
-    let mut result: HashMap<String, Record> = HashMap::new();
+    // (peer_id, set_by)
+    let mut result: HashMap<(String, String), Record> = HashMap::new();
 
     for rec in records.into_iter() {
-        let key = rec.peer_id.clone();
+        let key = (rec.peer_id.clone(), rec.set_by.clone());
 
         if let Some(other_rec) = result.get_mut(&key) {
             if other_rec.timestamp_created < rec.timestamp_created {
