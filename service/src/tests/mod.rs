@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#![allow(module_inception)]
 #[cfg(test)]
 mod tests {
     use fluence_keypair::KeyPair;
     use std::fs;
-    use std::time::SystemTime;
 
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use rusqlite::Connection;
@@ -26,16 +24,14 @@ mod tests {
     use marine_test_env::registry::{DhtResult, Record, ServiceInterface};
 
     use crate::defaults::{
-        CONFIG_FILE, DB_PATH, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE, KEYS_TABLE_NAME,
-        KEYS_TIMESTAMPS_TABLE_NAME, RECORDS_TABLE_NAME, TRUSTED_TIMESTAMP_FUNCTION_NAME,
-        TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_WEIGHT_FUNCTION_NAME, TRUSTED_WEIGHT_SERVICE_ID,
-        VALUES_LIMIT,
+        CONFIG_FILE, DB_PATH, DEFAULT_STALE_VALUE_AGE, KEYS_TABLE_NAME, KEYS_TIMESTAMPS_TABLE_NAME,
+        RECORDS_TABLE_NAME, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID,
+        TRUSTED_WEIGHT_FUNCTION_NAME, TRUSTED_WEIGHT_SERVICE_ID, VALUES_LIMIT,
     };
     use crate::error::ServiceError::{
         InvalidKeyTimestamp, InvalidTimestampTetraplet, InvalidWeightPeerId,
-        KeyAlreadyExistsNewerTimestamp, ValuesLimitExceeded,
+        KeyAlreadyExistsNewerTimestamp,
     };
-    use crate::tests::tests::marine_test_env::registry::modules::registry::PutHostRecordResult;
     use crate::tests::tests::marine_test_env::registry::{Key, RegisterKeyResult, WeightResult};
 
     const HOST_ID: &str = "some_host_id";
@@ -73,41 +69,61 @@ mod tests {
         }
     }
 
-    fn get_default_cp(init_peer_id: String) -> CallParameters {
-        CallParameters {
-            init_peer_id,
-            service_id: "".to_string(),
-            service_creator_peer_id: "".to_string(),
-            host_id: HOST_ID.to_string(),
-            particle_id: "".to_string(),
-            tetraplets: vec![],
-        }
+    struct CPWrapper {
+        pub cp: CallParameters,
     }
 
-    fn add_timestamp_tetraplets(cp: &mut CallParameters, arg_number: usize) {
-        if cp.tetraplets.len() <= arg_number {
-            cp.tetraplets.resize(arg_number + 1, vec![]);
+    impl CPWrapper {
+        pub fn new(init_peer_id: &str) -> Self {
+            Self {
+                cp: CallParameters {
+                    init_peer_id: init_peer_id.to_string(),
+                    service_id: "".to_string(),
+                    service_creator_peer_id: "".to_string(),
+                    host_id: HOST_ID.to_string(),
+                    particle_id: "".to_string(),
+                    tetraplets: vec![],
+                },
+            }
         }
 
-        cp.tetraplets[arg_number] = vec![SecurityTetraplet {
-            peer_pk: HOST_ID.to_string(),
-            service_id: TRUSTED_TIMESTAMP_SERVICE_ID.to_string(),
-            function_name: TRUSTED_TIMESTAMP_FUNCTION_NAME.to_string(),
-            json_path: "".to_string(),
-        }];
-    }
+        pub fn add_timestamp_tetraplets(mut self, arg_number: usize) -> Self {
+            if self.cp.tetraplets.len() <= arg_number {
+                self.cp.tetraplets.resize(arg_number + 1, vec![]);
+            }
 
-    fn add_weight_tetraplets(cp: &mut CallParameters, arg_number: usize) {
-        if cp.tetraplets.len() < arg_number {
-            cp.tetraplets.resize(arg_number + 1, vec![]);
+            self.cp.tetraplets[arg_number] = vec![SecurityTetraplet {
+                peer_pk: HOST_ID.to_string(),
+                service_id: TRUSTED_TIMESTAMP_SERVICE_ID.to_string(),
+                function_name: TRUSTED_TIMESTAMP_FUNCTION_NAME.to_string(),
+                json_path: "".to_string(),
+            }];
+
+            self
         }
 
-        cp.tetraplets[arg_number] = vec![SecurityTetraplet {
-            peer_pk: HOST_ID.to_string(),
-            service_id: TRUSTED_WEIGHT_SERVICE_ID.to_string(),
-            function_name: TRUSTED_WEIGHT_FUNCTION_NAME.to_string(),
-            json_path: "".to_string(),
-        }];
+        fn add_weight_tetraplets(mut self, arg_number: usize) -> Self {
+            if self.cp.tetraplets.len() < arg_number {
+                self.cp.tetraplets.resize(arg_number + 1, vec![]);
+            }
+
+            self.cp.tetraplets[arg_number] = vec![SecurityTetraplet {
+                peer_pk: HOST_ID.to_string(),
+                service_id: TRUSTED_WEIGHT_SERVICE_ID.to_string(),
+                function_name: TRUSTED_WEIGHT_FUNCTION_NAME.to_string(),
+                json_path: "".to_string(),
+            }];
+
+            self
+        }
+
+        pub fn get(&self) -> CallParameters {
+            self.cp.clone()
+        }
+
+        pub fn reset(&mut self) {
+            self.cp.tetraplets = vec![];
+        }
     }
 
     fn get_weight(peer_id: String, weight: u32) -> WeightResult {
@@ -142,10 +158,9 @@ mod tests {
         let key_bytes =
             registry.get_key_bytes(key.clone(), vec![issuer_peer_id.clone()], timestamp_created);
         let signature = kp.sign(&key_bytes).unwrap().to_vec().to_vec();
-
-        let mut cp = get_default_cp(issuer_peer_id.clone());
-        add_weight_tetraplets(&mut cp, 5);
-        add_timestamp_tetraplets(&mut cp, 6);
+        let cp = CPWrapper::new(&issuer_peer_id)
+            .add_weight_tetraplets(5)
+            .add_timestamp_tetraplets(6);
         let weight = get_weight(issuer_peer_id.clone(), weight);
         registry.register_key_cp(
             key,
@@ -155,7 +170,7 @@ mod tests {
             pin,
             weight,
             current_timestamp,
-            cp,
+            cp.get(),
         )
     }
 
@@ -177,7 +192,7 @@ mod tests {
             pin,
             weight,
         );
-        assert!(result.success, result.error);
+        assert!(result.success, "{}", result.error);
         result.key_id
     }
 
@@ -186,10 +201,9 @@ mod tests {
         key_id: String,
         current_timestamp: u64,
     ) -> Key {
-        let mut cp = get_default_cp("peer_id".to_string());
-        add_timestamp_tetraplets(&mut cp, 1);
-        let result = registry.get_key_metadata_cp(key_id, current_timestamp, cp);
-        assert!(result.success, result.error);
+        let cp = CPWrapper::new("peer_id").add_timestamp_tetraplets(1);
+        let result = registry.get_key_metadata_cp(key_id, current_timestamp, cp.get());
+        assert!(result.success, "{}", result.error);
         result.key
     }
 
@@ -205,7 +219,7 @@ mod tests {
         weight: u32,
     ) -> DhtResult {
         let issuer_peer_id = kp.get_peer_id().to_base58();
-        let mut cp = get_default_cp(issuer_peer_id.clone());
+        let mut cp = CPWrapper::new(&issuer_peer_id);
 
         let record_bytes = registry.get_record_bytes_cp(
             key_id.clone(),
@@ -213,12 +227,11 @@ mod tests {
             relay_id.clone(),
             service_id.clone(),
             timestamp_created,
-            cp.clone(),
+            cp.get(),
         );
         let signature = kp.sign(&record_bytes).unwrap().to_vec().to_vec();
 
-        add_weight_tetraplets(&mut cp, 6);
-        add_timestamp_tetraplets(&mut cp, 7);
+        cp = cp.add_weight_tetraplets(6).add_timestamp_tetraplets(7);
         let weight = get_weight(issuer_peer_id.clone(), weight);
         registry.put_record_cp(
             key_id,
@@ -229,7 +242,7 @@ mod tests {
             signature,
             weight,
             current_timestamp,
-            cp,
+            cp.get(),
         )
     }
 
@@ -255,7 +268,19 @@ mod tests {
             current_timestamp,
             weight,
         );
-        assert!(result.success, result.error);
+        assert!(result.success, "{}", result.error);
+    }
+
+    fn get_records(
+        registry: &mut ServiceInterface,
+        key_id: String,
+        current_timestamp: u64,
+    ) -> Vec<Record> {
+        let cp = CPWrapper::new("some_peer_id").add_timestamp_tetraplets(1);
+
+        let result = registry.get_records_cp(key_id, current_timestamp, cp.get());
+        assert!(result.success, "{}", result.error);
+        result.result
     }
 
     #[test]
@@ -264,18 +289,16 @@ mod tests {
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
-        let mut cp = get_default_cp(issuer_peer_id.clone());
+        let mut cp = CPWrapper::new(&issuer_peer_id);
         let key = "some_key".to_string();
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = get_weight(issuer_peer_id.clone(), 0);
 
-        let key_bytes =
-            registry.get_key_bytes_cp(key.clone(), vec![], timestamp_created, cp.clone());
+        let key_bytes = registry.get_key_bytes_cp(key.clone(), vec![], timestamp_created, cp.get());
         let signature = key_bytes;
 
-        add_weight_tetraplets(&mut cp, 5);
-        add_timestamp_tetraplets(&mut cp, 6);
+        cp = cp.add_weight_tetraplets(5).add_timestamp_tetraplets(6);
         let reg_key_result = registry.register_key_cp(
             key,
             vec![],
@@ -284,7 +307,7 @@ mod tests {
             false,
             weight,
             current_timestamp,
-            cp,
+            cp.get(),
         );
         assert!(!reg_key_result.success);
     }
@@ -295,17 +318,16 @@ mod tests {
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
-        let mut cp = get_default_cp(issuer_peer_id.clone());
+        let mut cp = CPWrapper::new(&issuer_peer_id);
         let key = "some_key".to_string();
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = get_weight(issuer_peer_id.clone(), 0);
 
-        let key_bytes =
-            registry.get_key_bytes_cp(key.clone(), vec![], timestamp_created, cp.clone());
+        let key_bytes = registry.get_key_bytes_cp(key.clone(), vec![], timestamp_created, cp.get());
         let signature = kp.sign(&key_bytes).unwrap().to_vec().to_vec();
 
-        add_timestamp_tetraplets(&mut cp, 6);
+        cp = cp.add_timestamp_tetraplets(6);
         let reg_key_result = registry.register_key_cp(
             key,
             vec![],
@@ -314,9 +336,42 @@ mod tests {
             false,
             weight,
             current_timestamp,
-            cp,
+            cp.get(),
         );
         assert!(!reg_key_result.success);
+    }
+
+    #[test]
+    fn register_key_missing_timestamp_tetraplet() {
+        clear_env();
+        let mut registry = ServiceInterface::new();
+        let kp = KeyPair::generate_ed25519();
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+        let key = "some_key".to_string();
+        let timestamp_created = 0u64;
+        let current_timestamp = 100u64;
+        let weight = get_weight(issuer_peer_id.clone(), 0);
+
+        let key_bytes =
+            registry.get_key_bytes(key.clone(), vec![issuer_peer_id.clone()], timestamp_created);
+        let signature = kp.sign(&key_bytes).unwrap().to_vec().to_vec();
+
+        let cp = CPWrapper::new(&issuer_peer_id).add_weight_tetraplets(5);
+        let reg_key_result = registry.register_key_cp(
+            key,
+            vec![],
+            timestamp_created,
+            signature,
+            false,
+            weight,
+            current_timestamp,
+            cp.get(),
+        );
+        assert!(!reg_key_result.success);
+        assert_eq!(
+            reg_key_result.error,
+            InvalidTimestampTetraplet(format!("{:?}", cp.cp.tetraplets)).to_string()
+        );
     }
 
     #[test]
@@ -326,18 +381,16 @@ mod tests {
         let kp = KeyPair::generate_ed25519();
         let issuer_peer_id = kp.get_peer_id().to_base58();
         let invalid_peer_id = "INVALID_PEER_ID".to_string();
-        let mut cp = get_default_cp(issuer_peer_id.clone());
+        let mut cp = CPWrapper::new(&issuer_peer_id);
         let key = "some_key".to_string();
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = get_weight(invalid_peer_id.clone(), 0);
 
-        let key_bytes =
-            registry.get_key_bytes_cp(key.clone(), vec![], timestamp_created, cp.clone());
+        let key_bytes = registry.get_key_bytes_cp(key.clone(), vec![], timestamp_created, cp.get());
         let signature = kp.sign(&key_bytes).unwrap().to_vec().to_vec();
 
-        add_weight_tetraplets(&mut cp, 5);
-        add_timestamp_tetraplets(&mut cp, 6);
+        cp = cp.add_weight_tetraplets(5).add_timestamp_tetraplets(6);
         let reg_key_result = registry.register_key_cp(
             key,
             vec![],
@@ -346,7 +399,7 @@ mod tests {
             false,
             weight,
             current_timestamp,
-            cp,
+            cp.get(),
         );
         assert!(!reg_key_result.success);
         assert_eq!(
@@ -376,7 +429,7 @@ mod tests {
             weight,
         );
 
-        assert!(result.success, result.error)
+        assert!(result.success, "{}", result.error);
     }
 
     #[test]
@@ -386,12 +439,11 @@ mod tests {
         let kp = KeyPair::generate_ed25519();
         let key = "some_key".to_string();
         let timestamp_created_first = 100u64;
-        let timestamp_created_second = timestamp_created_first - 10u64;
         let current_timestamp = 1000u64;
         let weight = 0;
         let pin = false;
 
-        let result_first = register_key(
+        register_key_checked(
             &mut registry,
             &kp,
             key.clone(),
@@ -400,8 +452,8 @@ mod tests {
             pin,
             weight,
         );
-        assert!(result_first.success, result_first.error);
 
+        let timestamp_created_second = timestamp_created_first - 10u64;
         let result_second = register_key(
             &mut registry,
             &kp,
@@ -479,12 +531,13 @@ mod tests {
         let new_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
         assert_ne!(old_key, new_key);
 
-        let mut cp = get_default_cp(issuer_peer_id.clone());
-        add_weight_tetraplets(&mut cp, 1);
-        add_timestamp_tetraplets(&mut cp, 2);
+        let cp = CPWrapper::new(&issuer_peer_id)
+            .add_weight_tetraplets(1)
+            .add_timestamp_tetraplets(2);
         let weight = get_weight(issuer_peer_id.clone(), weight);
-        let result = registry.republish_key_cp(old_key.clone(), weight, current_timestamp, cp);
-        assert!(result.success, result.error);
+        let result =
+            registry.republish_key_cp(old_key.clone(), weight, current_timestamp, cp.get());
+        assert!(result.success, "{}", result.error);
 
         let result_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
         assert_eq!(new_key, result_key);
@@ -495,7 +548,6 @@ mod tests {
         clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
-        let issuer_peer_id = kp.get_peer_id().to_base58();
         let key = "some_key".to_string();
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
@@ -555,16 +607,17 @@ mod tests {
         );
 
         let result_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
-        let mut cp = get_default_cp(issuer_peer_id.clone());
-        add_weight_tetraplets(&mut cp, 1);
-        add_timestamp_tetraplets(&mut cp, 2);
+        let cp = CPWrapper::new(&issuer_peer_id)
+            .add_weight_tetraplets(1)
+            .add_timestamp_tetraplets(2);
         let weight = get_weight(issuer_peer_id.clone(), weight);
-        let result = registry.republish_key_cp(result_key.clone(), weight, current_timestamp, cp);
-        assert!(result.success, result.error);
+        let result =
+            registry.republish_key_cp(result_key.clone(), weight, current_timestamp, cp.get());
+        assert!(result.success, "{}", result.error);
     }
 
     #[test]
-    fn test_put_record() {
+    fn test_put_get_record() {
         clear_env();
         let mut registry = ServiceInterface::new();
         let kp = KeyPair::generate_ed25519();
@@ -584,9 +637,9 @@ mod tests {
             weight,
         );
         let value = "some_value".to_string();
-        let relay_id = vec![];
-        let service_id = vec![];
-        let weight = 0u32;
+        let relay_id = vec!["some_relay".to_string()];
+        let service_id = vec!["some_service_id".to_string()];
+        let weight = 5u32;
 
         put_record_checked(
             &mut registry,
@@ -599,141 +652,19 @@ mod tests {
             current_timestamp,
             weight,
         );
-    }
-    //
-    // fn put_host_value_and_check(
-    //     registry: &mut ServiceInterface,
-    //     key: &str,
-    //     value: &str,
-    //     timestamp: u64,
-    //     relay_id: &Vec<String>,
-    //     service_id: &Vec<String>,
-    //     weight: u32,
-    //     cp: &CallParameters,
-    // ) -> PutHostValueResult {
-    //     let result = registry.put_host_value_cp(
-    //         key.to_string(),
-    //         value.to_string(),
-    //         timestamp.clone(),
-    //         relay_id.clone(),
-    //         service_id.clone(),
-    //         weight.clone(),
-    //         cp.clone(),
-    //     );
-    //
-    //     assert!(result.success, "{}", result.error);
-    //     result
-    // }
-    //
-    // fn put_value_and_check(
-    //     registry: &mut ServiceInterface,
-    //     key: &str,
-    //     value: &str,
-    //     timestamp: u64,
-    //     relay_id: &Vec<String>,
-    //     service_id: &Vec<String>,
-    //     weight: u32,
-    //     cp: &CallParameters,
-    // ) -> DhtResult {
-    //     let result = registry.put_value_cp(
-    //         key.to_string(),
-    //         value.to_string(),
-    //         timestamp.clone(),
-    //         relay_id.clone(),
-    //         service_id.clone(),
-    //         weight.clone(),
-    //         cp.clone(),
-    //     );
-    //
-    //     assert!(result.success, "{}", result.error);
-    //     result
-    // }
-    //
-    // fn check_key_metadata(
-    //     registry: &mut ServiceInterface,
-    //     key: &str,
-    //     timestamp: u64,
-    //     peer_id: &str,
-    //     current_timestamp: u64,
-    //     pinned: bool,
-    //     weight: u32,
-    //     cp: &CallParameters,
-    // ) {
-    //     let result =
-    //         registry.get_key_metadata_cp(key.to_string(), current_timestamp.clone(), cp.clone());
-    //     assert!(result.success, "{}", result.error);
-    //     assert_eq!(result.key.key, key.clone());
-    //     assert_eq!(result.key.peer_id, peer_id.clone());
-    //     assert_eq!(result.key.timestamp_created, timestamp);
-    //     assert_eq!(result.key.pinned, pinned);
-    //     assert_eq!(result.key.weight, weight);
-    // }
-    //
-    // fn register_key_and_check(
-    //     registry: &mut ServiceInterface,
-    //     key: &str,
-    //     timestamp: u64,
-    //     pin: bool,
-    //     weight: u32,
-    //     cp: &CallParameters,
-    // ) {
-    //     let result = registry.register_key_cp(
-    //         key.to_string(),
-    //         timestamp.clone(),
-    //         pin.clone(),
-    //         weight.clone(),
-    //         cp.clone(),
-    //     );
-    //
-    //     assert!(result.success, "{}", result.error);
-    //
-    //     check_key_metadata(
-    //         registry,
-    //         key,
-    //         timestamp,
-    //         &cp.init_peer_id,
-    //         timestamp,
-    //         pin,
-    //         weight,
-    //         cp,
-    //     );
-    // }
-    //
-    // fn republish_key_and_check(
-    //     registry: &mut ServiceInterface,
-    //     key: &Key,
-    //     timestamp: u64,
-    //     cp: &CallParameters,
-    // ) {
-    //     let result = registry.republish_key_cp(key.clone(), timestamp, cp.clone());
-    //
-    //     assert!(result.success, "{}", result.error);
-    //
-    //     check_key_metadata(
-    //         registry,
-    //         &key.key,
-    //         key.timestamp_created,
-    //         &key.peer_id,
-    //         timestamp,
-    //         false,
-    //         key.weight,
-    //         cp,
-    //     );
-    // }
 
-    // #[test]
-    // fn register_key() {
-    //     let mut registry = ServiceInterface::new();
-    //     clear_env();
-    //     register_key_and_check(
-    //         &mut registry,
-    //         &"some_key".to_string(),
-    //         123u64,
-    //         false,
-    //         0u32,
-    //         &get_correct_timestamp_cp(1),
-    //     );
-    // }
+        let records = get_records(&mut registry, key_id.clone(), current_timestamp);
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.key_id, key_id);
+        assert_eq!(record.relay_id, relay_id);
+        assert_eq!(record.service_id, service_id);
+        assert_eq!(record.peer_id, kp.get_peer_id().to_base58());
+        assert_eq!(record.weight, weight);
+        assert_eq!(record.value, value);
+        assert_eq!(record.set_by, kp.get_peer_id().to_base58());
+    }
+
     //
     // #[test]
     // fn register_key_empty_cp() {
@@ -1800,101 +1731,7 @@ mod tests {
     //     assert_eq!(record.set_by, subscriber_peer_id);
     // }
     //
-    // // checks evict_stale -> republish_key[values] -> clear_expired lifecycle
-    // #[test]
-    // fn evict_republish_clear_expired() {
-    //     let mut registry = ServiceInterface::new();
-    //     clear_env();
-    //     let key = "some_key".to_string();
-    //     let value = "some_value".to_string();
-    //     let stale_timestamp = 0u64;
-    //
-    //     // register key and put some value
-    //     register_key_and_check(
-    //         &mut registry,
-    //         &key,
-    //         stale_timestamp,
-    //         false,
-    //         8u32,
-    //         &get_correct_timestamp_cp(1),
-    //     );
-    //     put_value_and_check(
-    //         &mut registry,
-    //         &key,
-    //         &value,
-    //         stale_timestamp,
-    //         &vec![],
-    //         &vec![],
-    //         8u32,
-    //         &get_correct_timestamp_cp(2),
-    //     );
-    //
-    //     // increase timestamp to make value and key stale
-    //     let current_timestamp = stale_timestamp + DEFAULT_STALE_VALUE_AGE;
-    //
-    //     // retrieve values and keys to republish
-    //     let result = registry.evict_stale_cp(current_timestamp, get_correct_timestamp_cp(0));
-    //     assert!(result.success, "{}", result.error);
-    //
-    //     assert_eq!(result.results.len(), 1);
-    //
-    //     let item = &result.results[0];
-    //     assert_eq!(item.key.key, key);
-    //     assert_eq!(item.records.len(), 1);
-    //
-    //     let key_to_republish = item.key.clone();
-    //     let records_to_republish = item.records.clone();
-    //
-    //     let record = &item.records[0];
-    //     assert_eq!(record.value, value);
-    //     assert_eq!(record.timestamp_created, stale_timestamp);
-    //
-    //     // check that key not exists and values are empty (because node is neighbor to itself and should republish values to itself)
-    //     // get_values checks key existence
-    //     let result =
-    //         registry.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
-    //     assert!(!result.success);
-    //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
-    //
-    //     // republish key and values
-    //     let result = registry.republish_key_cp(
-    //         key_to_republish,
-    //         current_timestamp,
-    //         get_correct_timestamp_cp(1),
-    //     );
-    //     assert!(result.success, "{}", result.error);
-    //
-    //     let result = registry.republish_values_cp(
-    //         key.clone(),
-    //         records_to_republish.clone(),
-    //         current_timestamp,
-    //         get_correct_timestamp_cp(2),
-    //     );
-    //     assert!(result.success, "{}", result.error);
-    //
-    //     // check values' existence
-    //     let result =
-    //         registry.get_values_cp(key.clone(), current_timestamp, get_correct_timestamp_cp(1));
-    //     assert!(result.success, "{}", result.error);
-    //
-    //     assert_eq!(result.result.len(), 1);
-    //
-    //     // increase timestamp to make value and key expired
-    //     let expired_timestamp = current_timestamp + DEFAULT_EXPIRED_VALUE_AGE;
-    //
-    //     // clear expired values and keys
-    //     let result = registry.clear_expired_cp(expired_timestamp, get_correct_timestamp_cp(0));
-    //     assert!(result.success, "{}", result.error);
-    //     assert_eq!(result.count_keys, 1);
-    //     assert_eq!(result.count_values, 1);
-    //
-    //     // check that values and keys not exists anymore (get_values checks key existence)
-    //     let result =
-    //         registry.get_values_cp(key.clone(), expired_timestamp, get_correct_timestamp_cp(1));
-    //
-    //     assert!(!result.success);
-    //     assert_eq!(result.error, f!("Requested key {key} does not exist"));
-    // }
+
     //
     // #[test]
     // pub fn sql_injection_test() {

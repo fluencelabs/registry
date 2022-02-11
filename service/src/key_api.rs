@@ -15,7 +15,7 @@
  */
 use crate::error::ServiceError;
 use crate::key::Key;
-use crate::misc::check_weight_peer_id;
+use crate::misc::check_weight_result;
 use crate::results::{DhtResult, GetKeyMetadataResult, RegisterKeyResult};
 use crate::storage_impl::get_storage;
 use crate::tetraplets_checkers::{check_timestamp_tetraplets, check_weight_tetraplets};
@@ -52,13 +52,13 @@ pub fn register_key(
 ) -> RegisterKeyResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&call_parameters, 5)?;
+        check_weight_tetraplets(&call_parameters, 5, 0)?;
         check_timestamp_tetraplets(&call_parameters, 6)?;
         let peer_id = peer_id
             .get(0)
             .unwrap_or(&call_parameters.init_peer_id)
             .clone();
-        check_weight_peer_id(&peer_id, &weight)?;
+        check_weight_result(&peer_id, &weight)?;
         let key = Key::new(
             key,
             peer_id,
@@ -98,8 +98,8 @@ pub fn get_key_metadata(key_id: String, current_timestamp_sec: u64) -> GetKeyMet
 pub fn republish_key(mut key: Key, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&call_parameters, 1)?;
-        check_weight_peer_id(&key.peer_id, &weight)?;
+        check_weight_tetraplets(&call_parameters, 1, 0)?;
+        check_weight_result(&key.peer_id, &weight)?;
         check_timestamp_tetraplets(&call_parameters, 2)?;
         key.verify(current_timestamp_sec)?;
 

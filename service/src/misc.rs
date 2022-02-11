@@ -34,7 +34,7 @@ pub fn extract_public_key(peer_id: String) -> Result<PublicKey, ServiceError> {
     .map_err(ServiceError::PublicKeyDecodeError)
 }
 
-pub fn check_weight_peer_id(peer_id: &str, weight: &WeightResult) -> Result<(), ServiceError> {
+pub fn check_weight_result(peer_id: &str, weight: &WeightResult) -> Result<(), ServiceError> {
     (weight.success && weight.peer_id.eq(peer_id)).as_result(
         (),
         ServiceError::InvalidWeightPeerId(peer_id.to_string(), weight.peer_id.clone()),

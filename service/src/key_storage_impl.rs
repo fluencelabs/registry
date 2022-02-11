@@ -31,7 +31,7 @@ impl Storage {
                 key TEXT,
                 peer_id TEXT,
                 timestamp_created INTEGER,
-                signature TEXT,
+                signature BLOB NOT NULL,
                 timestamp_published INTEGER,
                 pinned INTEGER,
                 weight INTEGER
@@ -84,14 +84,12 @@ impl Storage {
          "))?;
 
         let pinned = if key.pinned { 1 } else { 0 } as i64;
+        println!("{}", bs58::encode(&key.signature).into_string());
         statement.bind(1, &Value::String(key.key_id))?;
         statement.bind(2, &Value::String(key.key))?;
         statement.bind(3, &Value::String(key.peer_id))?;
         statement.bind(4, &Value::Integer(key.timestamp_created as i64))?;
-        statement.bind(
-            5,
-            &Value::String(bs58::encode(&key.signature).into_string()),
-        )?;
+        statement.bind(5, &Value::Binary(key.signature.clone()))?;
         statement.bind(6, &Value::Integer(key.timestamp_published as i64))?;
         statement.bind(7, &Value::Integer(pinned))?;
         statement.bind(8, &Value::Integer(key.weight as i64))?;
@@ -206,9 +204,7 @@ pub fn read_key(statement: &Statement) -> Result<Key, ServiceError> {
         key: statement.read::<String>(1)?,
         peer_id: statement.read::<String>(2)?,
         timestamp_created: statement.read::<i64>(3)? as u64,
-        signature: bs58::decode(&statement.read::<String>(4)?)
-            .into_vec()
-            .map_err(|_| InternalError("".to_string()))?,
+        signature: statement.read::<Vec<u8>>(4)?,
         timestamp_published: statement.read::<i64>(5)? as u64,
         pinned: statement.read::<i64>(6)? != 0,
         weight: statement.read::<i64>(7)? as u32,

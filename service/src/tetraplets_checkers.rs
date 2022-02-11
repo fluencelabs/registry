@@ -66,13 +66,14 @@ pub(crate) fn check_host_value_tetraplets(
 pub(crate) fn check_weight_tetraplets(
     call_parameters: &CallParameters,
     arg_number: usize,
+    index: usize,
 ) -> Result<(), ServiceError> {
     let tetraplets = call_parameters
         .tetraplets
         .get(arg_number)
         .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     let tetraplet = tetraplets
-        .get(0)
+        .get(index)
         .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     (tetraplet.service_id == TRUSTED_WEIGHT_SERVICE_ID
         && tetraplet.function_name == TRUSTED_WEIGHT_FUNCTION_NAME

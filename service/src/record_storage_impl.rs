@@ -35,7 +35,7 @@ impl Storage {
                 relay_id TEXT,
                 service_id TEXT,
                 timestamp_created INTEGER,
-                signature TEXT,
+                signature BLOB NOT NULL,
                 weight INTEGER,
                 PRIMARY KEY (key_id, peer_id, set_by)
             );
@@ -85,10 +85,7 @@ impl Storage {
         statement.bind(5, &Value::String(from_custom_option(record.relay_id)))?;
         statement.bind(6, &Value::String(from_custom_option(record.service_id)))?;
         statement.bind(7, &Value::Integer(record.timestamp_created as i64))?;
-        statement.bind(
-            8,
-            &Value::String(bs58::encode(&record.signature).into_string()),
-        )?;
+        statement.bind(8, &Value::Binary(record.signature))?;
         statement.bind(9, &Value::Integer(record.weight as i64))?;
         statement.next().map(drop)?;
 
@@ -246,9 +243,7 @@ pub fn read_record(statement: &Statement) -> Result<Record, ServiceError> {
         relay_id: get_custom_option(statement.read::<String>(4)?),
         service_id: get_custom_option(statement.read::<String>(5)?),
         timestamp_created: statement.read::<i64>(6)? as u64,
-        signature: bs58::decode(&statement.read::<String>(7)?)
-            .into_vec()
-            .map_err(|_| InternalError("".to_string()))?,
+        signature: statement.read::<Vec<u8>>(7)?,
         weight: statement.read::<i64>(8)? as u32,
     })
 }

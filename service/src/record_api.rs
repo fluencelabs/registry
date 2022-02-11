@@ -16,7 +16,8 @@
 use boolinator::Boolinator;
 
 use crate::error::ServiceError;
-use crate::misc::check_weight_peer_id;
+use crate::error::ServiceError::MissingRecordWeight;
+use crate::misc::check_weight_result;
 use crate::record::Record;
 use crate::record_storage_impl::merge_records;
 use crate::results::{
@@ -62,9 +63,9 @@ pub fn put_record(
 ) -> DhtResult {
     wrapped_try(|| {
         let cp = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&cp, 6)?;
+        check_weight_tetraplets(&cp, 6, 0)?;
         check_timestamp_tetraplets(&cp, 7)?;
-        check_weight_peer_id(&cp.init_peer_id, &weight)?;
+        check_weight_result(&cp.init_peer_id, &weight)?;
         let record = Record {
             key_id,
             value,
@@ -117,9 +118,9 @@ pub fn put_host_record(
 ) -> PutHostRecordResult {
     wrapped_try(|| {
         let cp = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&cp, 6)?;
+        check_weight_tetraplets(&cp, 6, 0)?;
         check_timestamp_tetraplets(&cp, 7)?;
-        check_weight_peer_id(&cp.init_peer_id, &weight)?;
+        check_weight_result(&cp.init_peer_id, &weight)?;
         let record = Record {
             key_id,
             value,
@@ -161,8 +162,8 @@ pub fn propagate_host_record(
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_host_value_tetraplets(&call_parameters, 0, &record)?;
         check_timestamp_tetraplets(&call_parameters, 1)?;
-        check_weight_tetraplets(&call_parameters, 2)?;
-        check_weight_peer_id(&record.peer_id, &weight)?;
+        check_weight_tetraplets(&call_parameters, 2, 0)?;
+        check_weight_result(&record.peer_id, &weight)?;
 
         record.weight = weight.weight;
         let storage = get_storage()?;
@@ -193,7 +194,7 @@ pub fn get_records(key_id: String, current_timestamp_sec: u64) -> GetValuesResul
 /// If the key exists, then merge new records with existing (last-write-wins) and put
 #[marine]
 pub fn republish_records(
-    records: Vec<Record>,
+    mut records: Vec<Record>,
     weights: Vec<WeightResult>,
     current_timestamp_sec: u64,
 ) -> RepublishValuesResult {
@@ -206,8 +207,15 @@ pub fn republish_records(
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&call_parameters, 2)?;
 
-        for record in records.iter() {
+        for (i, mut record) in records.iter_mut().enumerate() {
             record.verify(current_timestamp_sec)?;
+            check_weight_tetraplets(&call_parameters, 1, i)?;
+            let weight_result = weights.get(i).ok_or(MissingRecordWeight(
+                record.peer_id.clone(),
+                record.set_by.clone(),
+            ))?;
+            check_weight_result(&record.set_by, weight_result)?;
+            record.weight = weight_result.weight;
             if record.key_id != key_id {
                 return Err(ServiceError::RecordsPublishingError);
             }

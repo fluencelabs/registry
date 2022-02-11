@@ -75,4 +75,6 @@ pub enum ServiceError {
         #[source]
         DecodingError,
     ),
+    #[error("Weight for record with peer_id {0} and set_by {1} is missing ")]
+    MissingRecordWeight(String, String),
 }
