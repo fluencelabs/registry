@@ -24,10 +24,17 @@ use sha2::{Digest, Sha256};
 #[derive(Default, Clone)]
 pub struct Key {
     pub key_id: String,
-    pub key: String,
+    pub label: String,
     pub peer_id: String,
     pub timestamp_created: u64,
+    pub challenge: Vec<u8>,
+    pub challenge_type: String,
     pub signature: Vec<u8>,
+}
+
+#[derive(Default, Clone)]
+pub struct KeyInternal {
+    pub key: Key,
     pub timestamp_published: u64,
     pub pinned: bool,
     pub weight: u32,
@@ -35,25 +42,23 @@ pub struct Key {
 
 impl Key {
     pub fn new(
-        key: String,
+        label: String,
         peer_id: String,
         timestamp_created: u64,
+        challenge: Vec<u8>,
+        challenge_type: String,
         signature: Vec<u8>,
-        timestamp_published: u64,
-        pinned: bool,
-        weight: u32,
     ) -> Self {
-        let key_id = Self::get_key_id(&key, &peer_id);
+        let key_id = Self::get_key_id(&label, &peer_id);
 
         Self {
             key_id,
-            key,
+            label,
             peer_id,
             timestamp_created,
+            challenge,
+            challenge_type,
             signature,
-            timestamp_published,
-            pinned,
-            weight,
         }
     }
 
@@ -61,11 +66,13 @@ impl Key {
         format!("{}{}", key, peer_id)
     }
 
-    pub fn signature_bytes(key: String, peer_id: String, timestamp_created: u64) -> Vec<u8> {
+    pub fn signature_bytes(&self) -> Vec<u8> {
         let mut metadata = Vec::new();
-        metadata.extend(key.as_bytes());
-        metadata.extend(peer_id.as_bytes());
-        metadata.extend(timestamp_created.to_le_bytes());
+        metadata.extend(self.label.as_bytes());
+        metadata.extend(self.peer_id.as_bytes());
+        metadata.extend(self.timestamp_created.to_le_bytes());
+        metadata.extend(&self.challenge);
+        metadata.extend(self.challenge_type.as_bytes());
 
         let mut hasher = Sha256::new();
         hasher.update(metadata);
@@ -82,13 +89,9 @@ impl Key {
 
     pub fn verify_signature(&self) -> Result<(), ServiceError> {
         let pk = extract_public_key(self.peer_id.clone())?;
-        let bytes = Self::signature_bytes(
-            self.key.clone(),
-            self.peer_id.clone(),
-            self.timestamp_created,
-        );
+        let bytes = self.signature_bytes();
         let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
         pk.verify(&bytes, &signature)
-            .map_err(|e| ServiceError::InvalidKeySignature(self.key.clone(), e))
+            .map_err(|e| ServiceError::InvalidKeySignature(self.label.clone(), e))
     }
 }

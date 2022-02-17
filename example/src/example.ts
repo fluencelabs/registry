@@ -10,12 +10,12 @@ async function main() {
     console.log("Will create topic", topic);
     // create topic (if not exists) and subscribe on it
     let relay = Fluence.getStatus().relayPeerId;
-    await initTopicAndSubscribeBlocking(
-      topic, value, relay, null, 
+    let route_id = await initTopicAndSubscribeBlocking(
+      topic, value, relay, null,
       (s) => console.log(`node ${s} saved the record`)
     );
     // find other peers subscribed to that topic
-    let subscribers = await findSubscribers(topic);
+    let subscribers = await findSubscribers(route_id);
     console.log("found subscribers:", subscribers);
 }
 

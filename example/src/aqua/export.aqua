@@ -1,3 +1,4 @@
+module Export
 import initTopicAndSubscribeBlocking, findSubscribers from "@fluencelabs/registry/pubsub.aqua"
 
 export initTopicAndSubscribeBlocking, findSubscribers

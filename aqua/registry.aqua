@@ -1,0 +1,96 @@
+module Registry declares *
+
+data ClearExpiredResult:
+  success: bool
+  error: string
+  count_keys: u64
+  count_values: u64
+
+data DhtResult:
+  success: bool
+  error: string
+
+data Key:
+  key_id: string
+  label: string
+  peer_id: string
+  timestamp_created: u64
+  challenge: []u8
+  challenge_type: string
+  signature: []u8
+
+data Record:
+  key_id: string
+  value: string
+  peer_id: string
+  set_by: string
+  relay_id: []string
+  service_id: []string
+  timestamp_created: u64
+  solution: []u8
+  signature: []u8
+
+data EvictStaleItem:
+  key: Key
+  records: []Record
+
+data EvictStaleResult:
+  success: bool
+  error: string
+  results: []EvictStaleItem
+
+data GetKeyMetadataResult:
+  success: bool
+  error: string
+  key: Key
+
+data GetValuesResult:
+  success: bool
+  error: string
+  result: []Record
+
+data MergeResult:
+  success: bool
+  error: string
+  result: []Record
+
+data PutHostRecordResult:
+  success: bool
+  error: string
+  value: []Record
+
+data RegisterKeyResult:
+  success: bool
+  error: string
+  key_id: string
+
+data RepublishValuesResult:
+  success: bool
+  error: string
+  updated: u64
+
+data WeightResult:
+  success: bool
+  weight: u32
+  peer_id: string
+  error: string
+
+service Registry("registry"):
+  clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult
+  clear_host_record(key_id: string, current_timestamp_sec: u64) -> DhtResult
+  evict_stale(current_timestamp_sec: u64) -> EvictStaleResult
+  get_host_record_bytes(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8) -> []u8
+  get_key_bytes(label: string, peer_id: []string, timestamp_created: u64, challenge: []u8, challenge_type: string) -> []u8
+  get_key_id(key: string, peer_id: string) -> string
+  get_key_metadata(key_id: string, current_timestamp_sec: u64) -> GetKeyMetadataResult
+  get_record_bytes(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8) -> []u8
+  get_records(key_id: string, current_timestamp_sec: u64) -> GetValuesResult
+  merge_two(a: []Record, b: []Record) -> MergeResult
+  propagate_host_record(set_host_value: PutHostRecordResult, current_timestamp_sec: u64, weight: WeightResult) -> DhtResult
+  put_host_record(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8, signature: []u8, weight: WeightResult, current_timestamp_sec: u64) -> PutHostRecordResult
+  put_record(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8, signature: []u8, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult
+  register_key(key: string, peer_id: []string, timestamp_created: u64, challenge: []u8, challenge_type: string, signature: []u8, pin: bool, weight: WeightResult, current_timestamp_sec: u64) -> RegisterKeyResult
+  republish_key(key: Key, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult
+  republish_records(records: []Record, weights: []WeightResult, current_timestamp_sec: u64) -> RepublishValuesResult
+  set_expired_timeout(timeout_sec: u64)  
+  set_stale_timeout(timeout_sec: u64)  

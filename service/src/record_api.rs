@@ -18,7 +18,7 @@ use boolinator::Boolinator;
 use crate::error::ServiceError;
 use crate::error::ServiceError::MissingRecordWeight;
 use crate::misc::check_weight_result;
-use crate::record::Record;
+use crate::record::{Record, RecordInternal};
 use crate::record_storage_impl::merge_records;
 use crate::results::{
     DhtResult, GetValuesResult, MergeResult, PutHostRecordResult, RepublishValuesResult,
@@ -37,17 +37,21 @@ pub fn get_record_bytes(
     relay_id: Vec<String>,
     service_id: Vec<String>,
     timestamp_created: u64,
+    solution: Vec<u8>,
 ) -> Vec<u8> {
     let cp = marine_rs_sdk::get_call_parameters();
-    Record::signature_bytes(
+    Record {
         key_id,
         value,
-        cp.init_peer_id.clone(),
-        cp.init_peer_id,
+        peer_id: cp.init_peer_id.clone(),
+        set_by: cp.init_peer_id,
         relay_id,
         service_id,
         timestamp_created,
-    )
+        solution,
+        ..Default::default()
+    }
+    .signature_bytes()
 }
 
 #[marine]
@@ -57,6 +61,7 @@ pub fn put_record(
     relay_id: Vec<String>,
     service_id: Vec<String>,
     timestamp_created: u64,
+    solution: Vec<u8>,
     signature: Vec<u8>,
     weight: WeightResult,
     current_timestamp_sec: u64,
@@ -74,14 +79,22 @@ pub fn put_record(
             relay_id,
             service_id,
             timestamp_created,
+            solution,
             signature,
-            weight: weight.weight,
         };
         record.verify(current_timestamp_sec)?;
 
         let storage = get_storage()?;
         storage.check_key_existence(&record.key_id)?;
-        storage.update_record(record, false).map(|_| {})
+        storage
+            .update_record(
+                RecordInternal {
+                    record,
+                    weight: weight.weight,
+                },
+                false,
+            )
+            .map(|_| {})
     })
     .into()
 }
@@ -93,17 +106,21 @@ pub fn get_host_record_bytes(
     relay_id: Vec<String>,
     service_id: Vec<String>,
     timestamp_created: u64,
+    solution: Vec<u8>,
 ) -> Vec<u8> {
     let cp = marine_rs_sdk::get_call_parameters();
-    Record::signature_bytes(
+    Record {
         key_id,
         value,
-        cp.host_id,
-        cp.init_peer_id,
+        peer_id: cp.host_id,
+        set_by: cp.init_peer_id,
         relay_id,
         service_id,
         timestamp_created,
-    )
+        solution,
+        ..Default::default()
+    }
+    .signature_bytes()
 }
 #[marine]
 pub fn put_host_record(
@@ -112,6 +129,7 @@ pub fn put_host_record(
     relay_id: Vec<String>,
     service_id: Vec<String>,
     timestamp_created: u64,
+    solution: Vec<u8>,
     signature: Vec<u8>,
     weight: WeightResult,
     current_timestamp_sec: u64,
@@ -129,14 +147,20 @@ pub fn put_host_record(
             relay_id,
             service_id,
             timestamp_created,
+            solution,
             signature,
-            weight: weight.weight,
         };
         record.verify(current_timestamp_sec)?;
 
         let storage = get_storage()?;
         storage.check_key_existence(&record.key_id)?;
-        storage.update_record(record.clone(), true)?;
+        storage.update_record(
+            RecordInternal {
+                record: record.clone(),
+                weight: weight.weight,
+            },
+            true,
+        )?;
 
         Ok(record)
     })
@@ -164,14 +188,17 @@ pub fn propagate_host_record(
         check_timestamp_tetraplets(&call_parameters, 1)?;
         check_weight_tetraplets(&call_parameters, 2, 0)?;
         check_weight_result(&record.peer_id, &weight)?;
+        let weight = weight.weight;
 
-        record.weight = weight.weight;
         let storage = get_storage()?;
         storage.check_key_existence(&record.key_id)?;
         storage.update_key_timestamp(&record.key_id, current_timestamp_sec)?;
 
         storage
-            .merge_and_update_records(record.key_id.clone(), vec![record])
+            .merge_and_update_records(
+                record.key_id.clone(),
+                vec![RecordInternal { record, weight }],
+            )
             .map(|_| ())
     })
     .into()
@@ -186,7 +213,9 @@ pub fn get_records(key_id: String, current_timestamp_sec: u64) -> GetValuesResul
         let storage = get_storage()?;
         storage.check_key_existence(&key_id)?;
         storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
-        storage.get_records(key_id)
+        storage
+            .get_records(key_id)
+            .map(|records| records.into_iter().map(|r| r.record).collect())
     })
     .into()
 }
@@ -194,7 +223,7 @@ pub fn get_records(key_id: String, current_timestamp_sec: u64) -> GetValuesResul
 /// If the key exists, then merge new records with existing (last-write-wins) and put
 #[marine]
 pub fn republish_records(
-    mut records: Vec<Record>,
+    records: Vec<Record>,
     weights: Vec<WeightResult>,
     current_timestamp_sec: u64,
 ) -> RepublishValuesResult {
@@ -206,8 +235,9 @@ pub fn republish_records(
         let key_id = records[0].key_id.clone();
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&call_parameters, 2)?;
+        let mut records_to_merge = vec![];
 
-        for (i, mut record) in records.iter_mut().enumerate() {
+        for (i, record) in records.into_iter().enumerate() {
             record.verify(current_timestamp_sec)?;
             check_weight_tetraplets(&call_parameters, 1, i)?;
             let weight_result = weights.get(i).ok_or(MissingRecordWeight(
@@ -215,15 +245,20 @@ pub fn republish_records(
                 record.set_by.clone(),
             ))?;
             check_weight_result(&record.set_by, weight_result)?;
-            record.weight = weight_result.weight;
             if record.key_id != key_id {
                 return Err(ServiceError::RecordsPublishingError);
             }
+
+            records_to_merge.push(RecordInternal {
+                record,
+                weight: weight_result.weight,
+            });
         }
+
         let storage = get_storage()?;
         storage.check_key_existence(&key_id)?;
         storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
-        storage.merge_and_update_records(key_id, records)
+        storage.merge_and_update_records(key_id, records_to_merge)
     })
     .into()
 }
@@ -250,5 +285,15 @@ pub fn clear_host_record(key_id: String, current_timestamp_sec: u64) -> DhtResul
 
 #[marine]
 pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
-    merge_records(a.into_iter().chain(b.into_iter()).collect()).into()
+    merge_records(
+        a.into_iter()
+            .chain(b.into_iter())
+            .map(|record| RecordInternal {
+                record,
+                ..Default::default()
+            })
+            .collect(),
+    )
+    .map(|recs| recs.into_iter().map(|r| r.record).collect())
+    .into()
 }

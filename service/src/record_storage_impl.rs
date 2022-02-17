@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use crate::defaults::{RECORDS_TABLE_NAME, VALUES_LIMIT};
 use crate::error::ServiceError;
 use crate::error::ServiceError::InternalError;
-use crate::record::Record;
+use crate::record::{Record, RecordInternal};
 use crate::storage_impl::{from_custom_option, get_custom_option, Storage};
 use marine_sqlite_connector::{State, Statement, Value};
 
@@ -35,6 +35,7 @@ impl Storage {
                 relay_id TEXT,
                 service_id TEXT,
                 timestamp_created INTEGER,
+                solution BLOB,
                 signature BLOB NOT NULL,
                 weight INTEGER,
                 PRIMARY KEY (key_id, peer_id, set_by)
@@ -45,27 +46,27 @@ impl Storage {
 
     /// Put value with caller peer_id if the key exists.
     /// If the value is NOT a host value and the key already has `VALUES_LIMIT` records, then a value with the smallest weight is removed and the new value is inserted instead.
-    pub fn update_record(&self, record: Record, host: bool) -> Result<(), ServiceError> {
-        let records_count = self.get_non_host_records_count_by_key(record.key_id.clone())?;
+    pub fn update_record(&self, record: RecordInternal, host: bool) -> Result<(), ServiceError> {
+        let records_count = self.get_non_host_records_count_by_key(record.record.key_id.clone())?;
 
         // check values limits for non-host values
         if !host && records_count >= VALUES_LIMIT {
             let min_weight_record =
-                self.get_min_weight_non_host_record_by_key(record.key_id.clone())?;
+                self.get_min_weight_non_host_record_by_key(record.record.key_id.clone())?;
 
             if min_weight_record.weight < record.weight
                 || (min_weight_record.weight == record.weight
-                    && min_weight_record.timestamp_created < record.timestamp_created)
+                    && min_weight_record.record.timestamp_created < record.record.timestamp_created)
             {
                 // delete the lightest record if the new one is heavier or newer
                 self.delete_record(
-                    min_weight_record.key_id,
-                    min_weight_record.peer_id,
-                    min_weight_record.set_by,
+                    min_weight_record.record.key_id,
+                    min_weight_record.record.peer_id,
+                    min_weight_record.record.set_by,
                 )?;
             } else {
                 // return error if limit is exceeded
-                return Err(ServiceError::ValuesLimitExceeded(record.key_id));
+                return Err(ServiceError::ValuesLimitExceeded(record.record.key_id));
             }
         }
 
@@ -73,20 +74,27 @@ impl Storage {
         Ok(())
     }
 
-    pub fn write_record(&self, record: Record) -> Result<(), ServiceError> {
+    pub fn write_record(&self, record: RecordInternal) -> Result<(), ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         ))?;
 
-        statement.bind(1, &Value::String(record.key_id))?;
-        statement.bind(2, &Value::String(record.value))?;
-        statement.bind(3, &Value::String(record.peer_id))?;
-        statement.bind(4, &Value::String(record.set_by))?;
-        statement.bind(5, &Value::String(from_custom_option(record.relay_id)))?;
-        statement.bind(6, &Value::String(from_custom_option(record.service_id)))?;
-        statement.bind(7, &Value::Integer(record.timestamp_created as i64))?;
-        statement.bind(8, &Value::Binary(record.signature))?;
-        statement.bind(9, &Value::Integer(record.weight as i64))?;
+        statement.bind(1, &Value::String(record.record.key_id))?;
+        statement.bind(2, &Value::String(record.record.value))?;
+        statement.bind(3, &Value::String(record.record.peer_id))?;
+        statement.bind(4, &Value::String(record.record.set_by))?;
+        statement.bind(
+            5,
+            &Value::String(from_custom_option(record.record.relay_id)),
+        )?;
+        statement.bind(
+            6,
+            &Value::String(from_custom_option(record.record.service_id)),
+        )?;
+        statement.bind(7, &Value::Integer(record.record.timestamp_created as i64))?;
+        statement.bind(8, &Value::Binary(record.record.solution))?;
+        statement.bind(9, &Value::Binary(record.record.signature))?;
+        statement.bind(10, &Value::Integer(record.weight as i64))?;
         statement.next().map(drop)?;
 
         Ok(())
@@ -112,7 +120,7 @@ impl Storage {
     fn get_min_weight_non_host_record_by_key(
         &self,
         key_id: String,
-    ) -> Result<Record, ServiceError> {
+    ) -> Result<RecordInternal, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
         // only only non-host values
@@ -179,7 +187,7 @@ impl Storage {
     pub fn merge_and_update_records(
         &self,
         key_id: String,
-        records: Vec<Record>,
+        records: Vec<RecordInternal>,
     ) -> Result<u64, ServiceError> {
         let records = merge_records(
             self.get_records(key_id)?
@@ -197,13 +205,13 @@ impl Storage {
         Ok(updated)
     }
 
-    pub fn get_records(&self, key_id: String) -> Result<Vec<Record>, ServiceError> {
+    pub fn get_records(&self, key_id: String) -> Result<Vec<RecordInternal>, ServiceError> {
         let mut statement = self.connection.prepare(
-            f!("SELECT key_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, signature, weight FROM {RECORDS_TABLE_NAME} \
+            f!("SELECT key_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, solution, signature, weight FROM {RECORDS_TABLE_NAME} \
                      WHERE key_id = ? ORDER BY weight DESC"))?;
         statement.bind(1, &Value::String(key_id))?;
 
-        let mut result: Vec<Record> = vec![];
+        let mut result: Vec<RecordInternal> = vec![];
 
         while let State::Row = statement.next()? {
             result.push(read_record(&statement)?)
@@ -234,30 +242,33 @@ impl Storage {
     }
 }
 
-pub fn read_record(statement: &Statement) -> Result<Record, ServiceError> {
-    Ok(Record {
-        key_id: statement.read::<String>(0)?,
-        value: statement.read::<String>(1)?,
-        peer_id: statement.read::<String>(2)?,
-        set_by: statement.read::<String>(3)?,
-        relay_id: get_custom_option(statement.read::<String>(4)?),
-        service_id: get_custom_option(statement.read::<String>(5)?),
-        timestamp_created: statement.read::<i64>(6)? as u64,
-        signature: statement.read::<Vec<u8>>(7)?,
-        weight: statement.read::<i64>(8)? as u32,
+pub fn read_record(statement: &Statement) -> Result<RecordInternal, ServiceError> {
+    Ok(RecordInternal {
+        record: Record {
+            key_id: statement.read::<String>(0)?,
+            value: statement.read::<String>(1)?,
+            peer_id: statement.read::<String>(2)?,
+            set_by: statement.read::<String>(3)?,
+            relay_id: get_custom_option(statement.read::<String>(4)?),
+            service_id: get_custom_option(statement.read::<String>(5)?),
+            timestamp_created: statement.read::<i64>(6)? as u64,
+            solution: statement.read::<Vec<u8>>(7)?,
+            signature: statement.read::<Vec<u8>>(8)?,
+        },
+        weight: statement.read::<i64>(9)? as u32,
     })
 }
 
 /// Merge values with same peer_id by timestamp_created (last-write-wins)
-pub fn merge_records(records: Vec<Record>) -> Result<Vec<Record>, ServiceError> {
+pub fn merge_records(records: Vec<RecordInternal>) -> Result<Vec<RecordInternal>, ServiceError> {
     // key is (peer_id, set_by)
-    let mut result: HashMap<(String, String), Record> = HashMap::new();
+    let mut result: HashMap<(String, String), RecordInternal> = HashMap::new();
 
     for rec in records.into_iter() {
-        let key = (rec.peer_id.clone(), rec.set_by.clone());
+        let key = (rec.record.peer_id.clone(), rec.record.set_by.clone());
 
         if let Some(other_rec) = result.get_mut(&key) {
-            if other_rec.timestamp_created < rec.timestamp_created {
+            if other_rec.record.timestamp_created < rec.record.timestamp_created {
                 *other_rec = rec;
             }
         } else {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 use crate::error::ServiceError;
-use crate::key::Key;
+use crate::key::{Key, KeyInternal};
 use crate::misc::check_weight_result;
 use crate::results::{DhtResult, GetKeyMetadataResult, RegisterKeyResult};
 use crate::storage_impl::get_storage;
@@ -23,20 +23,29 @@ use crate::{wrapped_try, WeightResult};
 use marine_rs_sdk::marine;
 
 #[marine]
-pub fn get_key_bytes(key: String, peer_id: Vec<String>, timestamp_created: u64) -> Vec<u8> {
-    Key::signature_bytes(
-        key,
-        peer_id
-            .get(0)
-            .unwrap_or(&marine_rs_sdk::get_call_parameters().init_peer_id)
-            .clone(),
+pub fn get_key_bytes(
+    label: String,
+    mut peer_id: Vec<String>,
+    timestamp_created: u64,
+    challenge: Vec<u8>,
+    challenge_type: String,
+) -> Vec<u8> {
+    Key {
+        label,
+        peer_id: peer_id
+            .pop()
+            .unwrap_or(marine_rs_sdk::get_call_parameters().init_peer_id),
         timestamp_created,
-    )
+        challenge,
+        challenge_type,
+        ..Default::default()
+    }
+    .signature_bytes()
 }
 
 #[marine]
-pub fn get_key_id(key: String, peer_id: String) -> String {
-    Key::get_key_id(&key, &peer_id)
+pub fn get_key_id(label: String, peer_id: String) -> String {
+    Key::get_key_id(&label, &peer_id)
 }
 
 /// register new key if not exists with caller peer_id, update if exists with same peer_id or return error
@@ -45,6 +54,8 @@ pub fn register_key(
     key: String,
     peer_id: Vec<String>,
     timestamp_created: u64,
+    challenge: Vec<u8>,
+    challenge_type: String,
     signature: Vec<u8>,
     pin: bool,
     weight: WeightResult,
@@ -63,17 +74,22 @@ pub fn register_key(
             key,
             peer_id,
             timestamp_created,
+            challenge,
+            challenge_type,
             signature,
-            0,
-            pin,
-            weight.weight,
         );
         key.verify(current_timestamp_sec)?;
 
         let key_id = key.key_id.clone();
+        let weight = weight.weight;
         let storage = get_storage()?;
         storage.update_key_timestamp(&key.key_id, current_timestamp_sec)?;
-        storage.update_key(key)?;
+        storage.update_key(KeyInternal {
+            key,
+            timestamp_published: 0,
+            pinned: pin,
+            weight,
+        })?;
 
         Ok(key_id)
     })
@@ -104,15 +120,16 @@ pub fn republish_key(mut key: Key, weight: WeightResult, current_timestamp_sec: 
         key.verify(current_timestamp_sec)?;
 
         // just to be sure
-        key.key_id = Key::get_key_id(&key.key, &key.peer_id);
+        key.key_id = Key::get_key_id(&key.label, &key.peer_id);
 
         let storage = get_storage()?;
         storage.update_key_timestamp(&key.key_id, current_timestamp_sec)?;
-        // Key.pinned is ignored in republish
-        key.pinned = false;
-        key.weight = weight.weight;
-        key.timestamp_published = 0;
-        match storage.update_key(key) {
+        match storage.update_key(KeyInternal {
+            key,
+            timestamp_published: 0,
+            pinned: false,
+            weight: weight.weight,
+        }) {
             // we should ignore this error for republish
             Err(ServiceError::KeyAlreadyExistsNewerTimestamp(_, _)) => Ok(()),
             other => other,

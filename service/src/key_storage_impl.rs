@@ -18,7 +18,7 @@ use crate::defaults::{KEYS_TABLE_NAME, KEYS_TIMESTAMPS_TABLE_NAME};
 
 use crate::error::ServiceError;
 use crate::error::ServiceError::{InternalError, KeyNotExists};
-use crate::key::Key;
+use crate::key::{Key, KeyInternal};
 use crate::storage_impl::Storage;
 use marine_sqlite_connector::{State, Statement, Value};
 
@@ -28,9 +28,11 @@ impl Storage {
             .execute(f!("
             CREATE TABLE IF NOT EXISTS {KEYS_TABLE_NAME} (
                 key_id TEXT PRIMARY KEY,
-                key TEXT,
+                label TEXT,
                 peer_id TEXT,
                 timestamp_created INTEGER,
+                challenge BLOB,
+                challenge_type TEXT,
                 signature BLOB NOT NULL,
                 timestamp_published INTEGER,
                 pinned INTEGER,
@@ -66,7 +68,7 @@ impl Storage {
 
     pub fn get_key(&self, key_id: String) -> Result<Key, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-        "SELECT key_id, key, peer_id, timestamp_created, signature, timestamp_published, pinned, weight \
+            "SELECT key_id, label, peer_id, timestamp_created, challenge, challenge_type, signature \
                               FROM {KEYS_TABLE_NAME} WHERE key_id = ?"
         ))?;
         statement.bind(1, &Value::String(key_id.clone()))?;
@@ -78,31 +80,32 @@ impl Storage {
         }
     }
 
-    pub fn write_key(&self, key: Key) -> Result<(), ServiceError> {
+    pub fn write_key(&self, key: KeyInternal) -> Result<(), ServiceError> {
         let mut statement = self.connection.prepare(f!("
-             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
          "))?;
 
         let pinned = if key.pinned { 1 } else { 0 } as i64;
-        println!("{}", bs58::encode(&key.signature).into_string());
-        statement.bind(1, &Value::String(key.key_id))?;
-        statement.bind(2, &Value::String(key.key))?;
-        statement.bind(3, &Value::String(key.peer_id))?;
-        statement.bind(4, &Value::Integer(key.timestamp_created as i64))?;
-        statement.bind(5, &Value::Binary(key.signature.clone()))?;
-        statement.bind(6, &Value::Integer(key.timestamp_published as i64))?;
-        statement.bind(7, &Value::Integer(pinned))?;
-        statement.bind(8, &Value::Integer(key.weight as i64))?;
+        statement.bind(1, &Value::String(key.key.key_id))?;
+        statement.bind(2, &Value::String(key.key.label))?;
+        statement.bind(3, &Value::String(key.key.peer_id))?;
+        statement.bind(4, &Value::Integer(key.key.timestamp_created as i64))?;
+        statement.bind(5, &Value::Binary(key.key.challenge))?;
+        statement.bind(6, &Value::String(key.key.challenge_type))?;
+        statement.bind(7, &Value::Binary(key.key.signature))?;
+        statement.bind(8, &Value::Integer(key.timestamp_published as i64))?;
+        statement.bind(9, &Value::Integer(pinned))?;
+        statement.bind(10, &Value::Integer(key.weight as i64))?;
         statement.next()?;
         Ok(())
     }
 
-    pub fn update_key(&self, key: Key) -> Result<(), ServiceError> {
-        if let Ok(existing_key) = self.get_key(key.key_id.clone()) {
-            if existing_key.timestamp_created > key.timestamp_created {
+    pub fn update_key(&self, key: KeyInternal) -> Result<(), ServiceError> {
+        if let Ok(existing_key) = self.get_key(key.key.key_id.clone()) {
+            if existing_key.timestamp_created > key.key.timestamp_created {
                 return Err(ServiceError::KeyAlreadyExistsNewerTimestamp(
-                    key.key,
-                    key.peer_id,
+                    key.key.label,
+                    key.key.peer_id,
                 ));
             }
         }
@@ -130,16 +133,16 @@ impl Storage {
         }
     }
 
-    pub fn get_stale_keys(&self, stale_timestamp: u64) -> Result<Vec<Key>, ServiceError> {
+    pub fn get_stale_keys(&self, stale_timestamp: u64) -> Result<Vec<KeyInternal>, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-        "SELECT key, peer_id, timestamp_created, signature, timestamp_published, pinned, weight \
+            "SELECT label, peer_id, timestamp_created, challenge, challenge_type, signature, timestamp_published, pinned, weight \
                               FROM {KEYS_TABLE_NAME} WHERE timestamp_published <= ?"
         ))?;
         statement.bind(1, &Value::Integer(stale_timestamp as i64))?;
 
-        let mut stale_keys: Vec<Key> = vec![];
+        let mut stale_keys: Vec<KeyInternal> = vec![];
         while let State::Row = statement.next()? {
-            stale_keys.push(read_key(&statement)?);
+            stale_keys.push(read_internal_key(&statement)?);
         }
 
         Ok(stale_keys)
@@ -162,7 +165,7 @@ impl Storage {
     /// not pinned only
     pub fn get_expired_keys(&self, expired_timestamp: u64) -> Result<Vec<Key>, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-        "SELECT key, peer_id, timestamp_created, signature, timestamp_published, pinned, weight \
+            "SELECT label, peer_id, timestamp_created, challenge, challenge_type, signature \
                               FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= ? and pinned != 1"
         ))?;
         statement.bind(1, &Value::Integer(expired_timestamp as i64))?;
@@ -201,12 +204,20 @@ impl Storage {
 pub fn read_key(statement: &Statement) -> Result<Key, ServiceError> {
     Ok(Key {
         key_id: statement.read::<String>(0)?,
-        key: statement.read::<String>(1)?,
+        label: statement.read::<String>(1)?,
         peer_id: statement.read::<String>(2)?,
         timestamp_created: statement.read::<i64>(3)? as u64,
-        signature: statement.read::<Vec<u8>>(4)?,
-        timestamp_published: statement.read::<i64>(5)? as u64,
-        pinned: statement.read::<i64>(6)? != 0,
-        weight: statement.read::<i64>(7)? as u32,
+        challenge: statement.read::<Vec<u8>>(4)?,
+        challenge_type: statement.read::<String>(5)?,
+        signature: statement.read::<Vec<u8>>(6)?,
+    })
+}
+
+pub fn read_internal_key(statement: &Statement) -> Result<KeyInternal, ServiceError> {
+    Ok(KeyInternal {
+        key: read_key(statement)?,
+        timestamp_published: statement.read::<i64>(7)? as u64,
+        pinned: statement.read::<i64>(8)? != 0,
+        weight: statement.read::<i64>(9)? as u32,
     })
 }

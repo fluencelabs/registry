@@ -30,43 +30,42 @@ pub struct Record {
     pub relay_id: Vec<String>,
     pub service_id: Vec<String>,
     pub timestamp_created: u64,
+    pub solution: Vec<u8>,
     pub signature: Vec<u8>,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct RecordInternal {
+    pub record: Record,
     pub weight: u32,
 }
 
 impl Record {
-    pub fn signature_bytes(
-        key_id: String,
-        value: String,
-        peer_id: String,
-        set_by: String,
-        relay_id: Vec<String>,
-        service_id: Vec<String>,
-        timestamp_created: u64,
-    ) -> Vec<u8> {
+    pub fn signature_bytes(&self) -> Vec<u8> {
         let mut metadata = Vec::new();
-        metadata.extend(key_id.as_bytes());
-        metadata.extend(value.as_bytes());
-        metadata.extend(peer_id.as_bytes());
-        metadata.extend(set_by.as_bytes());
+        metadata.extend(self.key_id.as_bytes());
+        metadata.extend(self.value.as_bytes());
+        metadata.extend(self.peer_id.as_bytes());
+        metadata.extend(self.set_by.as_bytes());
 
-        if !relay_id.is_empty() {
-            metadata.extend(relay_id.len().to_le_bytes());
+        if !self.relay_id.is_empty() {
+            metadata.extend(self.relay_id.len().to_le_bytes());
 
-            for id in relay_id {
+            for id in &self.relay_id {
                 metadata.extend(id.as_bytes());
             }
         }
 
-        if !service_id.is_empty() {
-            metadata.extend(service_id.len().to_le_bytes());
+        if !self.service_id.is_empty() {
+            metadata.extend(self.service_id.len().to_le_bytes());
 
-            for id in service_id {
+            for id in &self.service_id {
                 metadata.extend(id.as_bytes());
             }
         }
 
-        metadata.extend(timestamp_created.to_le_bytes());
+        metadata.extend(self.timestamp_created.to_le_bytes());
+        metadata.extend(&self.solution);
         let mut hasher = Sha256::new();
         hasher.update(metadata);
         hasher.finalize().to_vec()
@@ -78,15 +77,7 @@ impl Record {
         }
 
         let pk = extract_public_key(self.peer_id.clone())?;
-        let bytes = Self::signature_bytes(
-            self.key_id.clone(),
-            self.value.clone(),
-            self.peer_id.clone(),
-            self.set_by.clone(),
-            self.relay_id.clone(),
-            self.service_id.clone(),
-            self.timestamp_created,
-        );
+        let bytes = self.signature_bytes();
         let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
         pk.verify(&bytes, &signature).map_err(|e| {
             ServiceError::InvalidRecordSignature(self.key_id.clone(), self.value.clone(), e)

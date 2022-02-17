@@ -1,35 +1,12 @@
 module Registry.PubSub declares *
 
 import "registry.aqua"
+import "registry-api.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
-import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 func get_route_id(topic: string, peer_id: string) -> string:
   route_id <- Registry.get_key_id(topic, peer_id)
   <- route_id
-
-func get_key_signature(topic: string) -> []u8:
-  on HOST_PEER_ID:
-    t <- Peer.timestamp_sec()
-    bytes <- Registry.get_key_bytes(topic, nil, t)
-  signature <- Sig.sign(bytes)
-  <- signature.signature!
-
-func get_record_signature(topic: string, value: string, relay_id: ?PeerId, service_id: ?string) -> []u8:
-  on HOST_PEER_ID:
-      t <- Peer.timestamp_sec()
-      route_id <- get_route_id(topic, %init_peer_id%)
-      bytes <- Registry.get_record_bytes(route_id, value, relay_id, service_id, t)
-  signature <- Sig.sign(bytes)
-  <- signature.signature!
-
-func get_host_record_signature(topic: string, value: string, relay_id: ?PeerId, service_id: ?string) -> []u8:
-  on HOST_PEER_ID:
-      t <- Peer.timestamp_sec()
-      route_id <- get_route_id(topic, %init_peer_id%)
-      bytes <- Registry.get_host_record_bytes(route_id, value, relay_id, service_id, t)
-  signature <- Sig.sign(bytes)
-  <- signature.signature!
 
 -- Get peers closest to the topic's hash in Kademlia network
 -- These peers are expected to store list of subscribers of this topic
@@ -48,7 +25,8 @@ func removeSubscriber(route_id: string):
 
 -- Create a topic: register it on the closest peers
 func initTopic(topic: string) -> string:
-  signature <- get_key_signature(topic)
+  t <- Peer.timestamp_sec()
+  signature <- get_key_signature(topic, t)
 
   on HOST_PEER_ID:
     route_id <- get_route_id(topic, %init_peer_id%)
@@ -56,16 +34,15 @@ func initTopic(topic: string) -> string:
     for n <- nodes par:
       on n:
         try:
-          t <- Peer.timestamp_sec()
-          key_weight <- TrustGraph.get_weight(%init_peer_id%, t)
-          Registry.register_key(topic, nil, t, signature, false, key_weight, t)
+          result <- register_key(topic, t, signature, false)
   <- route_id
 
 -- Create a topic and subscribe to it
 -- %init_peer_id% (current client) will become a subscriber
 func initTopicAndSubscribe(topic: string, value: string, relay_id: ?PeerId, service_id: ?string) -> string:
-  key_signature <- get_key_signature(topic)
-  record_signature <- get_record_signature(topic, value, relay_id, service_id)
+  t <- Peer.timestamp_sec()
+  key_signature <- get_key_signature(topic, t)
+  record_signature <- get_record_signature(topic, value, relay_id, service_id, t)
 
   on HOST_PEER_ID:
     route_id <- get_route_id(topic, %init_peer_id%)
@@ -73,22 +50,21 @@ func initTopicAndSubscribe(topic: string, value: string, relay_id: ?PeerId, serv
     for n <- nodes par:
       on n:
         try:
-          t <- Peer.timestamp_sec()
-          weight <- TrustGraph.get_weight(%init_peer_id%, t)
-          Registry.register_key(topic, nil, t, key_signature, false, weight, t)
-          Registry.put_record(route_id, value, relay_id, service_id, t, record_signature, weight, t)
+          register_key(topic, t, key_signature, false)
+          put_record(route_id, value, relay_id, service_id, t, record_signature)
   <- route_id
 
 -- Create a topic and subscribe to it
 -- %init_peer_id% (current client) will become a subscriber
 -- In contrast with non-blocking version, waits for at least a single write to succeed
 func initTopicAndSubscribeBlocking(
-  topic: string, value: string, 
-  relay_id: ?PeerId, service_id: ?string, 
+  topic: string, value: string,
+  relay_id: ?PeerId, service_id: ?string,
   progress: string -> ()
-) -> DhtResult:
-  key_signature <- get_key_signature(topic)
-  record_signature <- get_record_signature(topic, value, relay_id, service_id)
+) -> string:
+  t <- Peer.timestamp_sec()
+  key_signature <- get_key_signature(topic, t)
+  record_signature <- get_record_signature(topic, value, relay_id, service_id, t)
 
   results: *DhtResult
   on HOST_PEER_ID:
@@ -97,39 +73,37 @@ func initTopicAndSubscribeBlocking(
     for n <- nodes par:
       on n:
         try:
-          t <- Peer.timestamp_sec()
-          weight <- TrustGraph.get_weight(%init_peer_id%, t)
-          Registry.register_key(topic, nil, t, key_signature, false, weight, t)
-          result <- Registry.put_record(route_id, value, relay_id, service_id, t, record_signature, weight, t)
+          register_key(topic, t, key_signature, false)
+          result <- put_record(route_id, value, relay_id, service_id, t, record_signature)
           if result.success:
             results <<- result
             progress(n)
-  <- results!0
+  join results[1]
+  <- route_id
 
 -- Create a topic and make the given node a subscriber to it
 func initTopicAndSubscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string) -> string:
-  key_signature <- get_key_signature(topic)
-  record_signature <- get_host_record_signature(topic, value, nil, service_id)
+  t <- Peer.timestamp_sec()
+  key_signature <- get_key_signature(topic, t)
+  record_signature <- get_host_record_signature(topic, value, nil, service_id, t)
+
   on subscriber_node_id:
     route_id <- get_route_id(topic, %init_peer_id%)
-    t <- Peer.timestamp_sec()
-    weight <- TrustGraph.get_weight(%init_peer_id%, t)
-    Registry.register_key(topic, nil, t, key_signature, false, weight, t)
-    r <- Registry.put_host_record(route_id, value, nil, service_id, t, record_signature, weight, t)
+    register_key(topic, t, key_signature, false)
+    r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          tt <- Peer.timestamp_sec()
-          w <- TrustGraph.get_weight(%init_peer_id%, tt)
-          Registry.register_key(topic, nil, t, key_signature, false, w, tt)
-          Registry.propagate_host_record(r, tt, w)
+          register_key(topic, t, key_signature, false)
+          propagate_host_record(r)
   <- route_id
 
 -- Subscribe to a topic
 -- Note: topic must be already initiated
 func subscribe(topic: string, value: string, relay_id: ?PeerId, service_id: ?string):
-  record_signature <- get_record_signature(topic, value, relay_id, service_id)
+  t <- Peer.timestamp_sec()
+  record_signature <- get_record_signature(topic, value, relay_id, service_id, t)
 
   on HOST_PEER_ID:
     route_id <- get_route_id(topic, %init_peer_id%)
@@ -137,29 +111,24 @@ func subscribe(topic: string, value: string, relay_id: ?PeerId, service_id: ?str
     for n <- nodes par:
       on n:
         try:
-          t <- Peer.timestamp_sec()
-          weight <- TrustGraph.get_weight(%init_peer_id%, t)
-          Registry.put_record(route_id, value, relay_id, service_id, t, record_signature, weight, t)
+          put_record(route_id, value, relay_id, service_id, t, record_signature)
 
 -- Subscribe a node to the given topic
 -- Note: topic must be already initiated
 func subscribeNode(subscriber_node_id: PeerId, topic: string, value: string, service_id: ?string):
-  key_signature <- get_key_signature(topic)
-  record_signature <- get_host_record_signature(topic, value, nil, service_id)
+  t <- Peer.timestamp_sec()
+  key_signature <- get_key_signature(topic, t)
+  record_signature <- get_host_record_signature(topic, value, nil, service_id, t)
 
   on subscriber_node_id:
-    t <- Peer.timestamp_sec()
     route_id <- get_route_id(topic, %init_peer_id%)
-    weight <- TrustGraph.get_weight(%init_peer_id%, t)
-    r <- Registry.put_host_record(route_id, value, nil, service_id, t, record_signature, weight, t)
+    r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          tt <- Peer.timestamp_sec()
-          w <- TrustGraph.get_weight(%init_peer_id%, tt)
-          Registry.register_key(topic, nil, t, key_signature, false, w, tt)
-          Registry.propagate_host_record(r, tt, w)
+          register_key(topic, t, key_signature, false)
+          propagate_host_record(r)
 
 -- Find the list of subscribers for the given topic
 func findSubscribers(route_id: string) -> []Record:
@@ -171,7 +140,7 @@ func findSubscribers(route_id: string) -> []Record:
         try:
           t <- Peer.timestamp_sec()
           res <- Registry.get_records(route_id, t)
-    v <- Registry.merge_two(res!.result, res!1.result)
+    v <- Registry.merge_two(res[0].result, res[1].result)
   <- v.result
 
 -- Execute the given code on subscribers

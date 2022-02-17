@@ -17,6 +17,7 @@
 use crate::config::load_config;
 use crate::defaults::DB_PATH;
 use crate::error::ServiceError;
+use crate::record::Record;
 use crate::results::EvictStaleItem;
 use marine_sqlite_connector::{Connection, Result as SqliteResult};
 
@@ -83,13 +84,20 @@ impl Storage {
         let mut results: Vec<EvictStaleItem> = vec![];
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
         for key in stale_keys.into_iter() {
-            let records = self.get_records(key.key_id.clone())?;
+            let records: Vec<Record> = self
+                .get_records(key.key.key_id.clone())?
+                .into_iter()
+                .map(|r| r.record)
+                .collect();
 
             if !key.pinned && !records.iter().any(|r| r.peer_id == host_id) {
-                key_to_delete.push(key.key_id.clone());
+                key_to_delete.push(key.key.key_id.clone());
             }
 
-            results.push(EvictStaleItem { key, records });
+            results.push(EvictStaleItem {
+                key: key.key,
+                records,
+            });
         }
 
         for key_id in key_to_delete {
