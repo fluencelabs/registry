@@ -73,12 +73,16 @@ func initTopicAndSubscribeBlocking(
     for n <- nodes par:
       on n:
         try:
-          register_key(topic, t, key_signature, false)
+          progress("try register key")
+          res1 <- register_key(topic, t, key_signature, false)
+          progress(res1.error)
           result <- put_record(route_id, value, relay_id, service_id, t, record_signature)
+          progress("record registered")
+          progress(result.error)
           if result.success:
             results <<- result
             progress(n)
-  join results[1]
+  res = results!
   <- route_id
 
 -- Create a topic and make the given node a subscriber to it
@@ -140,8 +144,8 @@ func findSubscribers(route_id: string) -> []Record:
         try:
           t <- Peer.timestamp_sec()
           res <- Registry.get_records(route_id, t)
-    v <- Registry.merge_two(res[0].result, res[1].result)
-  <- v.result
+  --  v <- Registry.merge_two(res[0].result, res[1].result)
+  <- res[0].result
 
 -- Execute the given code on subscribers
 -- Note that you can provide another Aqua function as an argument to this one

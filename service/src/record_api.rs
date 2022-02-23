@@ -68,8 +68,8 @@ pub fn put_record(
 ) -> DhtResult {
     wrapped_try(|| {
         let cp = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&cp, 6, 0)?;
-        check_timestamp_tetraplets(&cp, 7)?;
+        check_weight_tetraplets(&cp, 7, 0)?;
+        check_timestamp_tetraplets(&cp, 8)?;
         check_weight_result(&cp.init_peer_id, &weight)?;
         let record = Record {
             key_id,
@@ -136,8 +136,8 @@ pub fn put_host_record(
 ) -> PutHostRecordResult {
     wrapped_try(|| {
         let cp = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&cp, 6, 0)?;
-        check_timestamp_tetraplets(&cp, 7)?;
+        check_weight_tetraplets(&cp, 7, 0)?;
+        check_timestamp_tetraplets(&cp, 8)?;
         check_weight_result(&cp.init_peer_id, &weight)?;
         let record = Record {
             key_id,
