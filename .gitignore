@@ -1,7 +1,7 @@
 service/target
 builtin-package/*.wasm
 builtin-package/scheduled/*.air
-aqua-dht.tar.gz
+registry.tar.gz
 
 **/*.rs.bk
 **/.idea

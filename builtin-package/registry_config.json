@@ -1,5 +1,5 @@
 {
-  "name": "aqua-dht",
+  "name": "registry",
   "mem_page_count": 1,
   "preopened_files": [
     "/tmp"

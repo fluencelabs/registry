@@ -1,3 +1,9 @@
-import initTopicAndSubscribeBlocking, findSubscribers from "@fluencelabs/aqua-dht/pubsub.aqua"
+module Export
+import createRouteAndRegisterBlocking, resolveRoute from "@fluencelabs/registry/routing.aqua"
+import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
+export createRouteAndRegisterBlocking, resolveRoute, timestamp_sec
 
-export initTopicAndSubscribeBlocking, findSubscribers
+
+func timestamp_sec() -> u64:
+    result <- Peer.timestamp_sec()
+    <- result

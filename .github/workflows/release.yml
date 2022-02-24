@@ -60,13 +60,13 @@ jobs:
       - name: Install Rust
         working-directory: ./service
         run: |
-          rustup toolchain install nightly-2021-04-24-x86_64-unknown-linux-gnu
-          rustup default nightly-2021-04-24-x86_64-unknown-linux-gnu
-          rustup override set nightly-2021-04-24-x86_64-unknown-linux-gnu
-          rustup target add wasm32-wasi --toolchain nightly-2021-04-24-x86_64-unknown-linux-gnu
+          rustup toolchain install nightly-2022-01-16-x86_64-unknown-linux-gnu
+          rustup default nightly-2022-01-16-x86_64-unknown-linux-gnu
+          rustup override set nightly-2022-01-16-x86_64-unknown-linux-gnu
+          rustup target add wasm32-wasi --toolchain nightly-2022-01-16-x86_64-unknown-linux-gnu
 
 ### Build
-      - name: Build aqua-dht.wasm
+      - name: Build registry.wasm
         working-directory: ./service
         run: ./build.sh
 
@@ -93,10 +93,10 @@ jobs:
         id: release
         uses: softprops/action-gh-release@v1
         with:
-          name: aqua-dht ${{ env.RELEASE_VERSION }}
+          name: registry ${{ env.RELEASE_VERSION }}
           tag_name: ${{ env.RELEASE_VERSION }}
           files: |
-            aqua-dht.tar.gz
+            registry.tar.gz
           body: ${{steps.changelog.outputs.changelog}}
           draft: false
           prerelease: false
@@ -127,7 +127,7 @@ jobs:
                   release_id: "${{ steps.release.outputs.id }}",
                 });
                 console.dir(assets);
-                let package = assets.data.find((a) => a.name === 'aqua-dht.tar.gz');
+                let package = assets.data.find((a) => a.name === 'registry.tar.gz');
                 let url = package.browser_download_url;
                 console.log("URL: " + url);
                 return url;
@@ -138,9 +138,9 @@ jobs:
 
       - name: Calculate SHA256
         run: |
-          du -hs aqua-dht.tar.gz
-          echo $(sha256sum aqua-dht.tar.gz)
-          echo "SHA256=$(sha256sum aqua-dht.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
+          du -hs registry.tar.gz
+          echo $(sha256sum registry.tar.gz)
+          echo "SHA256=$(sha256sum registry.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
 
       - name: Update version in node-distro repo
         uses: benc-uk/workflow-dispatch@v1
@@ -150,7 +150,7 @@ jobs:
           ref: 'main'
           token: ${{ secrets.PERSONAL_TOKEN }}
           inputs: '{ 
-            "name": "aqua-dht",
+            "name": "registry",
             "version": "${{ env.RELEASE_VERSION }}",
             "url": "${{ steps.package-url.outputs.result }}",
             "sha256": "${{ env.SHA256 }}"
@@ -162,4 +162,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
               console.dir(core);
-              core.info("aqua-dht was updated to ${{ env.RELEASE_VERSION }} in node-distro repo");
+              core.info("registry was updated to ${{ env.RELEASE_VERSION }} in node-distro repo");

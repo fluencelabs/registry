@@ -15,6 +15,8 @@
  */
 
 use crate::error::ServiceError;
+use crate::key::Key;
+use crate::record::Record;
 use marine_rs_sdk::marine;
 
 #[marine]
@@ -40,15 +42,28 @@ impl From<Result<(), ServiceError>> for DhtResult {
 }
 
 #[marine]
-#[derive(Debug, Default, Clone)]
-pub struct Record {
-    pub value: String,
-    pub peer_id: String,
-    pub set_by: String,
-    pub relay_id: Vec<String>,
-    pub service_id: Vec<String>,
-    pub timestamp_created: u64,
-    pub weight: u32,
+#[derive(Debug)]
+pub struct RegisterKeyResult {
+    pub success: bool,
+    pub error: String,
+    pub key_id: String,
+}
+
+impl From<Result<String, ServiceError>> for RegisterKeyResult {
+    fn from(result: Result<String, ServiceError>) -> Self {
+        match result {
+            Ok(key_id) => Self {
+                success: true,
+                error: "".to_string(),
+                key_id,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                key_id: "".to_string(),
+            },
+        }
+    }
 }
 
 #[marine]
@@ -130,16 +145,6 @@ impl From<Result<Vec<Record>, ServiceError>> for GetStaleRecordsResult {
 }
 
 #[marine]
-#[derive(Default, Clone)]
-pub struct Key {
-    pub key: String,
-    pub peer_id: String,
-    pub timestamp_created: u64,
-    pub pinned: bool,
-    pub weight: u32,
-}
-
-#[marine]
 pub struct GetKeyMetadataResult {
     pub success: bool,
     pub error: String,
@@ -218,6 +223,30 @@ impl From<Result<Vec<EvictStaleItem>, ServiceError>> for EvictStaleResult {
 }
 
 #[marine]
+pub struct PutHostRecordResult {
+    pub success: bool,
+    pub error: String,
+    pub value: Vec<Record>,
+}
+
+impl From<Result<Record, ServiceError>> for PutHostRecordResult {
+    fn from(result: Result<Record, ServiceError>) -> Self {
+        match result {
+            Ok(result) => Self {
+                success: true,
+                error: "".to_string(),
+                value: vec![result],
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                value: vec![],
+            },
+        }
+    }
+}
+
+#[marine]
 #[derive(Debug)]
 pub struct MergeResult {
     pub success: bool,
@@ -237,33 +266,6 @@ impl From<Result<Vec<Record>, ServiceError>> for MergeResult {
                 success: false,
                 error: err.to_string(),
                 result: vec![],
-            },
-        }
-    }
-}
-
-#[marine]
-pub struct PutHostValueResult {
-    pub success: bool,
-    pub error: String,
-    pub key: String,
-    pub value: Vec<Record>,
-}
-
-impl From<Result<Record, ServiceError>> for PutHostValueResult {
-    fn from(result: Result<Record, ServiceError>) -> Self {
-        match result {
-            Ok(result) => Self {
-                success: true,
-                error: "".to_string(),
-                key: "".to_string(),
-                value: vec![result],
-            },
-            Err(err) => Self {
-                success: false,
-                error: err.to_string(),
-                key: "".to_string(),
-                value: vec![],
             },
         }
     }

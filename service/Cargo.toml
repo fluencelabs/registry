@@ -1,22 +1,26 @@
 [package]
-name = "aqua-dht"
-version = "0.1.1"
+name = "registry"
+version = "0.2.0"
 authors = ["Fluence Labs"]
 edition = "2018"
 publish = false
 
 [[bin]]
-name = "aqua-dht"
+name = "registry"
 path = "src/main.rs"
 
 [dependencies]
+bs58 = "0.3.1"
 marine-rs-sdk = "0.6.10"
-marine-sqlite-connector = "0.5.0"
+marine-sqlite-connector = "0.5.2"
 fstrings = "0.2.3"
 boolinator = "2.4.0"
 toml = "0.5.6"
 serde = { version = "1.0.118", features = ["derive"] }
 thiserror = "1.0.29"
+sha2 = "0.10.1"
+fluence-keypair = "0.6.0"
+libp2p-core = { version = "0.31", default-features = false, features = [ "secp256k1" ] }
 
 [dev-dependencies]
 marine-rs-sdk-test = "0.4.0"
