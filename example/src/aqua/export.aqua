@@ -1,16 +1,9 @@
 module Export
-import initTopicAndSubscribeBlocking, findSubscribers from "@fluencelabs/registry/pubsub.aqua"
-import Srv, Peer, Sig from "@fluencelabs/aqua-lib/builtin.aqua"
-export initTopicAndSubscribeBlocking, findSubscribers, add_alias, timestamp_sec, test_func
+import createRouteAndRegisterBlocking, resolveRoute from "@fluencelabs/registry/routing.aqua"
+import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
+export createRouteAndRegisterBlocking, resolveRoute, timestamp_sec
 
-func add_alias(alias: string, service_id: string):
-    on HOST_PEER_ID:
-        Srv.add_alias(alias, service_id)
 
 func timestamp_sec() -> u64:
     result <- Peer.timestamp_sec()
     <- result
-
-func test_func(bytes: []u8) -> []u8:
-    result <- Sig.sign(bytes)
-    <- result.signature!

@@ -5,7 +5,7 @@
   "main": "dist/example.js",
   "scripts": {
     "compile-aqua": "aqua -i ./src/aqua -o ./src/generated",
-    "build": "tsc",
+    "build": "npm run compile-aqua && tsc",
     "prestart": "npm run build",
     "start": "node dist/example.js"
   },

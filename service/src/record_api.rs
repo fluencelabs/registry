@@ -297,3 +297,19 @@ pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
     .map(|recs| recs.into_iter().map(|r| r.record).collect())
     .into()
 }
+
+#[marine]
+pub fn merge(records: Vec<Vec<Record>>) -> MergeResult {
+    merge_records(
+        records
+            .into_iter()
+            .flatten()
+            .map(|record| RecordInternal {
+                record,
+                ..Default::default()
+            })
+            .collect(),
+    )
+    .map(|recs| recs.into_iter().map(|r| r.record).collect())
+    .into()
+}

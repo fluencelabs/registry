@@ -8,12 +8,12 @@ See [Aqua Book](https://fluence.dev/aqua-book/libraries/aqua-dht).
 ## How to Use
 
 See [example](./example):
-- How to call [`aqua-dht`](./example/src/example.ts) function in TS/JS
-- Writing an Aqua script using `aqua-dht`: [event_example.aqua](./example/src/aqua/event_example.aqua)
+- How to call [`registry`](./example/src/example.ts) function in TS/JS
+- Writing an Aqua script using `registry`: [event_example.aqua](./example/src/aqua/event_example.aqua)
 
 ## API
 
-API is defined in the [pubsub.aqua](./aqua/pubsub.aqua) module.
+API is defined in the [routing.aqua](./aqua/routing.aqua) module.
 
 ## Learn Aqua
 

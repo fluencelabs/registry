@@ -1,7 +1,6 @@
 import {Fluence, KeyPair} from "@fluencelabs/fluence";
 import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
-import {initTopicAndSubscribeBlocking, findSubscribers, add_alias, timestamp_sec} from "./generated/export";
-
+import {createRouteAndRegisterBlocking, resolveRoute, timestamp_sec} from "./generated/export";
 
 let local: Node[] = [
     {
@@ -31,32 +30,24 @@ async function main() {
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
-    // await add_alias("registry", "53a9a930-fe8c-47e9-b06d-2ce052d72f38");
-    let topic = "myTopic";
+    let label = "myTopic";
     let value = "myValue";
-    console.log("Will create topic", topic);
-    // create topic (if not exists) and subscribe on it
+    console.log("Will create topic", label);
+    // create route (if not exists) and register on it
     let relay = Fluence.getStatus().relayPeerId;
-    let route_id = await initTopicAndSubscribeBlocking(
-      topic, value, relay, null,
-      (s) => console.log(`node ${s} saved the record`)
+    let route_id = await createRouteAndRegisterBlocking(
+      label, value, relay, null,
+      (s) => console.log(`node ${s} saved the record`),
+        0
     );
-
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on('data', async () => {
-        // find other peers subscribed to that topic
-        console.log("let's find subscribers for %s", route_id);
-        let subscribers = await findSubscribers(route_id);
-        console.log("found subscribers:", subscribers);
-        await Fluence.stop();
-        process.exit(0);
-    });
-
+    // find other peers on this route
+    console.log("let's find subscribers for %s", route_id);
+    let subscribers = await resolveRoute(route_id, 0);
+    console.log("found subscribers:", subscribers);
 }
 
-main()
-  .catch(error => {
+main().then(() => process.exit(0))
+    .catch(error => {
     console.error(error);
     process.exit(1);
   });
