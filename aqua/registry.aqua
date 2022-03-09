@@ -3,15 +3,15 @@ module Registry declares *
 data ClearExpiredResult:
   success: bool
   error: string
-  count_keys: u64
+  count_routes: u64
   count_values: u64
 
 data DhtResult:
   success: bool
   error: string
 
-data Key:
-  key_id: string
+data Route:
+  id: string
   label: string
   peer_id: string
   timestamp_created: u64
@@ -20,7 +20,7 @@ data Key:
   signature: []u8
 
 data Record:
-  key_id: string
+  route_id: string
   value: string
   peer_id: string
   set_by: string
@@ -31,7 +31,7 @@ data Record:
   signature: []u8
 
 data EvictStaleItem:
-  key: Key
+  route: Route
   records: []Record
 
 data EvictStaleResult:
@@ -39,10 +39,10 @@ data EvictStaleResult:
   error: string
   results: []EvictStaleItem
 
-data GetKeyMetadataResult:
+data GetRouteMetadataResult:
   success: bool
   error: string
-  key: Key
+  route: Route
 
 data GetValuesResult:
   success: bool
@@ -59,10 +59,10 @@ data PutHostRecordResult:
   error: string
   value: []Record
 
-data RegisterKeyResult:
+data RegisterRouteResult:
   success: bool
   error: string
-  key_id: string
+  route_id: string
 
 data RepublishValuesResult:
   success: bool
@@ -77,21 +77,21 @@ data WeightResult:
 
 service Registry("registry"):
   clear_expired(current_timestamp_sec: u64) -> ClearExpiredResult
-  clear_host_record(key_id: string, current_timestamp_sec: u64) -> DhtResult
+  clear_host_record(route_id: string, current_timestamp_sec: u64) -> DhtResult
   evict_stale(current_timestamp_sec: u64) -> EvictStaleResult
-  get_host_record_bytes(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8) -> []u8
-  get_key_bytes(label: string, peer_id: []string, timestamp_created: u64, challenge: []u8, challenge_type: string) -> []u8
-  get_key_id(label: string, peer_id: string) -> string
-  get_key_metadata(key_id: string, current_timestamp_sec: u64) -> GetKeyMetadataResult
-  get_record_bytes(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8) -> []u8
-  get_records(key_id: string, current_timestamp_sec: u64) -> GetValuesResult
+  get_host_record_bytes(route_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8) -> []u8
+  get_record_bytes(route_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8) -> []u8
+  get_records(route_id: string, current_timestamp_sec: u64) -> GetValuesResult
+  get_route_bytes(label: string, peer_id: []string, timestamp_created: u64, challenge: []u8, challenge_type: string) -> []u8
+  get_route_id(label: string, peer_id: string) -> string
+  get_route_metadata(route_id: string, current_timestamp_sec: u64) -> GetRouteMetadataResult
   merge(records: [][]Record) -> MergeResult
   merge_two(a: []Record, b: []Record) -> MergeResult
   propagate_host_record(set_host_value: PutHostRecordResult, current_timestamp_sec: u64, weight: WeightResult) -> DhtResult
-  put_host_record(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8, signature: []u8, weight: WeightResult, current_timestamp_sec: u64) -> PutHostRecordResult
-  put_record(key_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8, signature: []u8, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult
-  register_key(key: string, peer_id: []string, timestamp_created: u64, challenge: []u8, challenge_type: string, signature: []u8, pin: bool, weight: WeightResult, current_timestamp_sec: u64) -> RegisterKeyResult
-  republish_key(key: Key, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult
+  put_host_record(route_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8, signature: []u8, weight: WeightResult, current_timestamp_sec: u64) -> PutHostRecordResult
+  put_record(route_id: string, value: string, relay_id: []string, service_id: []string, timestamp_created: u64, solution: []u8, signature: []u8, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult
+  register_route(label: string, peer_id: []string, timestamp_created: u64, challenge: []u8, challenge_type: string, signature: []u8, pin: bool, weight: WeightResult, current_timestamp_sec: u64) -> RegisterRouteResult
   republish_records(records: []Record, weights: []WeightResult, current_timestamp_sec: u64) -> RepublishValuesResult
+  republish_route(route: Route, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult
   set_expired_timeout(timeout_sec: u64)  
   set_stale_timeout(timeout_sec: u64)  

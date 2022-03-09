@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 use crate::error::ServiceError;
-use crate::key::{Key, KeyInternal};
 use crate::misc::check_weight_result;
-use crate::results::{DhtResult, GetKeyMetadataResult, RegisterKeyResult};
+use crate::results::{DhtResult, GetRouteMetadataResult, RegisterRouteResult};
+use crate::route::{Route, RouteInternal};
 use crate::storage_impl::get_storage;
 use crate::tetraplets_checkers::{check_timestamp_tetraplets, check_weight_tetraplets};
 use crate::{wrapped_try, WeightResult};
 use marine_rs_sdk::marine;
 
 #[marine]
-pub fn get_key_bytes(
+pub fn get_route_bytes(
     label: String,
     mut peer_id: Vec<String>,
     timestamp_created: u64,
     challenge: Vec<u8>,
     challenge_type: String,
 ) -> Vec<u8> {
-    Key {
+    Route {
         label,
         peer_id: peer_id
             .pop()
@@ -44,14 +44,14 @@ pub fn get_key_bytes(
 }
 
 #[marine]
-pub fn get_key_id(label: String, peer_id: String) -> String {
-    Key::get_key_id(&label, &peer_id)
+pub fn get_route_id(label: String, peer_id: String) -> String {
+    Route::get_id(&label, &peer_id)
 }
 
-/// register new key if not exists with caller peer_id, update if exists with same peer_id or return error
+/// register new route if not exists with caller peer_id, update if exists with same peer_id or return error
 #[marine]
-pub fn register_key(
-    key: String,
+pub fn register_route(
+    label: String,
     peer_id: Vec<String>,
     timestamp_created: u64,
     challenge: Vec<u8>,
@@ -60,7 +60,7 @@ pub fn register_key(
     pin: bool,
     weight: WeightResult,
     current_timestamp_sec: u64,
-) -> RegisterKeyResult {
+) -> RegisterRouteResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_weight_tetraplets(&call_parameters, 7, 0)?;
@@ -70,68 +70,72 @@ pub fn register_key(
             .unwrap_or(&call_parameters.init_peer_id)
             .clone();
         check_weight_result(&peer_id, &weight)?;
-        let key = Key::new(
-            key,
+        let route = Route::new(
+            label,
             peer_id,
             timestamp_created,
             challenge,
             challenge_type,
             signature,
         );
-        key.verify(current_timestamp_sec)?;
+        route.verify(current_timestamp_sec)?;
 
-        let key_id = key.key_id.clone();
+        let route_id = route.id.clone();
         let weight = weight.weight;
         let storage = get_storage()?;
-        storage.update_key_timestamp(&key.key_id, current_timestamp_sec)?;
-        storage.update_key(KeyInternal {
-            key,
+        storage.update_route_timestamp(&route.id, current_timestamp_sec)?;
+        storage.update_route(RouteInternal {
+            route,
             timestamp_published: 0,
             pinned: pin,
             weight,
         })?;
 
-        Ok(key_id)
+        Ok(route_id)
     })
     .into()
 }
 
 #[marine]
-pub fn get_key_metadata(key_id: String, current_timestamp_sec: u64) -> GetKeyMetadataResult {
+pub fn get_route_metadata(route_id: String, current_timestamp_sec: u64) -> GetRouteMetadataResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&call_parameters, 1)?;
 
         let storage = get_storage()?;
-        storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
-        storage.get_key(key_id)
+        storage.update_route_timestamp(&route_id, current_timestamp_sec)?;
+        storage.get_route(route_id)
     })
     .into()
 }
 
-/// Used for replication, same as register_key, but key.pinned is ignored, updates timestamp_accessed
+/// Used for replication, same as register_route, but route.pinned is ignored, updates timestamp_accessed
 #[marine]
-pub fn republish_key(mut key: Key, weight: WeightResult, current_timestamp_sec: u64) -> DhtResult {
+pub fn republish_route(
+    mut route: Route,
+    weight: WeightResult,
+    current_timestamp_sec: u64,
+) -> DhtResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_weight_tetraplets(&call_parameters, 1, 0)?;
-        check_weight_result(&key.peer_id, &weight)?;
+        check_weight_result(&route.peer_id, &weight)?;
         check_timestamp_tetraplets(&call_parameters, 2)?;
-        key.verify(current_timestamp_sec)?;
+        route.verify(current_timestamp_sec)?;
 
         // just to be sure
-        key.key_id = Key::get_key_id(&key.label, &key.peer_id);
+        route.id = Route::get_id(&route.label, &route.peer_id);
 
         let storage = get_storage()?;
-        storage.update_key_timestamp(&key.key_id, current_timestamp_sec)?;
-        match storage.update_key(KeyInternal {
-            key,
+        storage.update_route_timestamp(&route.id, current_timestamp_sec)?;
+        match storage.update_route(RouteInternal {
+            route,
             timestamp_published: 0,
             pinned: false,
             weight: weight.weight,
         }) {
             // we should ignore this error for republish
-            Err(ServiceError::KeyAlreadyExistsNewerTimestamp(_, _)) => Ok(()),
+            Err(ServiceError::RouteAlreadyExistsNewerTimestamp(_, _)) => Ok(()),
             other => other,
         }
     })

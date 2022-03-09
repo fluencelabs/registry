@@ -12,19 +12,19 @@ func clearExpired_86400():
     t <- Peer.timestamp_sec()
     Registry.clear_expired(t)
 
--- get all old records and replicate it by keys
+-- get all old records and replicate it by routes
 func replicate_3600():
   on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
     res <- Registry.evict_stale(t)
     for r <- res.results par:
-      k <- Op.string_to_b58(r.key.key_id)
+      k <- Op.string_to_b58(r.route.id)
       nodes <- Kademlia.neighborhood(k, nil, nil)
       for n <- nodes par:
         on n:
           tt <- Peer.timestamp_sec()
-          key_weight <- TrustGraph.get_weight(r.key.peer_id, tt)
-          Registry.republish_key(r.key, key_weight, tt)
+          key_weight <- TrustGraph.get_weight(r.route.peer_id, tt)
+          Registry.republish_route(r.route, key_weight, tt)
 
           records_weights: *WeightResult
           for record <- r.records:

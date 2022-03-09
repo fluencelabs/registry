@@ -15,8 +15,8 @@
  */
 
 use crate::error::ServiceError;
-use crate::key::Key;
 use crate::record::Record;
+use crate::route::Route;
 use marine_rs_sdk::marine;
 
 #[marine]
@@ -43,24 +43,24 @@ impl From<Result<(), ServiceError>> for DhtResult {
 
 #[marine]
 #[derive(Debug)]
-pub struct RegisterKeyResult {
+pub struct RegisterRouteResult {
     pub success: bool,
     pub error: String,
-    pub key_id: String,
+    pub route_id: String,
 }
 
-impl From<Result<String, ServiceError>> for RegisterKeyResult {
+impl From<Result<String, ServiceError>> for RegisterRouteResult {
     fn from(result: Result<String, ServiceError>) -> Self {
         match result {
-            Ok(key_id) => Self {
+            Ok(route_id) => Self {
                 success: true,
                 error: "".to_string(),
-                key_id,
+                route_id,
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                key_id: "".to_string(),
+                route_id: "".to_string(),
             },
         }
     }
@@ -96,22 +96,22 @@ impl From<Result<Vec<Record>, ServiceError>> for GetValuesResult {
 pub struct ClearExpiredResult {
     pub success: bool,
     pub error: String,
-    pub count_keys: u64,
+    pub count_routes: u64,
     pub count_values: u64,
 }
 
 impl From<Result<(u64, u64), ServiceError>> for ClearExpiredResult {
     fn from(result: Result<(u64, u64), ServiceError>) -> Self {
         match result {
-            Ok((keys, values)) => Self {
+            Ok((routes, values)) => Self {
                 success: true,
-                count_keys: keys,
+                count_routes: routes,
                 count_values: values,
                 error: "".to_string(),
             },
             Err(err) => Self {
                 success: false,
-                count_keys: 0,
+                count_routes: 0,
                 count_values: 0,
                 error: err.to_string(),
             },
@@ -145,24 +145,24 @@ impl From<Result<Vec<Record>, ServiceError>> for GetStaleRecordsResult {
 }
 
 #[marine]
-pub struct GetKeyMetadataResult {
+pub struct GetRouteMetadataResult {
     pub success: bool,
     pub error: String,
-    pub key: Key,
+    pub route: Route,
 }
 
-impl From<Result<Key, ServiceError>> for GetKeyMetadataResult {
-    fn from(result: Result<Key, ServiceError>) -> Self {
+impl From<Result<Route, ServiceError>> for GetRouteMetadataResult {
+    fn from(result: Result<Route, ServiceError>) -> Self {
         match result {
-            Ok(key) => Self {
+            Ok(route) => Self {
                 success: true,
                 error: "".to_string(),
-                key,
+                route,
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                key: Key::default(),
+                route: Route::default(),
             },
         }
     }
@@ -194,7 +194,7 @@ impl From<Result<u64, ServiceError>> for RepublishValuesResult {
 
 #[marine]
 pub struct EvictStaleItem {
-    pub key: Key,
+    pub route: Route,
     pub records: Vec<Record>,
 }
 

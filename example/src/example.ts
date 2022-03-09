@@ -23,7 +23,7 @@ let local: Node[] = [
 async function main() {
     // connect to the Fluence network
 
-    await Fluence.start({ connectTo: local[0] });
+    await Fluence.start({ connectTo: krasnodar[0] });
     console.log("%s", await timestamp_sec());
     console.log(
         "📗 created a fluence peer %s with relay %s",
@@ -38,11 +38,11 @@ async function main() {
     let route_id = await createRouteAndRegisterBlocking(
       label, value, relay, null,
       (s) => console.log(`node ${s} saved the record`),
-        0
+        5
     );
     // find other peers on this route
     console.log("let's find subscribers for %s", route_id);
-    let subscribers = await resolveRoute(route_id, 0);
+    let subscribers = await resolveRoute(route_id, 5);
     console.log("found subscribers:", subscribers);
 }
 
