@@ -66,7 +66,8 @@ impl Storage {
             deleted_keys += self.connection.changes() as u64;
         }
 
-        // TODO: clear expired timestamp accessed for keys
+        self.clear_expired_timestamps_accessed(expired_timestamp)?;
+
         Ok((deleted_keys, deleted_values))
     }
 

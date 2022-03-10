@@ -202,6 +202,19 @@ impl Storage {
             Err(RouteNotExists(route_id.to_string()))
         }
     }
+
+    pub fn clear_expired_timestamps_accessed(
+        &self,
+        expired_timestamp: u64,
+    ) -> Result<(), ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+            "DELETE FROM {ROUTES_TIMESTAMPS_TABLE_NAME} WHERE timestamp_accessed < ?"
+        ))?;
+        statement.bind(1, &Value::Integer(expired_timestamp as i64))?;
+        statement.next().map(drop)?;
+
+        Ok(())
+    }
 }
 
 pub fn read_route(statement: &Statement) -> Result<Route, ServiceError> {
