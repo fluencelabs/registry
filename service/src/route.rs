@@ -22,8 +22,8 @@ use sha2::{Digest, Sha256};
 
 #[marine]
 #[derive(Default, Clone)]
-pub struct Key {
-    pub key_id: String,
+pub struct Route {
+    pub id: String,
     pub label: String,
     pub peer_id: String,
     pub timestamp_created: u64,
@@ -33,14 +33,14 @@ pub struct Key {
 }
 
 #[derive(Default, Clone)]
-pub struct KeyInternal {
-    pub key: Key,
+pub struct RouteInternal {
+    pub route: Route,
     pub timestamp_published: u64,
     pub pinned: bool,
     pub weight: u32,
 }
 
-impl Key {
+impl Route {
     pub fn new(
         label: String,
         peer_id: String,
@@ -49,10 +49,10 @@ impl Key {
         challenge_type: String,
         signature: Vec<u8>,
     ) -> Self {
-        let key_id = Self::get_key_id(&label, &peer_id);
+        let id = Self::get_id(&label, &peer_id);
 
         Self {
-            key_id,
+            id,
             label,
             peer_id,
             timestamp_created,
@@ -62,8 +62,8 @@ impl Key {
         }
     }
 
-    pub fn get_key_id(key: &str, peer_id: &str) -> String {
-        format!("{}{}", key, peer_id)
+    pub fn get_id(label: &str, peer_id: &str) -> String {
+        format!("{}{}", label, peer_id)
     }
 
     pub fn signature_bytes(&self) -> Vec<u8> {
@@ -81,7 +81,7 @@ impl Key {
 
     pub fn verify(&self, current_timestamp_sec: u64) -> Result<(), ServiceError> {
         if self.timestamp_created > current_timestamp_sec {
-            return Err(ServiceError::InvalidKeyTimestamp);
+            return Err(ServiceError::InvalidRouteTimestamp);
         }
 
         self.verify_signature()

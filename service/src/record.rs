@@ -23,7 +23,7 @@ use sha2::{Digest, Sha256};
 #[marine]
 #[derive(Debug, Default, Clone)]
 pub struct Record {
-    pub key_id: String,
+    pub route_id: String,
     pub value: String,
     pub peer_id: String,
     pub set_by: String,
@@ -43,7 +43,7 @@ pub struct RecordInternal {
 impl Record {
     pub fn signature_bytes(&self) -> Vec<u8> {
         let mut metadata = Vec::new();
-        metadata.extend(self.key_id.as_bytes());
+        metadata.extend(self.route_id.as_bytes());
         metadata.extend(self.value.as_bytes());
         metadata.extend(self.peer_id.as_bytes());
         metadata.extend(self.set_by.as_bytes());
@@ -80,7 +80,7 @@ impl Record {
         let bytes = self.signature_bytes();
         let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
         pk.verify(&bytes, &signature).map_err(|e| {
-            ServiceError::InvalidRecordSignature(self.key_id.clone(), self.value.clone(), e)
+            ServiceError::InvalidRecordSignature(self.route_id.clone(), self.value.clone(), e)
         })
     }
 }

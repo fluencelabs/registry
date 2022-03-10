@@ -7,7 +7,7 @@ import "@fluencelabs/aqua-lib/builtin.aqua"
 alias RouteId: string
 
 func get_route_id(label: string, peer_id: string) -> RouteId:
-  route_id <- Registry.get_key_id(label, peer_id)
+  route_id <- Registry.get_route_id(label, peer_id)
   <- route_id
 
 -- Get peers closest to the label's hash in Kademlia network
@@ -28,7 +28,7 @@ func removeFromRoute(route_id: string):
 -- Create a route: register it on the closest peers
 func createRoute(label: string) -> RouteId:
   t <- Peer.timestamp_sec()
-  signature <- get_key_signature(label, t)
+  signature <- get_route_signature(label, t)
 
   on HOST_PEER_ID:
     route_id <- get_route_id(label, %init_peer_id%)
@@ -36,14 +36,14 @@ func createRoute(label: string) -> RouteId:
     for n <- nodes par:
       on n:
         try:
-          result <- register_key(label, t, signature, false)
+          result <- register_route(label, t, signature, false)
   <- route_id
 
 -- Create a label and subscribe to it
 -- %init_peer_id% (current client) will become a subscriber
 func createRouteAndRegister(label: string, value: string, relay_id: ?PeerId, service_id: ?string) -> string:
   t <- Peer.timestamp_sec()
-  key_signature <- get_key_signature(label, t)
+  route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
     route_id <- get_route_id(label, %init_peer_id%)
   record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
@@ -54,7 +54,7 @@ func createRouteAndRegister(label: string, value: string, relay_id: ?PeerId, ser
     for n <- nodes par:
       on n:
         try:
-          register_key(label, t, key_signature, false)
+          register_route(label, t, route_signature, false)
           put_record(route_id, value, relay_id, service_id, t, record_signature)
   <- route_id
 
@@ -68,7 +68,7 @@ func createRouteAndRegisterBlocking(
   ack: i16
 ) -> string:
   t <- Peer.timestamp_sec()
-  key_signature <- get_key_signature(label, t)
+  route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
       route_id <- get_route_id(label, %init_peer_id%)
   record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
@@ -79,7 +79,7 @@ func createRouteAndRegisterBlocking(
     for n <- nodes par:
       on n:
         try:
-          res1 <- register_key(label, t, key_signature, false)
+          res1 <- register_route(label, t, route_signature, false)
           result <- put_record(route_id, value, relay_id, service_id, t, record_signature)
           if result.success:
             results <<- result
@@ -90,20 +90,20 @@ func createRouteAndRegisterBlocking(
 -- Create a label and make the given node a subscriber to it
 func createRouteAndRegisterNode(subscriber_node_id: PeerId, label: string, value: string, service_id: ?string) -> string:
   t <- Peer.timestamp_sec()
-  key_signature <- get_key_signature(label, t)
+  route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
       route_id <- get_route_id(label, %init_peer_id%)
 
   record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
 
   on subscriber_node_id:
-    register_key(label, t, key_signature, false)
+    register_route(label, t, route_signature, false)
     r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          register_key(label, t, key_signature, false)
+          register_route(label, t, route_signature, false)
           propagate_host_record(r)
   <- route_id
 
@@ -125,7 +125,7 @@ func registerForRoute(route_id: string, value: string, relay_id: ?PeerId, servic
 -- Note: label must be already initiated
 func registerForRouteNode(subscriber_node_id: PeerId, label: string, value: string, service_id: ?string):
   t <- Peer.timestamp_sec()
-  key_signature <- get_key_signature(label, t)
+  route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
       route_id <- get_route_id(label, %init_peer_id%)
   record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
@@ -136,7 +136,7 @@ func registerForRouteNode(subscriber_node_id: PeerId, label: string, value: stri
     for n <- nodes par:
       on n:
         try:
-          register_key(label, t, key_signature, false)
+          register_route(label, t, route_signature, false)
           propagate_host_record(r)
 
 -- Find the list of record for the given route_id

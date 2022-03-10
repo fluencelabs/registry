@@ -59,14 +59,15 @@ impl Storage {
 
         // delete expired non-host records
         deleted_values += self.clear_expired_records(expired_timestamp)?;
-        let expired_keys = self.get_expired_keys(expired_timestamp)?;
+        let expired_keys = self.get_expired_routes(expired_timestamp)?;
 
         for key in expired_keys {
-            self.delete_key(key.key_id)?;
+            self.delete_key(key.id)?;
             deleted_keys += self.connection.changes() as u64;
         }
 
-        // TODO: clear expired timestamp accessed for keys
+        self.clear_expired_timestamps_accessed(expired_timestamp)?;
+
         Ok((deleted_keys, deleted_values))
     }
 
@@ -79,30 +80,30 @@ impl Storage {
     ) -> Result<Vec<EvictStaleItem>, ServiceError> {
         let stale_timestamp = current_timestamp_sec - load_config().stale_timeout;
 
-        let stale_keys = self.get_stale_keys(stale_timestamp)?;
+        let stale_keys = self.get_stale_routes(stale_timestamp)?;
         let mut key_to_delete: Vec<String> = vec![];
         let mut results: Vec<EvictStaleItem> = vec![];
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
-        for key in stale_keys.into_iter() {
+        for route in stale_keys.into_iter() {
             let records: Vec<Record> = self
-                .get_records(key.key.key_id.clone())?
+                .get_records(route.route.id.clone())?
                 .into_iter()
                 .map(|r| r.record)
                 .collect();
 
-            if !key.pinned && !records.iter().any(|r| r.peer_id == host_id) {
-                key_to_delete.push(key.key.key_id.clone());
+            if !route.pinned && !records.iter().any(|r| r.peer_id == host_id) {
+                key_to_delete.push(route.route.id.clone());
             }
 
             results.push(EvictStaleItem {
-                key: key.key,
+                route: route.route,
                 records,
             });
         }
 
-        for key_id in key_to_delete {
-            self.delete_key(key_id.clone())?;
-            self.delete_records_by_key(key_id)?;
+        for route_id in key_to_delete {
+            self.delete_key(route_id.clone())?;
+            self.delete_records_by_key(route_id)?;
         }
 
         Ok(results)

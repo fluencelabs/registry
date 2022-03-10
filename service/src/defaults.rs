@@ -15,8 +15,8 @@
  */
 
 // TODO: sanitize tables' names in SQL expressions
-pub static KEYS_TABLE_NAME: &str = "dht_keys";
-pub static KEYS_TIMESTAMPS_TABLE_NAME: &str = "dht_keys_timestamps";
+pub static ROUTES_TABLE_NAME: &str = "dht_routes";
+pub static ROUTES_TIMESTAMPS_TABLE_NAME: &str = "dht_routes_timestamps";
 pub static RECORDS_TABLE_NAME: &str = "dht_records";
 pub static CONFIG_FILE: &str = "/tmp/Config.toml";
 pub static DB_PATH: &str = "/tmp/registry.db";
