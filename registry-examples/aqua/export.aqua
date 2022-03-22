@@ -1,0 +1,5 @@
+module Export
+import createRouteAndRegisterBlocking, resolveRoute from "@fluencelabs/registry/routing.aqua"
+export createRouteAndRegisterBlocking, resolveRoute
+
+
