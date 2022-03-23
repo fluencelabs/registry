@@ -30,9 +30,9 @@ async function main() {
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
-    let label = "myTopic";
+    let label = "myLabel";
     let value = "myValue";
-    console.log("Will create topic", label);
+    console.log("Will create route with label: ", label);
     // create route (if not exists) and register on it
     let relay = Fluence.getStatus().relayPeerId;
     let route_id = await createRouteAndRegisterBlocking(
@@ -41,9 +41,9 @@ async function main() {
         5
     );
     // find other peers on this route
-    console.log("let's find subscribers for %s", route_id);
-    let subscribers = await resolveRoute(route_id, 5);
-    console.log("found subscribers:", subscribers);
+    console.log("let's resolve route for %s", route_id);
+    let providers = await resolveRoute(route_id, 5);
+    console.log("route providers:", providers);
 }
 
 main().then(() => process.exit(0))
