@@ -22,7 +22,6 @@ let local: Node[] = [
 
 async function main() {
     // connect to the Fluence network
-
     await Fluence.start({ connectTo: krasnodar[0] });
     console.log("%s", await timestamp_sec());
     console.log(
@@ -32,11 +31,10 @@ async function main() {
     );
     let label = "myLabel";
     let value = "myValue";
-    console.log("Will create route with label: ", label);
+    console.log("Will create route with label:", label);
     // create route (if not exists) and register on it
-    let relay = Fluence.getStatus().relayPeerId;
     let route_id = await createRouteAndRegisterBlocking(
-      label, value, relay, null,
+      label, value, null,
       (s) => console.log(`node ${s} saved the record`),
         5
     );
