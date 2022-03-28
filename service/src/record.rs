@@ -76,7 +76,10 @@ impl Record {
             return Err(ServiceError::InvalidRecordTimestamp);
         }
 
-        let pk = extract_public_key(self.peer_id.clone())?;
+        // TODO: now we have signatures only by js peers
+        // so for all record is true only signatures by set_by
+        // later we should add signatures by peer_id (for host records) and by relays
+        let pk = extract_public_key(self.set_by.clone())?;
         let bytes = self.signature_bytes();
         let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
         pk.verify(&bytes, &signature).map_err(|e| {
