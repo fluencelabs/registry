@@ -31,7 +31,7 @@ func createRoute(label: string) -> RouteId:
   signature <- get_route_signature(label, t)
 
   on HOST_PEER_ID:
-    route_id <- get_route_id(label, %init_peer_id%)
+    route_id <- get_route_id(label, INIT_PEER_ID)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
@@ -40,12 +40,15 @@ func createRoute(label: string) -> RouteId:
   <- route_id
 
 -- Create a label and subscribe to it
--- %init_peer_id% (current client) will become a subscriber
-func createRouteAndRegister(label: string, value: string, relay_id: ?PeerId, service_id: ?string) -> string:
+-- INIT_PEER_ID (current client) will become a subscriber
+func createRouteAndRegister(label: string, value: string, service_id: ?string) -> string:
+  relay_id: ?string
+  relay_id <<- HOST_PEER_ID
+
   t <- Peer.timestamp_sec()
   route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
-    route_id <- get_route_id(label, %init_peer_id%)
+    route_id <- get_route_id(label, INIT_PEER_ID)
   record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
 
   on HOST_PEER_ID:
@@ -59,18 +62,21 @@ func createRouteAndRegister(label: string, value: string, relay_id: ?PeerId, ser
   <- route_id
 
 -- Create a label and subscribe to it
--- %init_peer_id% (current client) will become a subscriber
+-- INIT_PEER_ID (current client) will become a subscriber
 -- In contrast with non-blocking version, waits for at least a single write to succeed
 func createRouteAndRegisterBlocking(
   label: string, value: string,
-  relay_id: ?PeerId, service_id: ?string,
+  service_id: ?string,
   progress: string -> (),
   ack: i16
 ) -> string:
+  relay_id: ?string
+  relay_id <<- HOST_PEER_ID
+
   t <- Peer.timestamp_sec()
   route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
-      route_id <- get_route_id(label, %init_peer_id%)
+      route_id <- get_route_id(label, INIT_PEER_ID)
   record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
 
   results: *DhtResult
@@ -92,7 +98,7 @@ func createRouteAndRegisterNode(subscriber_node_id: PeerId, label: string, value
   t <- Peer.timestamp_sec()
   route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
-      route_id <- get_route_id(label, %init_peer_id%)
+      route_id <- get_route_id(label, INIT_PEER_ID)
 
   record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
 
@@ -109,7 +115,10 @@ func createRouteAndRegisterNode(subscriber_node_id: PeerId, label: string, value
 
 -- Subscribe to a label
 -- Note: label must be already initiated
-func registerForRoute(route_id: string, value: string, relay_id: ?PeerId, service_id: ?string):
+func registerForRoute(route_id: string, value: string, service_id: ?string):
+  relay_id: ?string
+  relay_id <<- HOST_PEER_ID
+
   t <- Peer.timestamp_sec()
   record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
 
@@ -127,7 +136,7 @@ func registerForRouteNode(subscriber_node_id: PeerId, label: string, value: stri
   t <- Peer.timestamp_sec()
   route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
-      route_id <- get_route_id(label, %init_peer_id%)
+      route_id <- get_route_id(label, INIT_PEER_ID)
   record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
 
   on subscriber_node_id:
