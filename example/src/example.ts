@@ -1,6 +1,6 @@
 import {Fluence, KeyPair} from "@fluencelabs/fluence";
 import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
-import {createRouteAndRegisterBlocking, resolveRoute, timestamp_sec} from "./generated/export";
+import {createRouteAndRegisterNodeBlocking, resolveRoute, timestamp_sec} from "./generated/export";
 
 let local: Node[] = [
     {
@@ -33,8 +33,8 @@ async function main() {
     let value = "myValue";
     console.log("Will create route with label:", label);
     // create route (if not exists) and register on it
-    let route_id = await createRouteAndRegisterBlocking(
-      label, value, null,
+    let route_id = await createRouteAndRegisterNodeBlocking(krasnodar[0].peerId,
+      label, value, "identity",
       (s) => console.log(`node ${s} saved the record`),
         5
     );

@@ -28,3 +28,5 @@ pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
 pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
 pub static TRUSTED_WEIGHT_SERVICE_ID: &str = "trust-graph";
 pub static TRUSTED_WEIGHT_FUNCTION_NAME: &str = "get_weight";
+pub static TRUSTED_REGISTRY_SERVICE_ID: &str = "registry";
+pub static TRUSTED_REGISTRY_FUNCTION_NAME: &str = "put_host_record";

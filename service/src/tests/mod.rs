@@ -21,7 +21,7 @@ mod tests {
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use rusqlite::Connection;
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
-    use marine_test_env::registry::{DhtResult, Record, ServiceInterface};
+    use marine_test_env::registry::{DhtResult, PutHostRecordResult, Record, ServiceInterface};
 
     use crate::defaults::{
         CONFIG_FILE, DB_PATH, RECORDS_TABLE_NAME, ROUTES_TABLE_NAME, ROUTES_TIMESTAMPS_TABLE_NAME,
@@ -316,6 +316,99 @@ mod tests {
         weight: u32,
     ) {
         let result = put_record(
+            registry,
+            kp,
+            route_id,
+            value,
+            relay_id,
+            service_id,
+            timestamp_created,
+            current_timestamp,
+            weight,
+        );
+        assert!(result.success, "{}", result.error);
+    }
+
+    fn get_signed_host_record_bytes(
+        registry: &mut ServiceInterface,
+        kp: &KeyPair,
+        route_id: String,
+        value: String,
+        relay_id: Vec<String>,
+        service_id: Vec<String>,
+        timestamp_created: u64,
+        solution: Vec<u8>,
+    ) -> Vec<u8> {
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+        let cp = CPWrapper::new(&issuer_peer_id);
+        let record_bytes = registry.get_host_record_bytes_cp(
+            route_id,
+            value,
+            relay_id,
+            service_id,
+            timestamp_created,
+            solution,
+            cp.get(),
+        );
+
+        kp.sign(&record_bytes).unwrap().to_vec().to_vec()
+    }
+
+    fn put_host_record(
+        registry: &mut ServiceInterface,
+        kp: &KeyPair,
+        route_id: String,
+        value: String,
+        relay_id: Vec<String>,
+        service_id: Vec<String>,
+        timestamp_created: u64,
+        current_timestamp: u64,
+        weight: u32,
+    ) -> PutHostRecordResult {
+        let issuer_peer_id = kp.get_peer_id().to_base58();
+        let solution = vec![];
+
+        let signature = get_signed_host_record_bytes(
+            registry,
+            kp,
+            route_id.clone(),
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            timestamp_created,
+            solution.clone(),
+        );
+
+        let cp = CPWrapper::new(&issuer_peer_id)
+            .add_weight_tetraplets(7)
+            .add_timestamp_tetraplets(8);
+        let weight = get_weight(issuer_peer_id.clone(), weight);
+        registry.put_host_record_cp(
+            route_id,
+            value,
+            relay_id,
+            service_id,
+            timestamp_created,
+            solution,
+            signature,
+            weight,
+            current_timestamp,
+            cp.get(),
+        )
+    }
+
+    fn put_host_record_checked(
+        registry: &mut ServiceInterface,
+        kp: &KeyPair,
+        route_id: String,
+        value: String,
+        relay_id: Vec<String>,
+        service_id: Vec<String>,
+        timestamp_created: u64,
+        current_timestamp: u64,
+        weight: u32,
+    ) {
+        let result = put_host_record(
             registry,
             kp,
             route_id,
@@ -750,6 +843,55 @@ mod tests {
         assert_eq!(record.relay_id, relay_id);
         assert_eq!(record.service_id, service_id);
         assert_eq!(record.peer_id, kp.get_peer_id().to_base58());
+        assert_eq!(record.value, value);
+        assert_eq!(record.set_by, kp.get_peer_id().to_base58());
+    }
+
+    #[test]
+    fn test_put_get_host_record() {
+        clear_env();
+        let mut registry = ServiceInterface::new();
+        let kp = KeyPair::generate_ed25519();
+        let route = "some_route".to_string();
+        let timestamp_created = 0u64;
+        let current_timestamp = 100u64;
+        let weight = 0;
+        let pin = false;
+
+        let route_id = register_route_checked(
+            &mut registry,
+            &kp,
+            route,
+            timestamp_created,
+            current_timestamp,
+            pin,
+            weight,
+        );
+        let value = "some_value".to_string();
+        let relay_id = vec!["some_relay".to_string()];
+        let service_id = vec!["some_service_id".to_string()];
+        let weight = 5u32;
+
+        put_host_record_checked(
+            &mut registry,
+            &kp,
+            route_id.clone(),
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            timestamp_created,
+            current_timestamp,
+            weight,
+        );
+
+        let records = get_records(&mut registry, route_id.clone(), current_timestamp);
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.route_id, route_id);
+        assert_eq!(record.relay_id, relay_id);
+        assert_eq!(record.service_id, service_id);
+        assert_eq!(record.set_by, kp.get_peer_id().to_base58());
+        assert_eq!(record.peer_id, HOST_ID);
         assert_eq!(record.value, value);
         assert_eq!(record.set_by, kp.get_peer_id().to_base58());
     }
