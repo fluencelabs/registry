@@ -15,8 +15,8 @@
  */
 
 use crate::defaults::{
-    TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_WEIGHT_FUNCTION_NAME,
-    TRUSTED_WEIGHT_SERVICE_ID,
+    TRUSTED_REGISTRY_FUNCTION_NAME, TRUSTED_REGISTRY_SERVICE_ID, TRUSTED_TIMESTAMP_FUNCTION_NAME,
+    TRUSTED_TIMESTAMP_SERVICE_ID, TRUSTED_WEIGHT_FUNCTION_NAME, TRUSTED_WEIGHT_SERVICE_ID,
 };
 use crate::error::ServiceError;
 use crate::error::ServiceError::{
@@ -56,8 +56,8 @@ pub(crate) fn check_host_value_tetraplets(
     let tetraplet = tetraplets
         .get(0)
         .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
-    (tetraplet.service_id == "registry"
-        && tetraplet.function_name == "put_host_value"
+    (tetraplet.service_id == TRUSTED_REGISTRY_SERVICE_ID
+        && tetraplet.function_name == TRUSTED_REGISTRY_FUNCTION_NAME
         && tetraplet.peer_pk == host_value.peer_id)
         .then(|| ())
         .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", tetraplet)))
