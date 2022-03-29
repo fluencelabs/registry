@@ -100,7 +100,7 @@ func createRouteAndRegisterNode(provider_node_id: PeerId, label: string, value: 
   on HOST_PEER_ID:
       route_id <- get_route_id(label, INIT_PEER_ID)
 
-  record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
+  record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
 
   on provider_node_id:
     register_route(label, t, route_signature, false)
@@ -124,7 +124,7 @@ func createRouteAndRegisterNodeBlocking(
   on HOST_PEER_ID:
       route_id <- get_route_id(label, INIT_PEER_ID)
 
-  record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
+  record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
 
   results: *DhtResult
   on provider_node_id:
@@ -162,7 +162,7 @@ func registerForRoute(route_id: RouteId, value: string, service_id: ?string):
 -- Note: route must be already initiated
 func registerForRouteNode(provider_node_id: PeerId, route_id: RouteId, value: string, service_id: ?string):
   t <- Peer.timestamp_sec()
-  record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
+  record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
 
   on provider_node_id:
     r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
