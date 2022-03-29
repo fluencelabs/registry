@@ -10,17 +10,17 @@ func get_route_id(label: string, peer_id: string) -> RouteId:
   route_id <- Registry.get_route_id(label, peer_id)
   <- route_id
 
--- Get peers closest to the label's hash in Kademlia network
--- These peers are expected to store list of subscribers of this label
-func getNeighbours(route_id: string) -> []PeerId:
+-- Get peers closest to the route_id's hash in Kademlia network
+-- These peers are expected to store list of providers for this route
+func getNeighbours(route_id: RouteId) -> []PeerId:
   k <- Op.string_to_b58(route_id)
   nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
 
--- If this peer have set node_id as a subscriber for label,
--- this call will prevent subscriber from re-subscribing
--- so that eventually it will disappear from the subscribers list
-func removeFromRoute(route_id: string):
+-- If this peer have set node_id as a provider for route,
+-- this call will prevent provider from renew
+-- so that eventually it will disappear from the providers list
+func removeFromRoute(route_id: RouteId):
   on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
     Registry.clear_host_record(route_id, t)
@@ -39,8 +39,8 @@ func createRoute(label: string) -> RouteId:
           result <- register_route(label, t, signature, false)
   <- route_id
 
--- Create a label and subscribe to it
--- INIT_PEER_ID (current client) will become a subscriber
+-- Create a route and register for it
+-- INIT_PEER_ID (current client) will become a provider
 func createRouteAndRegister(label: string, value: string, service_id: ?string) -> string:
   relay_id: ?string
   relay_id <<- HOST_PEER_ID
@@ -61,8 +61,8 @@ func createRouteAndRegister(label: string, value: string, service_id: ?string) -
           put_record(route_id, value, relay_id, service_id, t, record_signature)
   <- route_id
 
--- Create a label and subscribe to it
--- INIT_PEER_ID (current client) will become a subscriber
+-- Create a route and register for it
+-- INIT_PEER_ID (current client) will become a provider
 -- In contrast with non-blocking version, waits for at least a single write to succeed
 func createRouteAndRegisterBlocking(
   label: string, value: string,
@@ -93,8 +93,8 @@ func createRouteAndRegisterBlocking(
   join results[ack]
   <- route_id
 
--- Create a label and make the given node a subscriber to it
-func createRouteAndRegisterNode(subscriber_node_id: PeerId, label: string, value: string, service_id: ?string) -> string:
+-- Create a route and make the given node a provider for it
+func createRouteAndRegisterNode(provider_node_id: PeerId, label: string, value: string, service_id: ?string) -> RouteId:
   t <- Peer.timestamp_sec()
   route_signature <- get_route_signature(label, t)
   on HOST_PEER_ID:
@@ -102,7 +102,7 @@ func createRouteAndRegisterNode(subscriber_node_id: PeerId, label: string, value
 
   record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
 
-  on subscriber_node_id:
+  on provider_node_id:
     register_route(label, t, route_signature, false)
     r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
@@ -113,9 +113,37 @@ func createRouteAndRegisterNode(subscriber_node_id: PeerId, label: string, value
           propagate_host_record(r)
   <- route_id
 
--- Subscribe to a label
--- Note: label must be already initiated
-func registerForRoute(route_id: string, value: string, service_id: ?string):
+func createRouteAndRegisterNodeBlocking(
+  provider_node_id: PeerId, label: string,
+  value: string, service_id: ?string,
+  progress: string -> (),
+  ack: i16
+) -> RouteId:
+  t <- Peer.timestamp_sec()
+  route_signature <- get_route_signature(label, t)
+  on HOST_PEER_ID:
+      route_id <- get_route_id(label, INIT_PEER_ID)
+
+  record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
+
+  results: *DhtResult
+  on provider_node_id:
+    register_route(label, t, route_signature, false)
+    r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
+    nodes <- getNeighbours(route_id)
+    for n <- nodes par:
+      on n:
+        try:
+          register_route(label, t, route_signature, false)
+          results <- propagate_host_record(r)
+          progress(n)
+
+  join results[ack]
+  <- route_id
+
+-- Register for a route
+-- Note: route must be already initiated
+func registerForRoute(route_id: RouteId, value: string, service_id: ?string):
   relay_id: ?string
   relay_id <<- HOST_PEER_ID
 
@@ -130,26 +158,22 @@ func registerForRoute(route_id: string, value: string, service_id: ?string):
           put_record(route_id, value, relay_id, service_id, t, record_signature)
 
 
--- Subscribe a node to the given label
--- Note: label must be already initiated
-func registerForRouteNode(subscriber_node_id: PeerId, label: string, value: string, service_id: ?string):
+-- Register a node to the given route
+-- Note: route must be already initiated
+func registerForRouteNode(provider_node_id: PeerId, route_id: RouteId, value: string, service_id: ?string):
   t <- Peer.timestamp_sec()
-  route_signature <- get_route_signature(label, t)
-  on HOST_PEER_ID:
-      route_id <- get_route_id(label, INIT_PEER_ID)
   record_signature <- get_host_record_signature(route_id, value, nil, service_id, t)
 
-  on subscriber_node_id:
+  on provider_node_id:
     r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          register_route(label, t, route_signature, false)
           propagate_host_record(r)
 
 -- Find the list of record for the given route_id
-func resolveRoute(route_id: string, ack: i16) -> []Record:
+func resolveRoute(route_id: RouteId, ack: i16) -> []Record:
   on HOST_PEER_ID:
     nodes <- getNeighbours(route_id)
     res: *[]Record
@@ -165,10 +189,10 @@ func resolveRoute(route_id: string, ack: i16) -> []Record:
     result <- Registry.merge(res)
   <- result.result
 
--- Execute the given code on subscribers
+-- Execute the given code on providers
 -- Note that you can provide another Aqua function as an argument to this one
-func executeOnRoute(route_id: string, ack: i16, call: Record -> ()):
-  subs <- resolveRoute(route_id, ack)
-  for r <- subs par:
+func executeOnRoute(route_id: RouteId, ack: i16, call: Record -> ()):
+  providers <- resolveRoute(route_id, ack)
+  for r <- providers par:
     on r.peer_id via r.relay_id:
       call(r)

@@ -56,7 +56,7 @@ pub(crate) fn check_host_value_tetraplets(
     let tetraplet = tetraplets
         .get(0)
         .ok_or_else(|| InvalidSetHostValueTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
-    (tetraplet.service_id == "aqua-dht"
+    (tetraplet.service_id == "registry"
         && tetraplet.function_name == "put_host_value"
         && tetraplet.peer_pk == host_value.peer_id)
         .then(|| ())

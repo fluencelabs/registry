@@ -1,7 +1,7 @@
 module Export
-import createRouteAndRegisterBlocking, resolveRoute from "@fluencelabs/registry/routing.aqua"
+import createRouteAndRegisterNodeBlocking, resolveRoute from "@fluencelabs/registry/routing.aqua"
 import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
-export createRouteAndRegisterBlocking, resolveRoute, timestamp_sec
+export createRouteAndRegisterNodeBlocking, resolveRoute, timestamp_sec
 
 
 func timestamp_sec() -> u64:
