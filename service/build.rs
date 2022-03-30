@@ -29,7 +29,7 @@ fn main() {
         generate_marine_test_env(services, "marine_test_env.rs", file!());
     }
 
-    println!("cargo:rerun-if-changed=src/key_api.rs");
+    println!("cargo:rerun-if-changed=src/route_api.rs");
     println!("cargo:rerun-if-changed=src/record_api.rs");
     println!("cargo:rerun-if-changed=src/main.rs");
 }
