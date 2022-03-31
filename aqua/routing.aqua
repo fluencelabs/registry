@@ -151,10 +151,12 @@ func registerForRoute(route_id: RouteId, value: string, service_id: ?string):
   record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
 
   on HOST_PEER_ID:
+    route <- get_route_metadata(route_id)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
+          republish_route(route)
           put_record(route_id, value, relay_id, service_id, t, record_signature)
 
 
@@ -164,12 +166,17 @@ func registerForRouteNode(provider_node_id: PeerId, route_id: RouteId, value: st
   t <- Peer.timestamp_sec()
   record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
 
+  on HOST_PEER_ID:
+    route <- get_route_metadata(route_id)
+
   on provider_node_id:
+    republish_route(route)
     r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
+          republish_route(route)
           propagate_host_record(r)
 
 -- Find the list of record for the given route_id

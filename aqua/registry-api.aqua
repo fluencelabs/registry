@@ -43,3 +43,15 @@ func propagate_host_record(res: PutHostRecordResult) -> DhtResult:
   weight <- TrustGraph.get_weight(res.value!.peer_id, t)
   result <- Registry.propagate_host_record(res, t, weight)
   <- result
+
+func get_route_metadata(route_id: string) -> GetRouteMetadataResult:
+  t <- Peer.timestamp_sec()
+  result <- Registry.get_route_metadata(route_id, t)
+  <- result
+
+-- TODO: should use Route later, workaround for aqua bug
+func republish_route(route: GetRouteMetadataResult) -> DhtResult:
+  t <- Peer.timestamp_sec()
+  weight <- TrustGraph.get_weight(route.route.peer_id, t)
+  result <- Registry.republish_route(route.route, weight, t)
+  <- result
