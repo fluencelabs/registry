@@ -2,56 +2,55 @@ import "registry.aqua"
 import PeerId, Peer, Sig from "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
 
-func get_route_signature(label: string, timestamp_created: u64) -> []u8:
+func getRouteSignature(label: string, timestamp_created: u64) -> []u8:
   on HOST_PEER_ID:
     bytes <- Registry.get_route_bytes(label, nil, timestamp_created, nil, "")
   signature <- Sig.sign(bytes)
   <- signature.signature!
 
-func get_record_signature(route_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> []u8:
+func getRecordSignature(route_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> []u8:
   on HOST_PEER_ID:
       bytes <- Registry.get_record_bytes(route_id, value, relay_id, service_id, timestamp_created, nil)
   signature <- Sig.sign(bytes)
   <- signature.signature!
 
-func get_host_record_signature(provider_node_id: PeerId, route_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> []u8:
+func getHostRecordSignature(provider_node_id: PeerId, route_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> []u8:
   on provider_node_id:
       bytes <- Registry.get_host_record_bytes(route_id, value, relay_id, service_id, timestamp_created, nil)
   signature <- Sig.sign(bytes)
   <- signature.signature!
 
-func register_route(label: string, timestamp_created: u64, signature: []u8, pin: bool) -> RegisterRouteResult:
+func registerRoute(label: string, timestamp_created: u64, signature: []u8, pin: bool) -> RegisterRouteResult:
   t <- Peer.timestamp_sec()
   weight <- TrustGraph.get_weight(%init_peer_id%, t)
   result <- Registry.register_route(label, nil, timestamp_created, nil, "", signature, pin, weight, t)
   <- result
 
-func put_record(route_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> DhtResult:
+func putRecord(route_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> DhtResult:
   t <- Peer.timestamp_sec()
   weight <- TrustGraph.get_weight(%init_peer_id%, t)
   result <- Registry.put_record(route_id, value, relay_id, service_id, timestamp_created, nil, signature, weight, t)
   <- result
 
-func put_host_record(route_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> PutHostRecordResult:
+func putHostRecord(route_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> PutHostRecordResult:
   t <- Peer.timestamp_sec()
   weight <- TrustGraph.get_weight(%init_peer_id%, t)
   result <- Registry.put_host_record(route_id, value, relay_id, service_id, timestamp_created, nil, signature, weight, t)
   <- result
 
-func propagate_host_record(res: PutHostRecordResult) -> DhtResult:
+func propagateHostRecord(res: PutHostRecordResult) -> DhtResult:
   t <- Peer.timestamp_sec()
-  weight <- TrustGraph.get_weight(res.value!.peer_id, t)
+  weight <- TrustGraph.get_weight(res.record!.peer_id, t)
   result <- Registry.propagate_host_record(res, t, weight)
   <- result
 
-func get_route_metadata(route_id: string) -> GetRouteMetadataResult:
+func getRouteMetadata(route_id: string) -> GetRouteMetadataResult:
   t <- Peer.timestamp_sec()
   result <- Registry.get_route_metadata(route_id, t)
   <- result
 
--- TODO: should use Route later, workaround for aqua bug
-func republish_route(route: GetRouteMetadataResult) -> DhtResult:
+func republishRoute(route: Route) -> DhtResult:
   t <- Peer.timestamp_sec()
-  weight <- TrustGraph.get_weight(route.route.peer_id, t)
-  result <- Registry.republish_route(route.route, weight, t)
+  weight <- TrustGraph.get_weight(route.peer_id, t)
+  result <- Registry.republish_route(route, weight, t)
   <- result

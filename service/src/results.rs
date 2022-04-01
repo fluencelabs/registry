@@ -68,13 +68,13 @@ impl From<Result<String, ServiceError>> for RegisterRouteResult {
 
 #[marine]
 #[derive(Debug)]
-pub struct GetValuesResult {
+pub struct GetRecordsResult {
     pub success: bool,
     pub error: String,
     pub result: Vec<Record>,
 }
 
-impl From<Result<Vec<Record>, ServiceError>> for GetValuesResult {
+impl From<Result<Vec<Record>, ServiceError>> for GetRecordsResult {
     fn from(result: Result<Vec<Record>, ServiceError>) -> Self {
         match result {
             Ok(result) => Self {
@@ -97,22 +97,22 @@ pub struct ClearExpiredResult {
     pub success: bool,
     pub error: String,
     pub count_routes: u64,
-    pub count_values: u64,
+    pub count_records: u64,
 }
 
 impl From<Result<(u64, u64), ServiceError>> for ClearExpiredResult {
     fn from(result: Result<(u64, u64), ServiceError>) -> Self {
         match result {
-            Ok((routes, values)) => Self {
+            Ok((count_routes, count_records)) => Self {
                 success: true,
-                count_routes: routes,
-                count_values: values,
+                count_routes,
+                count_records,
                 error: "".to_string(),
             },
             Err(err) => Self {
                 success: false,
                 count_routes: 0,
-                count_values: 0,
+                count_records: 0,
                 error: err.to_string(),
             },
         }
@@ -169,13 +169,13 @@ impl From<Result<Route, ServiceError>> for GetRouteMetadataResult {
 }
 
 #[marine]
-pub struct RepublishValuesResult {
+pub struct RepublishRecordsResult {
     pub success: bool,
     pub error: String,
     pub updated: u64,
 }
 
-impl From<Result<u64, ServiceError>> for RepublishValuesResult {
+impl From<Result<u64, ServiceError>> for RepublishRecordsResult {
     fn from(result: Result<u64, ServiceError>) -> Self {
         match result {
             Ok(count) => Self {
@@ -226,7 +226,7 @@ impl From<Result<Vec<EvictStaleItem>, ServiceError>> for EvictStaleResult {
 pub struct PutHostRecordResult {
     pub success: bool,
     pub error: String,
-    pub value: Vec<Record>,
+    pub record: Vec<Record>,
 }
 
 impl From<Result<Record, ServiceError>> for PutHostRecordResult {
@@ -235,12 +235,12 @@ impl From<Result<Record, ServiceError>> for PutHostRecordResult {
             Ok(result) => Self {
                 success: true,
                 error: "".to_string(),
-                value: vec![result],
+                record: vec![result],
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                value: vec![],
+                record: vec![],
             },
         }
     }
@@ -266,6 +266,30 @@ impl From<Result<Vec<Record>, ServiceError>> for MergeResult {
                 success: false,
                 error: err.to_string(),
                 result: vec![],
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct MergeRoutesResult {
+    pub success: bool,
+    pub error: String,
+    pub route: Route,
+}
+
+impl From<Result<Route, ServiceError>> for MergeRoutesResult {
+    fn from(result: Result<Route, ServiceError>) -> Self {
+        match result {
+            Ok(route) => Self {
+                success: true,
+                error: "".to_string(),
+                route,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                route: Route::default(),
             },
         }
     }

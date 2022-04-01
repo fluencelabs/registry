@@ -21,7 +21,7 @@ use crate::misc::check_weight_result;
 use crate::record::{Record, RecordInternal};
 use crate::record_storage_impl::merge_records;
 use crate::results::{
-    DhtResult, GetValuesResult, MergeResult, PutHostRecordResult, RepublishValuesResult,
+    DhtResult, GetRecordsResult, MergeResult, PutHostRecordResult, RepublishRecordsResult,
 };
 use crate::storage_impl::get_storage;
 use crate::tetraplets_checkers::{
@@ -176,11 +176,11 @@ pub fn propagate_host_record(
     weight: WeightResult,
 ) -> DhtResult {
     wrapped_try(|| {
-        if !set_host_value.success || set_host_value.value.len() != 1 {
+        if !set_host_value.success || set_host_value.record.len() != 1 {
             return Err(ServiceError::InvalidSetHostValueResult);
         }
 
-        let record = set_host_value.value[0].clone();
+        let record = set_host_value.record[0].clone();
         record.verify(current_timestamp_sec)?;
 
         let call_parameters = marine_rs_sdk::get_call_parameters();
@@ -206,7 +206,7 @@ pub fn propagate_host_record(
 
 /// Return all values by key
 #[marine]
-pub fn get_records(route_id: String, current_timestamp_sec: u64) -> GetValuesResult {
+pub fn get_records(route_id: String, current_timestamp_sec: u64) -> GetRecordsResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&call_parameters, 1)?;
@@ -226,7 +226,7 @@ pub fn republish_records(
     records: Vec<Record>,
     weights: Vec<WeightResult>,
     current_timestamp_sec: u64,
-) -> RepublishValuesResult {
+) -> RepublishRecordsResult {
     wrapped_try(|| {
         if records.is_empty() {
             return Ok(0);
