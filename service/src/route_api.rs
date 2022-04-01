@@ -15,7 +15,7 @@
  */
 use crate::error::ServiceError;
 use crate::misc::check_weight_result;
-use crate::results::{DhtResult, GetRouteMetadataResult, RegisterRouteResult};
+use crate::results::{DhtResult, GetRouteMetadataResult, MergeRoutesResult, RegisterRouteResult};
 use crate::route::{Route, RouteInternal};
 use crate::storage_impl::get_storage;
 use crate::tetraplets_checkers::{check_timestamp_tetraplets, check_weight_tetraplets};
@@ -140,4 +140,14 @@ pub fn republish_route(
         }
     })
     .into()
+}
+
+/// merge route and return the latest
+#[marine]
+pub fn merge_routes(routes: Vec<Route>) -> MergeRoutesResult {
+    routes
+        .into_iter()
+        .max_by(|l, r| l.timestamp_created.cmp(&r.timestamp_created))
+        .ok_or(ServiceError::InvalidRecordTimestamp)
+        .into()
 }

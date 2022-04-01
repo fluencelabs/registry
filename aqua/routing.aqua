@@ -6,7 +6,7 @@ import "@fluencelabs/aqua-lib/builtin.aqua"
 
 alias RouteId: string
 
-func get_route_id(label: string, peer_id: string) -> RouteId:
+func getRouteId(label: string, peer_id: string) -> RouteId:
   route_id <- Registry.get_route_id(label, peer_id)
   <- route_id
 
@@ -16,6 +16,21 @@ func getNeighbours(route_id: RouteId) -> []PeerId:
   k <- Op.string_to_b58(route_id)
   nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
+
+func getRoute(route_id: RouteId) -> MergeRoutesResult:
+  nodes <- getNeighbours(route_id)
+  res: *Route
+  for n <- nodes par:
+    on n:
+      try:
+        t <- Peer.timestamp_sec()
+        get_result <- Registry.get_route_metadata(route_id, t)
+        if get_result.success:
+          res <<- get_result.route
+
+  join res[0]
+  result <- Registry.merge_routes(res)
+  <- result
 
 -- If this peer have set node_id as a provider for route,
 -- this call will prevent provider from renew
@@ -28,15 +43,15 @@ func removeFromRoute(route_id: RouteId):
 -- Create a route: register it on the closest peers
 func createRoute(label: string) -> RouteId:
   t <- Peer.timestamp_sec()
-  signature <- get_route_signature(label, t)
+  signature <- getRouteSignature(label, t)
 
   on HOST_PEER_ID:
-    route_id <- get_route_id(label, INIT_PEER_ID)
+    route_id <- getRouteId(label, INIT_PEER_ID)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          result <- register_route(label, t, signature, false)
+          result <- registerRoute(label, t, signature, false)
   <- route_id
 
 -- Create a route and register for it
@@ -46,10 +61,10 @@ func createRouteAndRegister(label: string, value: string, service_id: ?string) -
   relay_id <<- HOST_PEER_ID
 
   t <- Peer.timestamp_sec()
-  route_signature <- get_route_signature(label, t)
+  route_signature <- getRouteSignature(label, t)
   on HOST_PEER_ID:
-    route_id <- get_route_id(label, INIT_PEER_ID)
-  record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
+    route_id <- getRouteId(label, INIT_PEER_ID)
+  record_signature <- getRecordSignature(route_id, value, relay_id, service_id, t)
 
   on HOST_PEER_ID:
 
@@ -57,8 +72,8 @@ func createRouteAndRegister(label: string, value: string, service_id: ?string) -
     for n <- nodes par:
       on n:
         try:
-          register_route(label, t, route_signature, false)
-          put_record(route_id, value, relay_id, service_id, t, record_signature)
+          registerRoute(label, t, route_signature, false)
+          putRecord(route_id, value, relay_id, service_id, t, record_signature)
   <- route_id
 
 -- Create a route and register for it
@@ -74,10 +89,10 @@ func createRouteAndRegisterBlocking(
   relay_id <<- HOST_PEER_ID
 
   t <- Peer.timestamp_sec()
-  route_signature <- get_route_signature(label, t)
+  route_signature <- getRouteSignature(label, t)
   on HOST_PEER_ID:
-      route_id <- get_route_id(label, INIT_PEER_ID)
-  record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
+      route_id <- getRouteId(label, INIT_PEER_ID)
+  record_signature <- getRecordSignature(route_id, value, relay_id, service_id, t)
 
   results: *DhtResult
   on HOST_PEER_ID:
@@ -85,8 +100,8 @@ func createRouteAndRegisterBlocking(
     for n <- nodes par:
       on n:
         try:
-          res1 <- register_route(label, t, route_signature, false)
-          result <- put_record(route_id, value, relay_id, service_id, t, record_signature)
+          res1 <- registerRoute(label, t, route_signature, false)
+          result <- putRecord(route_id, value, relay_id, service_id, t, record_signature)
           if result.success:
             results <<- result
             progress(n)
@@ -96,21 +111,21 @@ func createRouteAndRegisterBlocking(
 -- Create a route and make the given node a provider for it
 func createRouteAndRegisterNode(provider_node_id: PeerId, label: string, value: string, service_id: ?string) -> RouteId:
   t <- Peer.timestamp_sec()
-  route_signature <- get_route_signature(label, t)
+  route_signature <- getRouteSignature(label, t)
   on HOST_PEER_ID:
-      route_id <- get_route_id(label, INIT_PEER_ID)
+      route_id <- getRouteId(label, INIT_PEER_ID)
 
-  record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
+  record_signature <- getHostRecordSignature(provider_node_id, route_id, value, nil, service_id, t)
 
   on provider_node_id:
-    register_route(label, t, route_signature, false)
-    r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
+    registerRoute(label, t, route_signature, false)
+    r <- putHostRecord(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          register_route(label, t, route_signature, false)
-          propagate_host_record(r)
+          registerRoute(label, t, route_signature, false)
+          propagateHostRecord(r)
   <- route_id
 
 func createRouteAndRegisterNodeBlocking(
@@ -120,22 +135,22 @@ func createRouteAndRegisterNodeBlocking(
   ack: i16
 ) -> RouteId:
   t <- Peer.timestamp_sec()
-  route_signature <- get_route_signature(label, t)
+  route_signature <- getRouteSignature(label, t)
   on HOST_PEER_ID:
-      route_id <- get_route_id(label, INIT_PEER_ID)
+      route_id <- getRouteId(label, INIT_PEER_ID)
 
-  record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
+  record_signature <- getHostRecordSignature(provider_node_id, route_id, value, nil, service_id, t)
 
   results: *DhtResult
   on provider_node_id:
-    register_route(label, t, route_signature, false)
-    r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
+    registerRoute(label, t, route_signature, false)
+    r <- putHostRecord(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          register_route(label, t, route_signature, false)
-          results <- propagate_host_record(r)
+          registerRoute(label, t, route_signature, false)
+          results <- propagateHostRecord(r)
           progress(n)
 
   join results[ack]
@@ -148,36 +163,34 @@ func registerForRoute(route_id: RouteId, value: string, service_id: ?string):
   relay_id <<- HOST_PEER_ID
 
   t <- Peer.timestamp_sec()
-  record_signature <- get_record_signature(route_id, value, relay_id, service_id, t)
+  record_signature <- getRecordSignature(route_id, value, relay_id, service_id, t)
 
   on HOST_PEER_ID:
-    route <- get_route_metadata(route_id)
+    route <- getRoute(route_id)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          republish_route(route)
-          put_record(route_id, value, relay_id, service_id, t, record_signature)
+          republishRoute(route)
+          putRecord(route_id, value, relay_id, service_id, t, record_signature)
 
 
 -- Register a node to the given route
 -- Note: route must be already initiated
 func registerForRouteNode(provider_node_id: PeerId, route_id: RouteId, value: string, service_id: ?string):
   t <- Peer.timestamp_sec()
-  record_signature <- get_host_record_signature(provider_node_id, route_id, value, nil, service_id, t)
-
-  on HOST_PEER_ID:
-    route <- get_route_metadata(route_id)
+  record_signature <- getHostRecordSignature(provider_node_id, route_id, value, nil, service_id, t)
 
   on provider_node_id:
-    republish_route(route)
-    r <- put_host_record(route_id, value, nil, service_id, t, record_signature)
+    route <- getRoute(route_id)
+    republishRoute(route)
+    r <- putHostRecord(route_id, value, nil, service_id, t, record_signature)
     nodes <- getNeighbours(route_id)
     for n <- nodes par:
       on n:
         try:
-          republish_route(route)
-          propagate_host_record(r)
+          republishRoute(route)
+          propagateHostRecord(r)
 
 -- Find the list of record for the given route_id
 func resolveRoute(route_id: RouteId, ack: i16) -> []Record:
@@ -192,7 +205,6 @@ func resolveRoute(route_id: RouteId, ack: i16) -> []Record:
           res <<- get_result.result
 
     join res[ack]
-    --par Peer.timeout(100000000, "timeout")
     result <- Registry.merge(res)
   <- result.result
 
