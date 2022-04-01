@@ -17,7 +17,7 @@ func getNeighbours(route_id: RouteId) -> []PeerId:
   nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
 
-func getRoute(route_id: RouteId) -> Route:
+func getRoute(route_id: RouteId) -> MergeRoutesResult:
   nodes <- getNeighbours(route_id)
   res: *Route
   for n <- nodes par:
@@ -30,7 +30,7 @@ func getRoute(route_id: RouteId) -> Route:
 
   join res[0]
   result <- Registry.merge_routes(res)
-  <- result.route
+  <- result
 
 -- If this peer have set node_id as a provider for route,
 -- this call will prevent provider from renew

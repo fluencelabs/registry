@@ -49,8 +49,8 @@ func getRouteMetadata(route_id: string) -> GetRouteMetadataResult:
   result <- Registry.get_route_metadata(route_id, t)
   <- result
 
-func republishRoute(route: Route) -> DhtResult:
+func republishRoute(route: MergeRoutesResult) -> DhtResult:
   t <- Peer.timestamp_sec()
-  weight <- TrustGraph.get_weight(route.peer_id, t)
-  result <- Registry.republish_route(route, weight, t)
+  weight <- TrustGraph.get_weight(route.route.peer_id, t)
+  result <- Registry.republish_route(route.route, weight, t)
   <- result
