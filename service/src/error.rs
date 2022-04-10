@@ -25,13 +25,13 @@ pub enum ServiceError {
         #[source]
         SqliteError,
     ),
-    #[error("Requested route {0} does not exist")]
-    RouteNotExists(String),
-    #[error("Route {0} for {1} peer_id already exists with newer timestamp")]
-    RouteAlreadyExistsNewerTimestamp(String, String),
+    #[error("Requested key {0} does not exist")]
+    KeyNotExists(String),
+    #[error("Key {0} for {1} peer_id already exists with newer timestamp")]
+    KeyAlreadyExistsNewerTimestamp(String, String),
     #[error("Values limit for key_d {0} is exceeded")]
     ValuesLimitExceeded(String),
-    #[error("Host value for route_id {0} not found ")]
+    #[error("Host value for key_id {0} not found ")]
     HostValueNotFound(String),
     #[error("Invalid set_host_value result: success is false or value is missing")]
     InvalidSetHostValueResult,
@@ -59,8 +59,8 @@ pub enum ServiceError {
         String,
         #[source] fluence_keypair::error::VerificationError,
     ),
-    #[error("Route can't be registered in the future")]
-    InvalidRouteTimestamp,
+    #[error("Key can't be registered in the future")]
+    InvalidKeyTimestamp,
     #[error("Record can't be registered in the future")]
     InvalidRecordTimestamp,
     #[error("Records to publish should belong to one key id")]

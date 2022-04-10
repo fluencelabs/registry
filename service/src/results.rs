@@ -15,18 +15,18 @@
  */
 
 use crate::error::ServiceError;
+use crate::key::Key;
 use crate::record::Record;
-use crate::route::Route;
 use marine_rs_sdk::marine;
 
 #[marine]
 #[derive(Debug)]
-pub struct DhtResult {
+pub struct RegistryResult {
     pub success: bool,
     pub error: String,
 }
 
-impl From<Result<(), ServiceError>> for DhtResult {
+impl From<Result<(), ServiceError>> for RegistryResult {
     fn from(result: Result<(), ServiceError>) -> Self {
         match result {
             Ok(_) => Self {
@@ -43,24 +43,24 @@ impl From<Result<(), ServiceError>> for DhtResult {
 
 #[marine]
 #[derive(Debug)]
-pub struct RegisterRouteResult {
+pub struct RegisterKeyResult {
     pub success: bool,
     pub error: String,
-    pub route_id: String,
+    pub key_id: String,
 }
 
-impl From<Result<String, ServiceError>> for RegisterRouteResult {
+impl From<Result<String, ServiceError>> for RegisterKeyResult {
     fn from(result: Result<String, ServiceError>) -> Self {
         match result {
-            Ok(route_id) => Self {
+            Ok(key_id) => Self {
                 success: true,
                 error: "".to_string(),
-                route_id,
+                key_id,
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                route_id: "".to_string(),
+                key_id: "".to_string(),
             },
         }
     }
@@ -96,22 +96,22 @@ impl From<Result<Vec<Record>, ServiceError>> for GetRecordsResult {
 pub struct ClearExpiredResult {
     pub success: bool,
     pub error: String,
-    pub count_routes: u64,
+    pub count_keys: u64,
     pub count_records: u64,
 }
 
 impl From<Result<(u64, u64), ServiceError>> for ClearExpiredResult {
     fn from(result: Result<(u64, u64), ServiceError>) -> Self {
         match result {
-            Ok((count_routes, count_records)) => Self {
+            Ok((count_keys, count_records)) => Self {
                 success: true,
-                count_routes,
+                count_keys,
                 count_records,
                 error: "".to_string(),
             },
             Err(err) => Self {
                 success: false,
-                count_routes: 0,
+                count_keys: 0,
                 count_records: 0,
                 error: err.to_string(),
             },
@@ -145,24 +145,24 @@ impl From<Result<Vec<Record>, ServiceError>> for GetStaleRecordsResult {
 }
 
 #[marine]
-pub struct GetRouteMetadataResult {
+pub struct GetKeyMetadataResult {
     pub success: bool,
     pub error: String,
-    pub route: Route,
+    pub key: Key,
 }
 
-impl From<Result<Route, ServiceError>> for GetRouteMetadataResult {
-    fn from(result: Result<Route, ServiceError>) -> Self {
+impl From<Result<Key, ServiceError>> for GetKeyMetadataResult {
+    fn from(result: Result<Key, ServiceError>) -> Self {
         match result {
-            Ok(route) => Self {
+            Ok(key) => Self {
                 success: true,
                 error: "".to_string(),
-                route,
+                key,
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                route: Route::default(),
+                key: Key::default(),
             },
         }
     }
@@ -194,7 +194,7 @@ impl From<Result<u64, ServiceError>> for RepublishRecordsResult {
 
 #[marine]
 pub struct EvictStaleItem {
-    pub route: Route,
+    pub key: Key,
     pub records: Vec<Record>,
 }
 
@@ -272,24 +272,24 @@ impl From<Result<Vec<Record>, ServiceError>> for MergeResult {
 }
 
 #[marine]
-pub struct MergeRoutesResult {
+pub struct MergeKeysResult {
     pub success: bool,
     pub error: String,
-    pub route: Route,
+    pub key: Key,
 }
 
-impl From<Result<Route, ServiceError>> for MergeRoutesResult {
-    fn from(result: Result<Route, ServiceError>) -> Self {
+impl From<Result<Key, ServiceError>> for MergeKeysResult {
+    fn from(result: Result<Key, ServiceError>) -> Self {
         match result {
-            Ok(route) => Self {
+            Ok(key) => Self {
                 success: true,
                 error: "".to_string(),
-                route,
+                key,
             },
             Err(err) => Self {
                 success: false,
                 error: err.to_string(),
-                route: Route::default(),
+                key: Key::default(),
             },
         }
     }

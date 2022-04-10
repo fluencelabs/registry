@@ -22,10 +22,10 @@ use sha2::{Digest, Sha256};
 
 #[marine]
 #[derive(Default, Clone)]
-pub struct Route {
+pub struct Key {
     pub id: String,
     pub label: String,
-    pub peer_id: String,
+    pub owner_peer_id: String,
     pub timestamp_created: u64,
     pub challenge: Vec<u8>,
     pub challenge_type: String,
@@ -33,28 +33,28 @@ pub struct Route {
 }
 
 #[derive(Default, Clone)]
-pub struct RouteInternal {
-    pub route: Route,
+pub struct KeyInternal {
+    pub key: Key,
     pub timestamp_published: u64,
     pub pinned: bool,
     pub weight: u32,
 }
 
-impl Route {
+impl Key {
     pub fn new(
         label: String,
-        peer_id: String,
+        owner_peer_id: String,
         timestamp_created: u64,
         challenge: Vec<u8>,
         challenge_type: String,
         signature: Vec<u8>,
     ) -> Self {
-        let id = Self::get_id(&label, &peer_id);
+        let id = Self::get_id(&label, &owner_peer_id);
 
         Self {
             id,
             label,
-            peer_id,
+            owner_peer_id,
             timestamp_created,
             challenge,
             challenge_type,
@@ -62,14 +62,14 @@ impl Route {
         }
     }
 
-    pub fn get_id(label: &str, peer_id: &str) -> String {
-        format!("{}{}", label, peer_id)
+    pub fn get_id(label: &str, owner_peer_id: &str) -> String {
+        format!("{}{}", label, owner_peer_id)
     }
 
     pub fn signature_bytes(&self) -> Vec<u8> {
         let mut metadata = Vec::new();
         metadata.extend(self.label.as_bytes());
-        metadata.extend(self.peer_id.as_bytes());
+        metadata.extend(self.owner_peer_id.as_bytes());
         metadata.extend(self.timestamp_created.to_le_bytes());
         metadata.extend(&self.challenge);
         metadata.extend(self.challenge_type.as_bytes());
@@ -81,14 +81,14 @@ impl Route {
 
     pub fn verify(&self, current_timestamp_sec: u64) -> Result<(), ServiceError> {
         if self.timestamp_created > current_timestamp_sec {
-            return Err(ServiceError::InvalidRouteTimestamp);
+            return Err(ServiceError::InvalidKeyTimestamp);
         }
 
         self.verify_signature()
     }
 
     pub fn verify_signature(&self) -> Result<(), ServiceError> {
-        let pk = extract_public_key(self.peer_id.clone())?;
+        let pk = extract_public_key(self.owner_peer_id.clone())?;
         let bytes = self.signature_bytes();
         let signature = Signature::from_bytes(pk.get_key_format(), self.signature.clone());
         pk.verify(&bytes, &signature)

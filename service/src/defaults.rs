@@ -15,9 +15,9 @@
  */
 
 // TODO: sanitize tables' names in SQL expressions
-pub static ROUTES_TABLE_NAME: &str = "dht_routes";
-pub static ROUTES_TIMESTAMPS_TABLE_NAME: &str = "dht_routes_timestamps";
-pub static RECORDS_TABLE_NAME: &str = "dht_records";
+pub static KEYS_TABLE_NAME: &str = "keys_table";
+pub static KEYS_TIMESTAMPS_TABLE_NAME: &str = "keys_timestamps_table";
+pub static RECORDS_TABLE_NAME: &str = "records_table";
 pub static CONFIG_FILE: &str = "/tmp/Config.toml";
 pub static DB_PATH: &str = "/tmp/registry.db";
 pub static DEFAULT_STALE_VALUE_AGE: u64 = 60 * 60;
