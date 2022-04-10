@@ -1,8 +1,8 @@
 -- This file demonstrates how to send events to subscribers of a topic
 -- Detailed explanation can be found in the Aqua Book: https://doc.fluence.dev/aqua-book/libraries/aqua-dht#passing-data-to-subscribers
 
-import "@fluencelabs/registry/routing.aqua"
 import "@fluencelabs/registry/registry.aqua"
+import "@fluencelabs/registry/resources-api.aqua"
 import PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
 
 -- Application event
@@ -23,10 +23,10 @@ func notify_peer(rec: Record, event: Event):
         EventAPI.receive_event(event)
 
 -- send event to every peer registered on route
-func send_everyone(route_id: string, event: Event, ack: i16):
+func send_everyone(key_id: string, event: Event, ack: i16):
     on HOST_PEER_ID:
         -- retrieve all peers registered to the route
-        records <- resolveRoute(route_id, ack)
+        records <- resolveProviders(key_id, ack)
         -- iterate through them
         for rec <- records par:
             notify_peer(rec, event)

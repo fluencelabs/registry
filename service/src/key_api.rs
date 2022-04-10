@@ -147,6 +147,6 @@ pub fn republish_key(
 pub fn merge_keys(keys: Vec<Key>) -> MergeKeysResult {
     keys.into_iter()
         .max_by(|l, r| l.timestamp_created.cmp(&r.timestamp_created))
-        .ok_or(ServiceError::InvalidRecordTimestamp)
+        .ok_or(ServiceError::KeysArgumentEmpty)
         .into()
 }

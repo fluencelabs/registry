@@ -77,4 +77,6 @@ pub enum ServiceError {
     ),
     #[error("Weight for record with peer_id {0} and set_by {1} is missing ")]
     MissingRecordWeight(String, String),
+    #[error("merge_keys: keys argument is empty")]
+    KeysArgumentEmpty,
 }
