@@ -9,7 +9,7 @@ SCHEDULED="${SCRIPT_DIR}/scheduled"
 (
     echo "*** compile scheduled scripts ***"
     cd ../aqua
-    aqua --no-relay --air -i ./registry-scheduled-scripts.aqua -o "$SCHEDULED"
+    npx aqua --no-relay --air -i ./registry-scheduled-scripts.aqua -o "$SCHEDULED"
 )
 
 (
