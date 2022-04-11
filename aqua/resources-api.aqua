@@ -260,22 +260,28 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
     else:
       record_signature = record_sig_result.signature!
       key, error_get <- getResource(resource_id)
-      republishKey(key!)
-      r <- putHostRecord(resource_id, value, nil, service_id, t, record_signature)
-      nodes <- getNeighbours(resource_id)
-      for n <- nodes par:
-        on n:
-          try:
-            republish_res <- republishKey(key!)
-            if republish_res.success == false:
-              error <<- republish_res.error
-            else:
-              prop_res <- propagateHostRecord(r)
-              if prop_res.success:
-                successful <<- true
-              else:
-                error <<- prop_res.error
-        par Peer.timeout(10000, "timeout exceeded")
+      if key == nil:
+        appendErrors(error, error_get)
+      else:
+        republish_result <- republishKey(key!)
+        if republish_result.success == false:
+          error <<- republish_result.error
+        else:
+          r <- putHostRecord(resource_id, value, nil, service_id, t, record_signature)
+          nodes <- getNeighbours(resource_id)
+          for n <- nodes par:
+            on n:
+              try:
+                republish_res <- republishKey(key!)
+                if republish_res.success == false:
+                  error <<- republish_res.error
+                else:
+                  prop_res <- propagateHostRecord(r)
+                  if prop_res.success:
+                    successful <<- true
+                  else:
+                    error <<- prop_res.error
+            par Peer.timeout(10000, "timeout exceeded")
 
   timeout: ?string
   join successful[0]
