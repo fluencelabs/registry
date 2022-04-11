@@ -16,7 +16,7 @@
 
 use std::collections::HashMap;
 
-use crate::defaults::{RECORDS_TABLE_NAME, VALUES_LIMIT};
+use crate::defaults::{RECORDS_LIMIT, RECORDS_TABLE_NAME};
 use crate::error::ServiceError;
 use crate::error::ServiceError::InternalError;
 use crate::record::{Record, RecordInternal};
@@ -50,7 +50,7 @@ impl Storage {
         let records_count = self.get_non_host_records_count_by_key(record.record.key_id.clone())?;
 
         // check values limits for non-host values
-        if !host && records_count >= VALUES_LIMIT {
+        if !host && records_count >= RECORDS_LIMIT {
             let min_weight_record =
                 self.get_min_weight_non_host_record_by_key(record.record.key_id.clone())?;
 

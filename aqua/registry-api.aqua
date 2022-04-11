@@ -1,4 +1,4 @@
-import "registry.aqua"
+import "registry-service.aqua"
 import PeerId, Peer, Sig, SignResult from "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
 
@@ -20,10 +20,10 @@ func getHostRecordSignature(key_id: string, value: string, relay_id: ?PeerId, se
     signature <- Sig.sign(bytes)
   <- signature
 
-func registerKey(label: string, timestamp_created: u64, signature: []u8, pin: bool) -> RegisterKeyResult:
+func registerKey(label: string, timestamp_created: u64, signature: []u8) -> RegisterKeyResult:
   t <- Peer.timestamp_sec()
   weight <- TrustGraph.get_weight(%init_peer_id%, t)
-  result <- Registry.register_key(label, nil, timestamp_created, nil, "", signature, pin, weight, t)
+  result <- Registry.register_key(label, nil, timestamp_created, nil, "", signature, weight, t)
   <- result
 
 func putRecord(key_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> RegistryResult:

@@ -1,14 +1,11 @@
 module Registry.ResourcesAPI declares *
 
-import "registry.aqua"
+import "registry-service.aqua"
 import "registry-api.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
 alias ResourceId: string
 alias Error: string
-
-service BoolOp("op"):
-  array_length(a: []bool) -> u32
 
 func appendErrors(error1: *Error, error2: *Error):
   for e <- error2:
@@ -52,7 +49,7 @@ func getResource(resource_id: ResourceId) -> ?Key, *Error:
 
   <- resource, error
 
--- If this peer have set node_id as a provider for key,
+-- If this peer have set node_id as a provider for resource,
 -- this call will prevent provider from renew
 -- so that eventually it will disappear from the providers list
 func removeNodeFromProviders(resource_id: ResourceId):
@@ -60,7 +57,7 @@ func removeNodeFromProviders(resource_id: ResourceId):
     t <- Peer.timestamp_sec()
     Registry.clear_host_record(resource_id, t)
 
--- Create a key: register it on the closest peers
+-- Create a resource: register it on the closest peers
 func createResource(label: string) -> ?ResourceId, *Error:
   t <- Peer.timestamp_sec()
 
@@ -77,7 +74,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
       for n <- nodes par:
         on n:
           try:
-            res <- registerKey(label, t, signature, false)
+            res <- registerKey(label, t, signature)
             if res.success:
               successful <<- true
             else:
@@ -97,7 +94,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
 
   <- resource_id, error
 
--- Create a key and register for it
+-- Create a resource and register as provider
 -- INIT_PEER_ID (current client) will become a provider
 func createResourceAndRegisterProvider(label: string, value: string, service_id: ?string) -> ?ResourceId, *Error:
   resource_id: ?ResourceId
@@ -125,7 +122,7 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
         for n <- nodes par:
           on n:
             try:
-              reg_res <- registerKey(label, t, key_signature, false)
+              reg_res <- registerKey(label, t, key_signature)
               if reg_res.success:
                 put_res <- putRecord(id, value, relay_id, service_id, t, record_signature)
                 if put_res.success:
@@ -147,7 +144,7 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
 
   <- resource_id, error
 
--- Create a key and make the given node a provider for it
+-- Create a resource and make the given node a provider for it
 func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: string, value: string, service_id: ?string) -> ?ResourceId, *Error:
   resource_id: ?ResourceId
   error: *Error
@@ -168,7 +165,7 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
       else:
         key_signature = key_sig_result.signature!
         record_signature = record_sig_result.signature!
-        reg_res1 <- registerKey(label, t, key_signature, false)
+        reg_res1 <- registerKey(label, t, key_signature)
         if reg_res1.success == false:
           error <<- reg_res1.error
         else:
@@ -177,7 +174,7 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
           for n <- nodes par:
             on n:
               try:
-                reg_res <- registerKey(label, t, key_signature, false)
+                reg_res <- registerKey(label, t, key_signature)
                 if reg_res.success:
                   prop_res <- propagateHostRecord(r)
                   if prop_res.success:
@@ -199,8 +196,8 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
 
   <- resource_id, error
 
--- Register for a key
--- Note: key must be already initiated
+-- Register for a resource as provider
+-- Note: resource must be already created
 func registerProvider(resource_id: ResourceId, value: string, service_id: ?string) -> bool, *Error:
   error: *Error
   relay_id: ?string
@@ -249,8 +246,8 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
 
   <- success!, error
 
--- Register a node to the given key
--- Note: key must be already initiated
+-- Register a node as provider to the given resource
+-- Note: resource must be already created
 func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, value: string, service_id: ?string) -> bool, *Error:
   error: *Error
   t <- Peer.timestamp_sec()
@@ -293,7 +290,7 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
 
   <- success!, error
 
--- Find the list of record for the given resource_id
+-- Find the list of providers' records for the given resource_id
 func resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error:
   on HOST_PEER_ID:
     nodes <- getNeighbours(resource_id)
@@ -317,7 +314,7 @@ func resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error:
       error <<- result.error
   <- result.result, error
 
--- Execute the given code on providers
+-- Execute the given call on providers
 -- Note that you can provide another Aqua function as an argument to this one
 func executeOnProviders(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error:
   providers, error <- resolveProviders(resource_id, ack)

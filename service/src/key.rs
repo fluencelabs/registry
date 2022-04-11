@@ -36,7 +36,6 @@ pub struct Key {
 pub struct KeyInternal {
     pub key: Key,
     pub timestamp_published: u64,
-    pub pinned: bool,
     pub weight: u32,
 }
 

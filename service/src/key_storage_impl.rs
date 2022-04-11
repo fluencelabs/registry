@@ -35,7 +35,6 @@ impl Storage {
                 challenge_type TEXT,
                 signature BLOB NOT NULL,
                 timestamp_published INTEGER,
-                pinned INTEGER,
                 weight INTEGER
             );
         "))
@@ -82,10 +81,9 @@ impl Storage {
 
     pub fn write_key(&self, key: KeyInternal) -> Result<(), ServiceError> {
         let mut statement = self.connection.prepare(f!("
-             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+             INSERT OR REPLACE INTO {KEYS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
          "))?;
 
-        let pinned = if key.pinned { 1 } else { 0 } as i64;
         statement.bind(1, &Value::String(key.key.id))?;
         statement.bind(2, &Value::String(key.key.label))?;
         statement.bind(3, &Value::String(key.key.owner_peer_id))?;
@@ -94,8 +92,7 @@ impl Storage {
         statement.bind(6, &Value::String(key.key.challenge_type))?;
         statement.bind(7, &Value::Binary(key.key.signature))?;
         statement.bind(8, &Value::Integer(key.timestamp_published as i64))?;
-        statement.bind(9, &Value::Integer(pinned))?;
-        statement.bind(10, &Value::Integer(key.weight as i64))?;
+        statement.bind(9, &Value::Integer(key.weight as i64))?;
         statement.next()?;
         Ok(())
     }
@@ -135,7 +132,7 @@ impl Storage {
 
     pub fn get_stale_keys(&self, stale_timestamp: u64) -> Result<Vec<KeyInternal>, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "SELECT key_id, label, owner_peer_id, timestamp_created, challenge, challenge_type, signature, timestamp_published, pinned, weight \
+            "SELECT key_id, label, owner_peer_id, timestamp_created, challenge, challenge_type, signature, timestamp_published, weight \
                               FROM {KEYS_TABLE_NAME} WHERE timestamp_published <= ?"
         ))?;
         statement.bind(1, &Value::Integer(stale_timestamp as i64))?;
@@ -162,11 +159,10 @@ impl Storage {
         }
     }
 
-    /// not pinned only
     pub fn get_expired_keys(&self, expired_timestamp: u64) -> Result<Vec<Key>, ServiceError> {
         let mut statement = self.connection.prepare(f!(
             "SELECT key_id, label, owner_peer_id, timestamp_created, challenge, challenge_type, signature \
-                              FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= ? and pinned != 1"
+                              FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= ?"
         ))?;
         statement.bind(1, &Value::Integer(expired_timestamp as i64))?;
 
@@ -230,7 +226,6 @@ pub fn read_internal_key(statement: &Statement) -> Result<KeyInternal, ServiceEr
     Ok(KeyInternal {
         key: read_key(statement)?,
         timestamp_published: statement.read::<i64>(7)? as u64,
-        pinned: statement.read::<i64>(8)? != 0,
-        weight: statement.read::<i64>(9)? as u32,
+        weight: statement.read::<i64>(8)? as u32,
     })
 }

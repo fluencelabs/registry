@@ -22,7 +22,7 @@ pub static CONFIG_FILE: &str = "/tmp/Config.toml";
 pub static DB_PATH: &str = "/tmp/registry.db";
 pub static DEFAULT_STALE_VALUE_AGE: u64 = 60 * 60;
 pub static DEFAULT_EXPIRED_VALUE_AGE: u64 = 24 * 60 * 60;
-pub static VALUES_LIMIT: usize = 32;
+pub static RECORDS_LIMIT: usize = 32;
 
 pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
 pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";

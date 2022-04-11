@@ -71,7 +71,7 @@ impl Storage {
         Ok((deleted_keys, deleted_values))
     }
 
-    /// Delete all stale keys and values except for pinned keys and host values.
+    /// Delete all stale keys and records except host records.
     /// Stale means that `timestamp_accessed` has surpassed `stale_timeout`.
     /// Returns all deleted items
     pub fn evict_stale(
@@ -91,7 +91,7 @@ impl Storage {
                 .map(|r| r.record)
                 .collect();
 
-            if !key.pinned && !records.iter().any(|r| r.peer_id == host_id) {
+            if !records.iter().any(|r| r.peer_id == host_id) {
                 key_to_delete.push(key.key.id.clone());
             }
 

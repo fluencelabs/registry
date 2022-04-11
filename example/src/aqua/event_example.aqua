@@ -1,7 +1,7 @@
 -- This file demonstrates how to send events to subscribers of a topic
 -- Detailed explanation can be found in the Aqua Book: https://doc.fluence.dev/aqua-book/libraries/aqua-dht#passing-data-to-subscribers
 
-import "@fluencelabs/registry/registry.aqua"
+import "@fluencelabs/registry/registry-service.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
 import PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
 

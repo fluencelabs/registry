@@ -57,7 +57,6 @@ pub fn register_key(
     challenge: Vec<u8>,
     challenge_type: String,
     signature: Vec<u8>,
-    pin: bool,
     weight: WeightResult,
     current_timestamp_sec: u64,
 ) -> RegisterKeyResult {
@@ -87,7 +86,6 @@ pub fn register_key(
         storage.update_key(KeyInternal {
             key,
             timestamp_published: 0,
-            pinned: pin,
             weight,
         })?;
 
@@ -109,7 +107,7 @@ pub fn get_key_metadata(key_id: String, current_timestamp_sec: u64) -> GetKeyMet
     .into()
 }
 
-/// Used for replication, same as register_key, but key.pinned is ignored, updates timestamp_accessed
+/// Used for replication, same as register_key, updates timestamp_accessed
 #[marine]
 pub fn republish_key(
     mut key: Key,
@@ -131,7 +129,6 @@ pub fn republish_key(
         match storage.update_key(KeyInternal {
             key: key,
             timestamp_published: 0,
-            pinned: false,
             weight: weight.weight,
         }) {
             // we should ignore this error for republish

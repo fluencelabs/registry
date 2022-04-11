@@ -171,7 +171,6 @@ mod tests {
         label: String,
         timestamp_created: u64,
         current_timestamp: u64,
-        pin: bool,
         weight: u32,
     ) -> RegisterKeyResult {
         let issuer_peer_id = kp.get_peer_id().to_base58();
@@ -196,7 +195,6 @@ mod tests {
             challenge,
             challenge_type,
             signature,
-            pin,
             weight,
             current_timestamp,
             cp.get(),
@@ -209,7 +207,6 @@ mod tests {
         key: String,
         timestamp_created: u64,
         current_timestamp: u64,
-        pin: bool,
         weight: u32,
     ) -> String {
         let result = register_key(
@@ -218,7 +215,6 @@ mod tests {
             key,
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
         assert!(result.success, "{}", result.error);
@@ -453,7 +449,6 @@ mod tests {
             vec![],
             "".to_string(),
             invalid_signature,
-            false,
             weight,
             10u64,
             cp.get(),
@@ -492,7 +487,6 @@ mod tests {
             challenge,
             challenge_type,
             signature,
-            false,
             weight,
             current_timestamp,
             cp.get(),
@@ -530,7 +524,6 @@ mod tests {
             challenge,
             challenge_type,
             signature,
-            false,
             weight,
             current_timestamp,
             cp.get(),
@@ -574,7 +567,6 @@ mod tests {
             challenge,
             challenge_type,
             signature,
-            false,
             weight,
             current_timestamp,
             cp.get(),
@@ -595,7 +587,6 @@ mod tests {
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = 0;
-        let pin = false;
 
         let result = register_key(
             &mut registry,
@@ -603,7 +594,6 @@ mod tests {
             key,
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -619,7 +609,6 @@ mod tests {
         let timestamp_created_first = 100u64;
         let current_timestamp = 1000u64;
         let weight = 0;
-        let pin = false;
 
         register_key_checked(
             &mut registry,
@@ -627,7 +616,6 @@ mod tests {
             key.clone(),
             timestamp_created_first,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -638,7 +626,6 @@ mod tests {
             key.clone(),
             timestamp_created_second,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -657,7 +644,6 @@ mod tests {
         let current_timestamp = 100u64;
         let timestamp_created = current_timestamp + 100u64;
         let weight = 0;
-        let pin = false;
 
         let result = register_key(
             &mut registry,
@@ -665,7 +651,6 @@ mod tests {
             key,
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -682,7 +667,6 @@ mod tests {
         let timestamp_created_old = 0u64;
         let current_timestamp = 100u64;
         let weight = 0;
-        let pin = false;
 
         let key_id = register_key_checked(
             &mut registry,
@@ -690,7 +674,6 @@ mod tests {
             key.clone(),
             timestamp_created_old,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -703,7 +686,6 @@ mod tests {
             key,
             timestamp_created_new,
             current_timestamp,
-            pin,
             weight,
         );
         let new_key = get_key_metadata(&mut registry, key_id.clone(), current_timestamp);
@@ -730,7 +712,6 @@ mod tests {
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = 0;
-        let pin = false;
         let challenge = vec![];
         let challenge_type = "".to_string();
         let issuer_peer_id = kp.get_peer_id().to_base58();
@@ -750,7 +731,6 @@ mod tests {
             label.clone(),
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -777,7 +757,6 @@ mod tests {
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = 0;
-        let pin = false;
 
         let key_id = register_key_checked(
             &mut registry,
@@ -785,7 +764,6 @@ mod tests {
             key.clone(),
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
 
@@ -808,7 +786,6 @@ mod tests {
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = 0;
-        let pin = false;
 
         let key_id = register_key_checked(
             &mut registry,
@@ -816,7 +793,6 @@ mod tests {
             key,
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
         let value = "some_value".to_string();
@@ -856,7 +832,6 @@ mod tests {
         let timestamp_created = 0u64;
         let current_timestamp = 100u64;
         let weight = 0;
-        let pin = false;
 
         let key_id = register_key_checked(
             &mut registry,
@@ -864,7 +839,6 @@ mod tests {
             key,
             timestamp_created,
             current_timestamp,
-            pin,
             weight,
         );
         let value = "some_value".to_string();
