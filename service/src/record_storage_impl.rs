@@ -16,7 +16,7 @@
 
 use std::collections::HashMap;
 
-use crate::defaults::{RECORDS_TABLE_NAME, VALUES_LIMIT};
+use crate::defaults::{RECORDS_LIMIT, RECORDS_TABLE_NAME};
 use crate::error::ServiceError;
 use crate::error::ServiceError::InternalError;
 use crate::record::{Record, RecordInternal};
@@ -28,7 +28,7 @@ impl Storage {
         self.connection
             .execute(f!("
             CREATE TABLE IF NOT EXISTS {RECORDS_TABLE_NAME} (
-                route_id TEXT,
+                key_id TEXT,
                 value TEXT,
                 peer_id TEXT,
                 set_by TEXT,
@@ -38,7 +38,7 @@ impl Storage {
                 solution BLOB,
                 signature BLOB NOT NULL,
                 weight INTEGER,
-                PRIMARY KEY (route_id, peer_id, set_by)
+                PRIMARY KEY (key_id, peer_id, set_by)
             );
         "))
             .is_ok()
@@ -47,13 +47,12 @@ impl Storage {
     /// Put value with caller peer_id if the key exists.
     /// If the value is NOT a host value and the key already has `VALUES_LIMIT` records, then a value with the smallest weight is removed and the new value is inserted instead.
     pub fn update_record(&self, record: RecordInternal, host: bool) -> Result<(), ServiceError> {
-        let records_count =
-            self.get_non_host_records_count_by_key(record.record.route_id.clone())?;
+        let records_count = self.get_non_host_records_count_by_key(record.record.key_id.clone())?;
 
         // check values limits for non-host values
-        if !host && records_count >= VALUES_LIMIT {
+        if !host && records_count >= RECORDS_LIMIT {
             let min_weight_record =
-                self.get_min_weight_non_host_record_by_key(record.record.route_id.clone())?;
+                self.get_min_weight_non_host_record_by_key(record.record.key_id.clone())?;
 
             if min_weight_record.weight < record.weight
                 || (min_weight_record.weight == record.weight
@@ -61,13 +60,13 @@ impl Storage {
             {
                 // delete the lightest record if the new one is heavier or newer
                 self.delete_record(
-                    min_weight_record.record.route_id,
+                    min_weight_record.record.key_id,
                     min_weight_record.record.peer_id,
                     min_weight_record.record.set_by,
                 )?;
             } else {
                 // return error if limit is exceeded
-                return Err(ServiceError::ValuesLimitExceeded(record.record.route_id));
+                return Err(ServiceError::ValuesLimitExceeded(record.record.key_id));
             }
         }
 
@@ -80,7 +79,7 @@ impl Storage {
             "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         ))?;
 
-        statement.bind(1, &Value::String(record.record.route_id))?;
+        statement.bind(1, &Value::String(record.record.key_id))?;
         statement.bind(2, &Value::String(record.record.value))?;
         statement.bind(3, &Value::String(record.record.peer_id))?;
         statement.bind(4, &Value::String(record.record.set_by))?;
@@ -103,14 +102,14 @@ impl Storage {
 
     pub fn delete_record(
         &self,
-        route_id: String,
+        key_id: String,
         peer_id: String,
         set_by: String,
     ) -> Result<bool, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "DELETE FROM {RECORDS_TABLE_NAME} WHERE route_id=? AND peer_id=? AND set_by=?"
+            "DELETE FROM {RECORDS_TABLE_NAME} WHERE key_id=? AND peer_id=? AND set_by=?"
         ))?;
-        statement.bind(1, &Value::String(route_id))?;
+        statement.bind(1, &Value::String(key_id))?;
         statement.bind(2, &Value::String(peer_id))?;
         statement.bind(3, &Value::String(set_by))?;
         statement.next().map(drop)?;
@@ -120,23 +119,23 @@ impl Storage {
 
     fn get_min_weight_non_host_record_by_key(
         &self,
-        route_id: String,
+        key_id: String,
     ) -> Result<RecordInternal, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
         // only only non-host values
         let mut statement = self.connection.prepare(
-            f!("SELECT route_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, signature, weight FROM {RECORDS_TABLE_NAME} \
-                     WHERE route_id = ? AND peer_id != ? ORDER BY weight ASC LIMIT 1"))?;
+            f!("SELECT key_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, signature, weight FROM {RECORDS_TABLE_NAME} \
+                     WHERE key_id = ? AND peer_id != ? ORDER BY weight ASC LIMIT 1"))?;
 
-        statement.bind(1, &Value::String(route_id.clone()))?;
+        statement.bind(1, &Value::String(key_id.clone()))?;
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
             read_record(&statement)
         } else {
             Err(InternalError(f!(
-                "not found non-host records for given route_id: {route_id}"
+                "not found non-host records for given key_id: {key_id}"
             )))
         }
     }
@@ -146,7 +145,7 @@ impl Storage {
 
         // only only non-host values
         let mut statement = self.connection.prepare(f!(
-            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE route_id = ? AND peer_id != ?"
+            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id != ?"
         ))?;
         statement.bind(1, &Value::String(key))?;
         statement.bind(2, &Value::String(host_id))?;
@@ -163,14 +162,14 @@ impl Storage {
         }
     }
 
-    pub fn get_host_records_count_by_key(&self, route_id: String) -> Result<u64, ServiceError> {
+    pub fn get_host_records_count_by_key(&self, key_id: String) -> Result<u64, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
         // only only non-host values
         let mut statement = self.connection.prepare(f!(
-            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE route_id = ? AND peer_id = ?"
+            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id = ?"
         ))?;
-        statement.bind(1, &Value::String(route_id))?;
+        statement.bind(1, &Value::String(key_id))?;
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
@@ -187,11 +186,11 @@ impl Storage {
 
     pub fn merge_and_update_records(
         &self,
-        route_id: String,
+        key_id: String,
         records: Vec<RecordInternal>,
     ) -> Result<u64, ServiceError> {
         let records = merge_records(
-            self.get_records(route_id)?
+            self.get_records(key_id)?
                 .into_iter()
                 .chain(records.into_iter())
                 .collect(),
@@ -206,11 +205,11 @@ impl Storage {
         Ok(updated)
     }
 
-    pub fn get_records(&self, route_id: String) -> Result<Vec<RecordInternal>, ServiceError> {
+    pub fn get_records(&self, key_id: String) -> Result<Vec<RecordInternal>, ServiceError> {
         let mut statement = self.connection.prepare(
-            f!("SELECT route_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, solution, signature, weight FROM {RECORDS_TABLE_NAME} \
-                     WHERE route_id = ? ORDER BY weight DESC"))?;
-        statement.bind(1, &Value::String(route_id))?;
+            f!("SELECT key_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, solution, signature, weight FROM {RECORDS_TABLE_NAME} \
+                     WHERE key_id = ? ORDER BY weight DESC"))?;
+        statement.bind(1, &Value::String(key_id))?;
 
         let mut result: Vec<RecordInternal> = vec![];
 
@@ -231,12 +230,12 @@ impl Storage {
     }
 
     /// except host records and for pinned keys
-    pub fn delete_records_by_key(&self, route_id: String) -> Result<u64, ServiceError> {
+    pub fn delete_records_by_key(&self, key_id: String) -> Result<u64, ServiceError> {
         let mut statement = self
             .connection
-            .prepare(f!("DELETE FROM {RECORDS_TABLE_NAME} WHERE route_id = ?"))?;
+            .prepare(f!("DELETE FROM {RECORDS_TABLE_NAME} WHERE key_id = ?"))?;
 
-        statement.bind(1, &Value::String(route_id))?;
+        statement.bind(1, &Value::String(key_id))?;
 
         statement.next().map(drop)?;
         Ok(self.connection.changes() as u64)
@@ -246,7 +245,7 @@ impl Storage {
 pub fn read_record(statement: &Statement) -> Result<RecordInternal, ServiceError> {
     Ok(RecordInternal {
         record: Record {
-            route_id: statement.read::<String>(0)?,
+            key_id: statement.read::<String>(0)?,
             value: statement.read::<String>(1)?,
             peer_id: statement.read::<String>(2)?,
             set_by: statement.read::<String>(3)?,

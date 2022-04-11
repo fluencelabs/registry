@@ -3,7 +3,7 @@
 [Distributed Hash Table](https://en.wikipedia.org/wiki/Distributed_hash_table) (DHT) implementation for the Fluence network with an Aqua interface.
 
 ## Documentation
-See [Aqua Book](https://fluence.dev/aqua-book/libraries/aqua-dht).
+See [Aqua Book](https://fluence.dev/aqua-book/libraries/registry).
 
 ## How to Use
 
@@ -13,7 +13,7 @@ See [example](./example):
 
 ## API
 
-API is defined in the [routing.aqua](./aqua/routing.aqua) module.
+API is defined in the [resources-api.aqua](./aqua/resources-api.aqua) module.
 
 ## Learn Aqua
 

@@ -24,7 +24,7 @@ func replicate_3600():
         on n:
           tt <- Peer.timestamp_sec()
           key_weight <- TrustGraph.get_weight(r.route.peer_id, tt)
-          Registry.republish_route(r.route, key_weight, tt)
+          Registry.republish_key(r.route, key_weight, tt)
 
           records_weights: *WeightResult
           for record <- r.records:

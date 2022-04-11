@@ -1,6 +1,6 @@
 import {Fluence, KeyPair} from "@fluencelabs/fluence";
 import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
-import {createRouteAndRegisterNodeBlocking, resolveRoute, timestamp_sec} from "./generated/export";
+import {createResourceAndRegisterNodeProvider, resolveProviders, timestamp_sec} from "./generated/export";
 
 let local: Node[] = [
     {
@@ -31,17 +31,20 @@ async function main() {
     );
     let label = "myLabel";
     let value = "myValue";
-    console.log("Will create route with label:", label);
+    console.log("Will create resource with label:", label);
     // create route (if not exists) and register on it
-    let route_id = await createRouteAndRegisterNodeBlocking(krasnodar[0].peerId,
-      label, value, "identity",
-      (s) => console.log(`node ${s} saved the record`),
-        5
+    let [resource_id, error] = await createResourceAndRegisterNodeProvider(krasnodar[0].peerId,
+      label, value, "identity"
     );
-    // find other peers on this route
-    console.log("let's resolve route for %s", route_id);
-    let providers = await resolveRoute(route_id, 5);
-    console.log("route providers:", providers);
+
+    if (resource_id !== null) {
+        // find other peers on this route
+        console.log("let's resolve route for %s", resource_id);
+        let [providers, error] = await resolveProviders(resource_id, 5);
+        console.log("route providers:", providers);
+    } else {
+        console.error(error);
+    }
 }
 
 main().then(() => process.exit(0))

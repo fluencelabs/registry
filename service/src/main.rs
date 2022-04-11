@@ -24,14 +24,14 @@ use crate::tetraplets_checkers::check_timestamp_tetraplets;
 mod config;
 mod defaults;
 mod error;
+mod key;
+mod key_api;
+mod key_storage_impl;
 mod misc;
 mod record;
 mod record_api;
 mod record_storage_impl;
 mod results;
-mod route;
-mod route_api;
-mod route_storage_impl;
 mod storage_impl;
 mod tests;
 mod tetraplets_checkers;
@@ -59,7 +59,7 @@ pub struct WeightResult {
 
 fn main() {
     let storage = get_storage().unwrap();
-    storage.create_route_tables();
+    storage.create_key_tables();
     storage.create_values_table();
     create_config();
 }
