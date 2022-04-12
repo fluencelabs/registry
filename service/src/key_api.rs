@@ -62,8 +62,8 @@ pub fn register_key(
 ) -> RegisterKeyResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&call_parameters, 7, 0)?;
-        check_timestamp_tetraplets(&call_parameters, 8)?;
+        check_weight_tetraplets(&call_parameters, 6, 0)?;
+        check_timestamp_tetraplets(&call_parameters, 7)?;
         let owner_peer_id = owner_peer_id
             .get(0)
             .unwrap_or(&call_parameters.init_peer_id)
