@@ -1,6 +1,8 @@
 import {Fluence, KeyPair} from "@fluencelabs/fluence";
-import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
-import {createResourceAndRegisterNodeProvider, resolveProviders, timestamp_sec} from "./generated/export";
+import { krasnodar, Node,  } from "@fluencelabs/fluence-network-environment";
+import { allowServiceFn, and, or } from "@fluencelabs/fluence/dist/internal/builtins/Sig";
+import {createResourceAndRegisterProvider, registerNodeProvider, createResourceAndRegisterNodeProvider, createResource, registerProvider, resolveProviders, timestamp_sec} from "./generated/export";
+import assert from "assert";
 
 let local: Node[] = [
     {
@@ -23,28 +25,33 @@ let local: Node[] = [
 async function main() {
     // connect to the Fluence network
     await Fluence.start({ connectTo: krasnodar[0] });
-    console.log("%s", await timestamp_sec());
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
+    // TODO: remove after fluence-js update
+    let sig = Fluence.getPeer().getServices().sig;
+    sig.securityGuard = or(sig.securityGuard, allowServiceFn("registry", "get_key_bytes"));
+
     let label = "myLabel";
     let value = "myValue";
     console.log("Will create resource with label:", label);
-    // create route (if not exists) and register on it
-    let [resource_id, error] = await createResourceAndRegisterNodeProvider(krasnodar[0].peerId,
-      label, value, "identity"
-    );
+    let [resource_id, create_error] = await createResource(label);
 
-    if (resource_id !== null) {
-        // find other peers on this route
-        console.log("let's resolve route for %s", resource_id);
-        let [providers, error] = await resolveProviders(resource_id, 5);
-        console.log("route providers:", providers);
-    } else {
-        console.error(error);
-    }
+    assert(resource_id !== null, create_error.toString());
+    console.log("resource %s created successfully", resource_id);
+    let node_provider = krasnodar[1].peerId;
+    let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity");
+    assert(node_success, reg_node_error.toString());
+    console.log("node %s registered as provider successfully", node_provider);
+
+    let [success, reg_error] = await registerProvider(resource_id, value, "identity");
+    console.log("peer %s registered as provider successfully", Fluence.getStatus().peerId);
+    assert(success, reg_error.toString());
+
+    let [providers, error] = await resolveProviders(resource_id, 2);
+    console.log("route providers:", providers);
 }
 
 main().then(() => process.exit(0))

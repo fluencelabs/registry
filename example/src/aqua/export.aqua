@@ -1,7 +1,7 @@
 module Export
-import createResourceAndRegisterNodeProvider, resolveProviders from "@fluencelabs/registry/resources-api.aqua"
+import createResourceAndRegisterProvider, createResourceAndRegisterNodeProvider, createResource, registerNodeProvider, registerProvider, resolveProviders from "@fluencelabs/registry/resources-api.aqua"
 import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
-export createResourceAndRegisterNodeProvider, resolveProviders, timestamp_sec
+export createResourceAndRegisterProvider, createResourceAndRegisterNodeProvider, resolveProviders, createResource, registerNodeProvider, registerProvider, timestamp_sec
 
 
 func timestamp_sec() -> u64:
