@@ -4,19 +4,19 @@ import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 func getKeySignature(label: string, timestamp_created: u64) -> SignResult:
   bytes <- Registry.get_key_bytes(label, nil, timestamp_created, nil, "")
-  on INIT_PEER_ID:
+  on INIT_PEER_ID via HOST_PEER_ID:
     result <- Sig.sign(bytes)
   <- result
 
 func getRecordSignature(key_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> SignResult:
   bytes <- Registry.get_record_bytes(key_id, value, relay_id, service_id, timestamp_created, nil)
-  on INIT_PEER_ID:
+  on INIT_PEER_ID via HOST_PEER_ID:
     signature <- Sig.sign(bytes)
   <- signature
 
 func getHostRecordSignature(key_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> SignResult:
   bytes <- Registry.get_host_record_bytes(key_id, value, relay_id, service_id, timestamp_created, nil)
-  on INIT_PEER_ID:
+  on INIT_PEER_ID via HOST_PEER_ID:
     signature <- Sig.sign(bytes)
   <- signature
 
