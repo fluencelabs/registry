@@ -1,5 +1,5 @@
 import {Fluence, KeyPair} from "@fluencelabs/fluence";
-import { krasnodar, Node,  } from "@fluencelabs/fluence-network-environment";
+import { krasnodar, Node,stage  } from "@fluencelabs/fluence-network-environment";
 import { allowServiceFn, and, or } from "@fluencelabs/fluence/dist/internal/builtins/Sig";
 import {createResourceAndRegisterProvider, registerNodeProvider, createResourceAndRegisterNodeProvider, createResource, registerProvider, resolveProviders, timestamp_sec} from "./generated/export";
 import assert from "assert";
@@ -24,15 +24,12 @@ let local: Node[] = [
 
 async function main() {
     // connect to the Fluence network
-    await Fluence.start({ connectTo: krasnodar[0] });
+    await Fluence.start({ connectTo: krasnodar[1] });
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
-    // TODO: remove after fluence-js update
-    let sig = Fluence.getPeer().getServices().sig;
-    sig.securityGuard = or(sig.securityGuard, allowServiceFn("registry", "get_key_bytes"));
 
     let label = "myLabel";
     let value = "myValue";
@@ -41,7 +38,7 @@ async function main() {
 
     assert(resource_id !== null, create_error.toString());
     console.log("resource %s created successfully", resource_id);
-    let node_provider = krasnodar[1].peerId;
+    let node_provider = krasnodar[3].peerId;
     let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity");
     assert(node_success, reg_node_error.toString());
     console.log("node %s registered as provider successfully", node_provider);
