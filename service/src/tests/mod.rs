@@ -185,8 +185,8 @@ mod tests {
             challenge_type.clone(),
         );
         let cp = CPWrapper::new(&issuer_peer_id)
-            .add_weight_tetraplets(7)
-            .add_timestamp_tetraplets(8);
+            .add_weight_tetraplets(6)
+            .add_timestamp_tetraplets(7);
         let weight = get_weight(issuer_peer_id.clone(), weight);
         registry.register_key_cp(
             label,
@@ -479,7 +479,7 @@ mod tests {
             challenge_type.clone(),
         );
 
-        cp = cp.add_timestamp_tetraplets(8);
+        cp = cp.add_timestamp_tetraplets(7);
         let reg_key_result = registry.register_key_cp(
             label,
             vec![],
@@ -516,7 +516,7 @@ mod tests {
             challenge_type.clone(),
         );
 
-        let cp = CPWrapper::new(&issuer_peer_id).add_weight_tetraplets(7);
+        let cp = CPWrapper::new(&issuer_peer_id).add_weight_tetraplets(6);
         let reg_key_result = registry.register_key_cp(
             label,
             vec![],
@@ -559,7 +559,7 @@ mod tests {
             challenge_type.clone(),
         );
 
-        cp = cp.add_weight_tetraplets(7).add_timestamp_tetraplets(8);
+        cp = cp.add_weight_tetraplets(6).add_timestamp_tetraplets(7);
         let reg_key_result = registry.register_key_cp(
             label,
             vec![],

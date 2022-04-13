@@ -24,8 +24,10 @@ func getNeighbours(resource_id: ResourceId) -> []PeerId:
 
 func getResource(resource_id: ResourceId) -> ?Key, *Error:
   nodes <- getNeighbours(resource_id)
-  resources: *Key
+  result: ?Key
   error: *Error
+
+  resources: *Key
   for n <- nodes par:
     on n:
       try:
@@ -36,24 +38,27 @@ func getResource(resource_id: ResourceId) -> ?Key, *Error:
         else:
           error <<- get_result.error
 
+  timeout: ?string
   join resources[0]
-  par error <- Peer.timeout(10000, "resource not found, timeout exceeded")
+  par timeout <- Peer.timeout(5000, "resource not found, timeout exceeded")
+
+  if timeout != nil:
+    error <<- timeout!
 
   merge_result <- Registry.merge_keys(resources)
-  resource: ?Key
 
   if merge_result.success:
-    resource <<- merge_result.key
+    result <<- merge_result.key
   else:
     error <<- merge_result.error
 
-  <- resource, error
+  <- result, error
 
 -- If this peer have set node_id as a provider for resource,
 -- this call will prevent provider from renew
 -- so that eventually it will disappear from the providers list
-func removeNodeFromProviders(resource_id: ResourceId):
-  on HOST_PEER_ID:
+func removeNodeFromProviders(provider_node_id: PeerId, resource_id: ResourceId):
+  on provider_node_id:
     t <- Peer.timestamp_sec()
     Registry.clear_host_record(resource_id, t)
 
@@ -63,34 +68,35 @@ func createResource(label: string) -> ?ResourceId, *Error:
 
   resource_id: ?ResourceId
   error: *Error
-  successful: *bool
   on HOST_PEER_ID:
     sig_result <- getKeySignature(label, t)
-    if sig_result.success:
+    if sig_result.success == false:
+      error <<- sig_result.error!
+    else:
       signature = sig_result.signature!
       id <- getResourceId(label, INIT_PEER_ID)
       nodes <- getNeighbours(id)
 
+      successful: *bool
       for n <- nodes par:
         on n:
           try:
             res <- registerKey(label, t, signature)
+
             if res.success:
               successful <<- true
             else:
               error <<- res.error
-        par Peer.timeout(10000, "timeout exceeded")
-    else:
-      error <<- sig_result.error!
 
-  timeout: ?string
-  join successful[0]
-  par timeout <- Peer.timeout(10000, "resource hasn't created: timeout exceeded")
+      timeout: ?string
+      success: *bool
+      join successful[0]
+      par timeout <- Peer.timeout(6000, "resource hasn't created: timeout exceeded")
 
-  if timeout == nil:
-    resource_id <<- id
-  else:
-    error <<- timeout!
+      if timeout == nil:
+        resource_id <<- id
+      else:
+        error <<- timeout!
 
   <- resource_id, error
 
@@ -104,7 +110,6 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
   relay_id <<- HOST_PEER_ID
 
   t <- Peer.timestamp_sec()
-  successful: *bool
   on HOST_PEER_ID:
     key_sig_result <- getKeySignature(label, t)
 
@@ -119,6 +124,7 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
         key_signature = key_sig_result.signature!
         record_signature = record_sig_result.signature!
         nodes <- getNeighbours(id)
+        successful: *bool
         for n <- nodes par:
           on n:
             try:
@@ -131,16 +137,15 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
                   error <<- put_res.error
               else:
                 error <<- reg_res.error
-          par Peer.timeout(10000, "timeout exceeded")
 
-  timeout: ?string
-  join successful[0]
-  par timeout <- Peer.timeout(10000, "resource hasn't created: timeout exceeded")
+      timeout: ?string
+      join successful[0]
+      par timeout <- Peer.timeout(5000, "resource hasn't created: timeout exceeded")
 
-  if timeout == nil:
-    resource_id <<- id
-  else:
-    error <<- timeout!
+      if timeout == nil:
+        resource_id <<- id
+      else:
+        error <<- timeout!
 
   <- resource_id, error
 
@@ -151,7 +156,6 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
 
   t <- Peer.timestamp_sec()
 
-  successful: *bool
   on provider_node_id:
     key_sig_result <- getKeySignature(label, t)
 
@@ -171,6 +175,7 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
         else:
           r <- putHostRecord(id, value, nil, service_id, t, record_signature)
           nodes <- getNeighbours(id)
+          successful: *bool
           for n <- nodes par:
             on n:
               try:
@@ -183,22 +188,22 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
                     error <<- prop_res.error
                 else:
                   error <<- reg_res.error
-            par Peer.timeout(10000, "timeout exceeded")
 
-  timeout: ?string
-  join successful[0]
-  par timeout <- Peer.timeout(10000, "resource hasn't created: timeout exceeded")
+          timeout: ?string
+          join successful[0]
+          par timeout <- Peer.timeout(5000, "resource hasn't created: timeout exceeded")
 
-  if timeout == nil:
-    resource_id <<- id
-  else:
-    error <<- timeout!
+          if timeout == nil:
+            resource_id <<- id
+          else:
+            error <<- timeout!
 
   <- resource_id, error
 
 -- Register for a resource as provider
 -- Note: resource must be already created
 func registerProvider(resource_id: ResourceId, value: string, service_id: ?string) -> bool, *Error:
+  success: *bool
   error: *Error
   relay_id: ?string
   relay_id <<- HOST_PEER_ID
@@ -210,15 +215,18 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
 
     if record_sig_result.success == false:
       error <<- record_sig_result.error!
+      success <<- false
     else:
       record_signature = record_sig_result.signature!
       key, error_get <- getResource(resource_id)
-      appendErrors(error, error_get)
-
-      successful: *bool
-      if key != nil:
+      if key == nil:
+        appendErrors(error, error_get)
+        success <<- false
+      else:
         nodes <- getNeighbours(resource_id)
+        successful: *bool
         for n <- nodes par:
+          error <<- n
           on n:
             try:
               republish_res <- republishKey(key!)
@@ -230,45 +238,46 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
                   successful <<- true
                 else:
                   error <<- put_res.error
-          par Peer.timeout(10000, "timeout exceeded")
 
+        timeout: ?string
+        join successful[0]
+        par timeout <- Peer.timeout(5000, "provider hasn't registered: timeout exceeded")
 
-  timeout: ?string
-  join successful[0]
-  par timeout <- Peer.timeout(10000, "provider hasn't registered: timeout exceeded")
-
-  success: *bool
-  if timeout == nil:
-    success <<- true
-  else:
-    success <<- false
-    error <<- timeout!
+        if timeout == nil:
+          success <<- true
+        else:
+          success <<- false
+          error <<- timeout!
 
   <- success!, error
 
 -- Register a node as provider to the given resource
 -- Note: resource must be already created
 func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, value: string, service_id: ?string) -> bool, *Error:
+  success: *bool
   error: *Error
   t <- Peer.timestamp_sec()
 
-  successful: *bool
   on provider_node_id:
     record_sig_result <- getHostRecordSignature(resource_id, value, nil, service_id, t)
     if record_sig_result.success == false:
       error <<- record_sig_result.error!
+      success <<- false
     else:
       record_signature = record_sig_result.signature!
       key, error_get <- getResource(resource_id)
       if key == nil:
         appendErrors(error, error_get)
+        success <<- false
       else:
         republish_result <- republishKey(key!)
         if republish_result.success == false:
           error <<- republish_result.error
+          success <<- false
         else:
           r <- putHostRecord(resource_id, value, nil, service_id, t, record_signature)
           nodes <- getNeighbours(resource_id)
+          successful: *bool
           for n <- nodes par:
             on n:
               try:
@@ -281,18 +290,16 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
                     successful <<- true
                   else:
                     error <<- prop_res.error
-            par Peer.timeout(10000, "timeout exceeded")
 
-  timeout: ?string
-  join successful[0]
-  par timeout <- Peer.timeout(10000, "provider hasn't registered: timeout exceeded")
+          timeout: ?string
+          join successful[0]
+          par timeout <- Peer.timeout(5000, "provider hasn't registered: timeout exceeded")
 
-  success: *bool
-  if timeout == nil:
-    success <<- true
-  else:
-    success <<- false
-    error <<- timeout!
+          if timeout == nil:
+            success <<- true
+          else:
+            success <<- false
+            error <<- timeout!
 
   <- success!, error
 
@@ -311,10 +318,14 @@ func resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error:
             res <<- get_result.result
           else:
             error <<- get_result.error
-      par Peer.timeout(10000, "timeout exceeded")
 
-    join res[ack]
-    par Peer.timeout(10000, "")
+    timeout: ?string
+    join res[ack - 1]
+    par error <- Peer.timeout(5000, "timeout exceeded")
+
+    if timeout != nil:
+      error <<- timeout!
+
     result <- Registry.merge(res)
     if result.success == false:
       error <<- result.error
