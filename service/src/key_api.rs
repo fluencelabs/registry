@@ -127,8 +127,8 @@ pub fn republish_key(
         let storage = get_storage()?;
         storage.update_key_timestamp(&key.id, current_timestamp_sec)?;
         match storage.update_key(KeyInternal {
-            key: key,
-            timestamp_published: 0,
+            key,
+            timestamp_published: current_timestamp_sec,
             weight: weight.weight,
         }) {
             // we should ignore this error for republish
