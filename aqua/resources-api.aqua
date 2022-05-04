@@ -7,6 +7,22 @@ import "@fluencelabs/aqua-lib/builtin.aqua"
 alias ResourceId: string
 alias Error: string
 
+func wait(successful: *bool, n: i16) -> bool:
+  status: *string
+  waiting = (s: *string):
+    join successful[n]
+    s <<- "ok"
+
+  waiting(status)
+  par status <- Peer.timeout(6000, "timeout")
+
+  result: *bool
+  if status! == "ok":
+    result <<- true
+  else:
+    result <<- false
+  <- result!
+
 func appendErrors(error1: *Error, error2: *Error):
   for e <- error2:
     error1 <<- e
@@ -28,6 +44,7 @@ func getResource(resource_id: ResourceId) -> ?Key, *Error:
   error: *Error
 
   resources: *Key
+  successful: *bool
   for n <- nodes par:
     on n:
       try:
@@ -35,22 +52,20 @@ func getResource(resource_id: ResourceId) -> ?Key, *Error:
         get_result <- Registry.get_key_metadata(resource_id, t)
         if get_result.success:
           resources <<- get_result.key
+          successful <<- true
         else:
           error <<- get_result.error
 
-  timeout: ?string
-  join resources[0]
-  par timeout <- Peer.timeout(5000, "resource not found, timeout exceeded")
-
-  if timeout != nil:
-    error <<- timeout!
-
-  merge_result <- Registry.merge_keys(resources)
-
-  if merge_result.success:
-    result <<- merge_result.key
+  success <- wait(successful, 0)
+  if success == false:
+    error <<- "resource not found: timeout exceeded"
   else:
-    error <<- merge_result.error
+    merge_result <- Registry.merge_keys(resources)
+
+    if merge_result.success:
+      result <<- merge_result.key
+    else:
+      error <<- merge_result.error
 
   <- result, error
 
@@ -88,15 +103,12 @@ func createResource(label: string) -> ?ResourceId, *Error:
             else:
               error <<- res.error
 
-      timeout: ?string
-      success: *bool
-      join successful[0]
-      par timeout <- Peer.timeout(6000, "resource hasn't created: timeout exceeded")
+      success <- wait(successful, 0)
 
-      if timeout == nil:
-        resource_id <<- id
+      if success == false:
+        error <<- "resource hasn't created: timeout exceeded"
       else:
-        error <<- timeout!
+        resource_id <<- id
 
   <- resource_id, error
 
@@ -138,14 +150,11 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
               else:
                 error <<- reg_res.error
 
-      timeout: ?string
-      join successful[0]
-      par timeout <- Peer.timeout(5000, "resource hasn't created: timeout exceeded")
-
-      if timeout == nil:
-        resource_id <<- id
+      success <- wait(successful, 0)
+      if success == false:
+        error <<- "resource hasn't created: timeout exceeded"
       else:
-        error <<- timeout!
+        resource_id <<- id
 
   <- resource_id, error
 
@@ -189,14 +198,11 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
                 else:
                   error <<- reg_res.error
 
-          timeout: ?string
-          join successful[0]
-          par timeout <- Peer.timeout(5000, "resource hasn't created: timeout exceeded")
-
-          if timeout == nil:
-            resource_id <<- id
+          success <- wait(successful, 0)
+          if success == false:
+            error <<- "resource hasn't created: timeout exceeded"
           else:
-            error <<- timeout!
+            resource_id <<- id
 
   <- resource_id, error
 
@@ -239,15 +245,9 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
                 else:
                   error <<- put_res.error
 
-        timeout: ?string
-        join successful[0]
-        par timeout <- Peer.timeout(5000, "provider hasn't registered: timeout exceeded")
-
-        if timeout == nil:
-          success <<- true
-        else:
-          success <<- false
-          error <<- timeout!
+        success <- wait(successful, 0)
+        if success! == false:
+          error <<- "provider hasn't registered: timeout exceeded"
 
   <- success!, error
 
@@ -291,15 +291,9 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
                   else:
                     error <<- prop_res.error
 
-          timeout: ?string
-          join successful[0]
-          par timeout <- Peer.timeout(5000, "provider hasn't registered: timeout exceeded")
-
-          if timeout == nil:
-            success <<- true
-          else:
-            success <<- false
-            error <<- timeout!
+          success <- wait(successful, 0)
+          if success! == false:
+            error <<- "provider hasn't registered: timeout exceeded"
 
   <- success!, error
 
@@ -309,6 +303,7 @@ func resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error:
     nodes <- getNeighbours(resource_id)
     res: *[]Record
     error: *Error
+    successful: *bool
     for n <- nodes par:
       on n:
         try:
@@ -316,15 +311,13 @@ func resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error:
           get_result <- Registry.get_records(resource_id, t)
           if get_result.success:
             res <<- get_result.result
+            successful <<- true
           else:
             error <<- get_result.error
 
-    timeout: ?string
-    join res[ack - 1]
-    par error <- Peer.timeout(5000, "timeout exceeded")
-
-    if timeout != nil:
-      error <<- timeout!
+    success <- wait(successful, ack - 1)
+    if success == false:
+      error <<- "timeout exceeded"
 
     result <- Registry.merge(res)
     if result.success == false:

@@ -1,7 +1,7 @@
 import {Fluence, KeyPair} from "@fluencelabs/fluence";
-import { krasnodar, Node,stage  } from "@fluencelabs/fluence-network-environment";
+import { krasnodar, Node,stage, testNet  } from "@fluencelabs/fluence-network-environment";
 import { allowServiceFn, and, or } from "@fluencelabs/fluence/dist/internal/builtins/Sig";
-import {createResourceAndRegisterProvider, registerNodeProvider, createResourceAndRegisterNodeProvider, createResource, registerProvider, resolveProviders, timestamp_sec} from "./generated/export";
+import {createResourceAndRegisterProvider,test, registerNodeProvider, createResourceAndRegisterNodeProvider, createResource, registerProvider, resolveProviders, timestamp_sec} from "./generated/export";
 import assert from "assert";
 
 let local: Node[] = [
