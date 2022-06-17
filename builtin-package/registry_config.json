@@ -1,9 +1,7 @@
 {
   "name": "registry",
-  "mem_page_count": 1,
-  "preopened_files": [
-    "/tmp"
-  ],
+  "max_heap_size": "8 MiB",
+  "preopened_files": ["/tmp"],
   "mapped_dirs": {
     "tmp": "./tmp"
   }

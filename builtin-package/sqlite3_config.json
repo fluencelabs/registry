@@ -1,4 +1,4 @@
 {
   "name": "sqlite3",
-  "mem_pages_count": 100
+  "max_heap_size": "64 MiB"
 }
