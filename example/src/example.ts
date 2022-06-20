@@ -1,7 +1,6 @@
-import {Fluence, KeyPair} from "@fluencelabs/fluence";
-import { krasnodar, Node,stage, testNet  } from "@fluencelabs/fluence-network-environment";
-import { allowServiceFn, and, or } from "@fluencelabs/fluence/dist/internal/builtins/Sig";
-import {createResourceAndRegisterProvider,test, registerNodeProvider, createResourceAndRegisterNodeProvider, createResource, registerProvider, resolveProviders, timestamp_sec} from "./generated/export";
+import { Fluence } from "@fluencelabs/fluence";
+import { krasnodar, Node, stage, testNet } from "@fluencelabs/fluence-network-environment";
+import { registerNodeProvider, createResource, registerProvider, resolveProviders } from "./generated/export";
 import assert from "assert";
 
 let local: Node[] = [
@@ -24,7 +23,7 @@ let local: Node[] = [
 
 async function main() {
     // connect to the Fluence network
-    await Fluence.start({ connectTo: krasnodar[1] });
+    await Fluence.start({ connectTo: testNet[5] });
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
@@ -38,8 +37,9 @@ async function main() {
 
     assert(resource_id !== null, create_error.toString());
     console.log("resource %s created successfully", resource_id);
-    let node_provider = krasnodar[3].peerId;
-    let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity");
+    let node_provider = testNet[2].peerId;
+    // this call should have bigger ttl
+    let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity", { ttl: 20000 });
     assert(node_success, reg_node_error.toString());
     console.log("node %s registered as provider successfully", node_provider);
 
@@ -53,6 +53,6 @@ async function main() {
 
 main().then(() => process.exit(0))
     .catch(error => {
-    console.error(error);
-    process.exit(1);
-  });
+        console.error(error);
+        process.exit(1);
+    });
