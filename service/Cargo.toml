@@ -25,8 +25,8 @@ libp2p-core = { version = "0.32.1", default-features = false, features = [
 ] }
 
 [dev-dependencies]
-marine-rs-sdk-test = "0.5.0"
+marine-rs-sdk-test = "0.6.0"
 rusqlite = "0.27.0"
 
 [build-dependencies]
-marine-rs-sdk-test = "0.5.0"
+marine-rs-sdk-test = "0.6.0"
