@@ -9,6 +9,7 @@ alias Error: string
 
 const REPLICATION_FACTOR = 1
 const CONSISTENCY_LEVEL = 1
+const DEFAULT_TIMEOUT = 6000
 
 func wait(successful: *bool, len: i16, timeout: u16) -> bool:
   status: *string
@@ -60,7 +61,7 @@ func getResource(resource_id: ResourceId) -> ?Key, *Error:
           e <- Op.concat_strings(get_result.error, " on ")
           error <- Op.concat_strings(e, n)
 
-  success <- wait(successful, CONSISTENCY_LEVEL, 5000)
+  success <- wait(successful, CONSISTENCY_LEVEL, DEFAULT_TIMEOUT)
   if success == false:
     error <<- "resource not found: timeout exceeded"
   else:
@@ -107,7 +108,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
             else:
               error <<- res.error
 
-      success <- wait(successful, REPLICATION_FACTOR, 4000)
+      success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
 
       if success == false:
         error <<- "resource wasn't created: timeout exceeded"
@@ -154,7 +155,7 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
               else:
                 error <<- reg_res.error
 
-      success <- wait(successful, REPLICATION_FACTOR, 3000)
+      success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
       if success == false:
         error <<- "resource hasn't created: timeout exceeded"
       else:
@@ -202,7 +203,7 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
                 else:
                   error <<- reg_res.error
 
-          success <- wait(successful, REPLICATION_FACTOR, 6000)
+          success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
           if success == false:
             error <<- "resource hasn't created: timeout exceeded"
           else:
@@ -249,7 +250,7 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
                 else:
                   error <<- put_res.error
 
-        success <- wait(successful, REPLICATION_FACTOR, 3000)
+        success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
         if success! == false:
           error <<- "provider hasn't registered: timeout exceeded"
 
@@ -299,7 +300,7 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
                       else:
                         error <<- prop_res.error
 
-              success <- wait(successful, REPLICATION_FACTOR, 6000)
+              success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
               if success! == false:
                 error <<- "provider hasn't registered: timeout exceeded"
 
@@ -323,7 +324,7 @@ func resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error:
           else:
             error <<- get_result.error
 
-    success <- wait(successful, ack, 3000)
+    success <- wait(successful, ack, DEFAULT_TIMEOUT)
     if success == false:
       error <<- "timeout exceeded"
 

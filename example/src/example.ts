@@ -44,8 +44,8 @@ async function main() {
     console.log("node %s registered as provider successfully", node_provider);
 
     let [success, reg_error] = await registerProvider(resource_id, value, "identity");
-    console.log("peer %s registered as provider successfully", Fluence.getStatus().peerId);
     assert(success, reg_error.toString());
+    console.log("peer %s registered as provider successfully", Fluence.getStatus().peerId);
 
     let [providers, error] = await resolveProviders(resource_id, 2);
     console.log("route providers:", providers);
