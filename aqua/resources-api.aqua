@@ -110,7 +110,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
       success <- wait(successful, REPLICATION_FACTOR, 4000)
 
       if success == false:
-        error <<- "resource hasn't created: timeout exceeded"
+        error <<- "resource wasn't created: timeout exceeded"
       else:
         resource_id <<- id
 
