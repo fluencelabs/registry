@@ -29,6 +29,7 @@ func wait(successful: *bool, len: i16, timeout: u16) -> bool:
   par status <- Peer.timeout(timeout, "timeout")
 
   result: *bool
+  -- HACK: workaround for #LNG-63
   stat <- HackOp.identity(status!)
   if stat == "ok":
     result <<- true
@@ -177,6 +178,7 @@ func createResourceAndRegisterProvider(label: string, value: string, service_id:
 func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: string, value: string, service_id: ?string) -> ?ResourceId, *Error:
   resource_id: ?ResourceId
   error: *Error
+  successful: *bool
 
   t <- Peer.timestamp_sec()
 
@@ -199,7 +201,6 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
         else:
           r <- putHostRecord(id, value, nil, service_id, t, record_signature)
           nodes <- getNeighbours(id)
-          successful: *bool
           for n <- nodes par:
             on n:
               try:
@@ -213,11 +214,11 @@ func createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: stri
                 else:
                   error <<- reg_res.error
 
-  success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
-  if success == false:
-    error <<- "resource hasn't created: timeout exceeded"
-  else:
-    resource_id <<- id
+          success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+          if success == false:
+            error <<- "resource hasn't created: timeout exceeded"
+          else:
+            resource_id <<- id
 
   <- resource_id, error
 
@@ -261,6 +262,7 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
                   error <<- put_res.error
 
         success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+        -- HACK: workaround for #LNG-63
         succ = BoolOp.identity(success!)
         if succ == false:
           error <<- "provider hasn't registered: timeout exceeded"
@@ -312,6 +314,7 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
                       error <<- prop_res.error
 
             success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+  -- HACK: workaround for #LNG-63
   succ = BoolOp.identity(success!)
   if succ == false:
     error <<- "provider hasn't registered: timeout exceeded"

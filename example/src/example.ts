@@ -1,29 +1,12 @@
 import { Fluence } from "@fluencelabs/fluence";
-import { krasnodar, Node, stage, testNet } from "@fluencelabs/fluence-network-environment";
+import { Node, stage } from "@fluencelabs/fluence-network-environment";
 import { registerNodeProvider, createResource, registerProvider, resolveProviders } from "./generated/export";
 import assert from "assert";
 
-let local: Node[] = [
-    {
-        peerId: "12D3KooWHBG9oaVx4i3vi6c1rSBUm7MLBmyGmmbHoZ23pmjDCnvK",
-        multiaddr:
-            "/ip4/127.0.0.1/tcp/9990/ws/p2p/12D3KooWHBG9oaVx4i3vi6c1rSBUm7MLBmyGmmbHoZ23pmjDCnvK",
-    },
-    {
-        peerId: "12D3KooWRABanQHUn28dxavN9ZS1zZghqoZVAYtFpoN7FdtoGTFv",
-        multiaddr:
-            "/ip4/127.0.0.1/tcp/9991/ws/p2p/12D3KooWRABanQHUn28dxavN9ZS1zZghqoZVAYtFpoN7FdtoGTFv",
-    },
-    {
-        peerId: "12D3KooWFpQ7LHxcC9FEBUh3k4nSCC12jBhijJv3gJbi7wsNYzJ5",
-        multiaddr:
-            "/ip4/127.0.0.1/tcp/9992/ws/p2p/12D3KooWFpQ7LHxcC9FEBUh3k4nSCC12jBhijJv3gJbi7wsNYzJ5",
-    },
-];
 
 async function main() {
     // connect to the Fluence network
-    await Fluence.start({ connectTo: stage[5] });
+    await Fluence.start({ connectTo: stage[0] });
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
@@ -37,7 +20,8 @@ async function main() {
 
     assert(resource_id !== null, create_error.toString());
     console.log("resource %s created successfully", resource_id);
-    let node_provider = stage[2].peerId;
+    let node_provider = stage[5].peerId;
+
     // this call should have bigger ttl
     let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity", {ttl: 20000});
     assert(node_success, reg_node_error.toString());
