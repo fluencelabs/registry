@@ -39,7 +39,7 @@ async function main() {
     console.log("resource %s created successfully", resource_id);
     let node_provider = testNet[2].peerId;
     // this call should have bigger ttl
-    let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity", { ttl: 20000 });
+    let [node_success, reg_node_error] = await registerNodeProvider(node_provider, resource_id, value, "identity", {ttl: 10000});
     assert(node_success, reg_node_error.toString());
     console.log("node %s registered as provider successfully", node_provider);
 
@@ -48,6 +48,7 @@ async function main() {
     console.log("peer %s registered as provider successfully", Fluence.getStatus().peerId);
 
     let [providers, error] = await resolveProviders(resource_id, 2);
+    assert(providers.length == 2);
     console.log("route providers:", providers);
 }
 

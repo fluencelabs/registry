@@ -33,6 +33,24 @@ jobs:
             - ~/.rustup
           key: registry05-{{ checksum "service/Cargo.lock" }}
 
+  Test example:
+    docker:
+      - image: cimg/node:16.15
+    steps:
+      - restore_cache:
+          keys:
+            - registry00-{{ checksum "example/package-lock.json" }}
+      - run: |
+        cd example
+        npm i
+      - run: |
+        cd example
+        npm run start
+      - save_cache:
+          paths:
+            - ~/example/node-modules
+          key: registry00-{{ checksum "example/package-lock.json" }}
+
 workflows:
   version: 2
   CircleCI:
