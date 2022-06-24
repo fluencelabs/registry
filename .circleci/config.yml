@@ -56,3 +56,4 @@ workflows:
   CircleCI:
     jobs:
       - Build and test Rust service
+      - Test example
