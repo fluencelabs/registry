@@ -41,11 +41,11 @@ jobs:
           keys:
             - registry00-{{ checksum "example/package-lock.json" }}
       - run: |
-        cd example
-        npm i
+          cd example
+          npm i
       - run: |
-        cd example
-        npm run start
+          cd example
+          npm run start
       - save_cache:
           paths:
             - ~/example/node-modules
