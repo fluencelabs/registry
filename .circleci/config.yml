@@ -37,6 +37,7 @@ jobs:
     docker:
       - image: cimg/node:16.15
     steps:
+      - checkout
       - restore_cache:
           keys:
             - registry00-{{ checksum "example/package-lock.json" }}
