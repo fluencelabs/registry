@@ -39,6 +39,28 @@ mod tetraplets_checkers;
 #[macro_use]
 extern crate fstrings;
 
+/*
+    _initialize function that calls __wasm_call_ctors is required to mitigade memory leak
+    that is described in https://github.com/WebAssembly/wasi-libc/issues/298
+
+    In short, without this code rust wraps every export function
+    with __wasm_call_ctors/__wasm_call_dtors calls. This causes memory leaks. When compiler sees
+    an explicit call to __wasm_call_ctors in _initialize function, it disables export wrapping.
+
+    TODO: remove when updating to marine-rs-sdk with fix
+ */
+extern "C" {
+    pub fn __wasm_call_ctors();
+}
+
+#[no_mangle]
+fn _initialize() {
+    unsafe {
+        __wasm_call_ctors();
+    }
+}
+//------------------------------
+
 module_manifest!();
 
 pub fn wrapped_try<F, T>(func: F) -> T
@@ -58,6 +80,7 @@ pub struct WeightResult {
 }
 
 fn main() {
+    _initialize(); // As __wasm_call_ctors still does necessary work, we call it at the start of the module
     let storage = get_storage().unwrap();
     storage.create_key_tables();
     storage.create_values_table();
