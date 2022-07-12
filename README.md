@@ -24,35 +24,29 @@
 
 ## Overview
 
-There is a lot of services in the network on different peers and should be a mechanism to find and resolve them in runtime without prior knowledge about exact providers. This mechanism gives a flexibility to our solutions in terms of discovery, redundancy and high availability.
+There is a lot of services in the network on different peers and should be a way to find and resolve them in runtime without prior knowledge about exact service providers. This approach gives robustness and flexibility to our solutions in terms of discovery, redundancy and high-availability.
 
-In centralized systems we can have some centralized storage and routing but in p2p decentralized environments this problem becomes more challenging. Registry is our view on the solution for this problem.
+In centralized systems we can have a centralized storage and routing but in p2p decentralized environments this problem becomes more challenging. Registry is our view on the solution for this problem.
 
 ## Why is it important?
-Why it's important in our context? If there's prior art, why not use it? Can we live without it? Why not to use a key/value store.
 
-- if you have multiple replicas of one service on different peers you should have the ability to discover services in runtime without predefined knowledge which peer is serving this service if some peer joined/disconnected
-
-Scalability, redundancy, high-availability, etc are essential parts of decentralized system but they are not available out-of-the-box. To enable these, informantion about services should be binded with peers providing them. Also these networks are frequently changing and this information should be resolvable in runtime to provide unstoppable access. So you should have some decentralized protocol to update and resolve information about global and local routing.
+Scalability, redundancy and high-availability are essential parts of decentralized system but they are not available out-of-the-box. To enable these, information about services should be binded with peers providing them. Also these networks are frequently changing and it should be reflected and resolvable in runtime to provide unstoppable access. So you should have some decentralized protocol to update and resolve information about routing, both global and local.
 
 ## What is it?
 
-Registry is a builtin service which provides service advertisement and discovery. This component creates relationships between unique identifiers and groups of services on various peers. So service providers can join or disconnect during runtime and can be discoverable in the network. **picture with resolving group of services by peer_id/service_id and by resource_id**
+Registry is a builtin which provides service advertisement and discovery. This component creates relationships between unique identifiers and groups of services on various peers. So service providers can join or disconnect during runtime and can be discoverable in the network.
 
-Registry is not a plain KV-storage. It is a composition of the Registry service for each network participant and the scheduled scripts which maintain replication, garbage collection, and sustainability.
+However, Registry is not a plain KV-storage. It is a composition of the Registry service for each network participant and the scheduled scripts maintaining replication and garbage collection.
 
-If you wanna discover in runtime the group of services on different peers without prior knowledge you should register a **Resource.**
+If you want to discover a group of services on different peers without prior knowledge in runtime you should register a **Resource**. A resource is a group of services or group of peers united by some common feature. Please notice that resource lifetime is ~24 hours. However, if resource has been accessed recently it will not be garbage-collected for the next 24 hours from the last time access.
 
-A resource should be understood as a group of services or a group of peers united by some common feature.
+A combination of `service_id` and `peer_id` represents a service **Provider**.
 
-A combination of service_id and peer_id should be understood as a service **Provider**. **Picture with resource and provider**
+There are two types of providers depending on a peer this service operates on. **Node Providers** correspond to a full-featured Rust node and the rest of **Providers** — to a JS peer/client. And a record for any provider should be renewed every 24 hours to avaid garbage-collection.
 
-There are two types of providers depends on which peer this service operates. If this is full-featured Rust node record lifecycle controlled by node (with scheduled scripts), if this is JS peer/client record lifecycle management should be additionally implemented (it should renew the record every 24 hours).
-However if resource and records have been accessed recently it will not be garbage-collected for the next 24 hours from the last access.
+As for now every resource is  limited by [number](./service/src/defaults.rs#25) of providers `32` it can hold, disregarding records for the node services. So local services have no limitation for registration in the local registry. Other providers records are ranked by peer weights in the local [TrustGraph](https://github.com/fluencelabs/trust-graph/blob/master/README.md#what-is-it) instance.
 
-For now every resource limited by [number](./service/src/defaults.rs#25) of providers `32` it can hold, not considering record for services providing by this node. So local services have no limitation for registration in local registry. Other providers records are ranked by the weight of peers in the local [TrustGraph](https://github.com/fluencelabs/trust-graph/blob/master/README.md#what-is-it) instance.
-
-For now there are no permissions checking but later an owner of the resource will provide a challenge to check.
+There are no permissions management at the moment but in the coming updates an owner of the resource will provide a challenge to check against.
 
 ## How to Use it in Aqua
 
