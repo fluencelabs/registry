@@ -14,6 +14,10 @@
     - [How to execute callback on Providers](#how-to-execute-callback-on-providers)
     - [Notes](#notes)
   - [Use cases](#use-cases)
+    - [Services discovery](#services-discovery)
+    - [Service high-availability](#service-high-availability)
+    - [Subnetwork discovery](#subnetwork-discovery)
+    - [Load balancer](#load-balancer)
   - [API](#api)
   - [References](#references)
     - [Learn Aqua](#learn-aqua)
@@ -53,13 +57,12 @@ For now there are no permissions checking but later an owner of the resource wil
 ## How to Use it in Aqua
 
 ### How to import
-```
+```rust
 import "@fluencelabs/registry/resources-api.aqua"
 import "@fluencelabs/registry/registry-service.aqua"
 
 func my_function(resource_id: string) ->  []Record, *Error:
-    on HOST_PEER_ID:
-        result, error <- resolveProviders(resource_id)
+    result, error <- resolveProviders(resource_id)
     <- result, error
 ```
 
@@ -71,8 +74,7 @@ func my_function(resource_id: string) ->  []Record, *Error:
 Let's register a resource with label `sample` by `INIT_PEER_ID`:
 ```rust
 func my_resource() -> ?ResourceId, *Error:
-    on HOST_PEER_ID:
-        id, error <- createResource("sample")
+    id, error <- createResource("sample")
     <- id, error
 ```
 
@@ -81,26 +83,93 @@ func my_resource() -> ?ResourceId, *Error:
 - creation is successful if resource id returned
 - `*Error` accumulates errors from all affected peers
 ### How to register Provider
+- `registerProvider(resource_id: ResourceId, value: string, service_id: ?string) -> bool, *Error`
+- `createResourceAndRegisterProvider(label: string, value: string, service_id: ?string) -> ?ResourceId, *Error`
 
-to update provider ...
-to remove provider ...
+
+Let's register local service `greeting` and pass some random string like `hi` as value:
+```rust
+func register_local_service(resource_id: string) -> ?bool, *Error:
+    success, error <- registerProvider(resource_id, "hi", ?[greeting])
+    <- success, error
+```
+
+- `value` is a user-defined string which can be used at the discretion of the user
+- to update provider record you should register it one more time to create record with newer timestamp
+- to remove provider you should stop updating it
+- you should renew record every 24 hours to keep provider available
+
 ### How to register Node Provider
+- `registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, value: string, service_id: ?string) -> bool, *Error`
+- `createResourceAndRegisterNodeProvider(provider_node_id: PeerId, label: string, value: string, service_id: ?string) -> ?ResourceId, *Error`
+
+Let's register service `echo` hosted on `peer_id` and pass some random string like `sample` as value:
+```rust
+func register_external_service(resource_id: string, peer_id: string) -> ?bool, *Error:
+    success, error <- registerNodeProvider(peer_id, resource_id, "hi", ?[greeting])
+    <- success, error
+```
+
+- record will not be garbage-collected from provider's node but it better to update it every 24 hours, in the following updates renewing process will be handled by the node with scheduled scripts
 
 ### How to delete Node Provider
+- `removeNodeFromProviders(provider_node_id: PeerId, resource_id: ResourceId)`
+Let's remove node provider's record from target node:
+```rust
+func stop_provide_external_service(resource_id: string, peer_id: string):
+    removeNodeFromProviders(peer_id, resource_id)
+```
 
+- it will be removed from target node and maximum in 24 hours from the network
 ### How to resolve Providers
+- `resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error`
+
+Let's resolve all providers of our resource_id:
+```rust
+func get_my_providers(resource_id: string, consistency_level: i16) -> []Record, *Error:
+    providers, error <- resolveProviders(resource_id, consistency_level)
+    <- providers, error
+```
+
+- `ack` is a characteristics which represents min number of peers which asked for known providers
 
 ### How to execute callback on Providers
+- `executeOnProviders(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error`
 
 
+```rust
+func call_provider(p: Record):
+    -- topological move to provider via relay
+    on p.peer_id via p.relay_id:
+        -- resolve and call your service on a provider
+        ...
+        Op.noop()
+
+-- call on every provider
+func call_everyone(resource_id: String, ack: i16):
+    executeOnProviders(resource_id, ack, call_provider)
+```
+
+- it is just a combination of `resolveProviders` and `for` loop through records with callback execution
+- it can be useful in case of broadcasting events on providers
+- look in the [docs](https://doc.fluence.dev/aqua-book/libraries/registry#call-a-function-on-resource-providers) for more detailed example
 ### Notes
 You can redefine [`REPLICATION_FACTOR`](https://github.com/fluencelabs/registry/blob/main/aqua/resources-api.aqua#L10) and [`CONSISTENCY_LEVEL`](https://github.com/fluencelabs/registry/blob/main/aqua/resources-api.aqua#L11).
 
 
 ## Use cases
-See [example](./example):
-- How to call [`registry`](./example/src/example.ts) function in TS/JS
-- Writing an Aqua script using `registry`: [event_example.aqua](./example/src/aqua/event_example.aqua)
+### Services discovery
+Discover services without prior knowledge about exact peers and service identifiers.
+
+### Service high-availability
+Service provided by several peers still will be available for the client in case of disconnections and other providers' failures.
+
+
+### Subnetwork discovery
+You can register a group of peers for a resource (without specifying exact services). So you "tagging" and grouping the nodes to create a subnetwork.
+
+### Load balancer
+If you have a list of service providers which updated in runtime you can create load balancing service based on your preferred metrics.
 
 ## API
 
