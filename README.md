@@ -24,7 +24,7 @@
 
 ## Overview
 
-There are many services in the network on different peers and should be a way to find and resolve them in runtime without prior knowledge about exact service providers. This approach gives robustness and flexibility to our solutions in terms of discovery, redundancy and high availability.
+There are many [services](https://doc.fluence.dev/docs/concepts#services) in the network on different peers and should be a way to find and resolve them in runtime without prior knowledge about exact service providers. This approach gives robustness and flexibility to our solutions in terms of discovery, redundancy and high availability.
 
 In centralized systems, we can have centralized storage and routing, but in p2p decentralized environments, this problem becomes more challenging. Registry is our view on the solution for this problem.
 
@@ -34,7 +34,7 @@ Scalability, redundancy and high availability are essential parts of a decentral
 
 ## What is it?
 
-Registry is a builtin that provides service advertisement and discovery. This component creates relationships between unique identifiers and groups of services on various peers. So service providers can join or disconnect during runtime and be discoverable in the network.
+Registry is available (built-in) on every Fluence node. It provides service advertisement and discovery. This component creates relationships between unique identifiers and groups of services on various peers. So service providers can join or disconnect during runtime and be discoverable in the network.
 
 However, Registry is not a plain KV-storage. Instead, it is a composition of the Registry service for each network participant and the scheduled scripts maintaining replication and garbage collection.
 
@@ -42,9 +42,9 @@ If you want to discover a group of services on different peers without prior kno
 
 A combination of `service_id` and `peer_id` represents a service **Provider**.
 
-There are two types of providers depending on a peer this service operates on. **Node Providers** correspond to a full-featured Rust node and the rest of **Providers** — to a JS peer/client. And a record for any provider should be renewed every 24 hours to avoid garbage collection.
+There are two types of providers depending on a peer this service operates on. **Node Providers** correspond to a full-featured Rust [node](https://doc.fluence.dev/docs/node) and the rest of **Providers** — to a [JS peer/client](https://doc.fluence.dev/docs/fluence-js). And a record for any provider should be renewed every 24 hours to avoid garbage collection.
 
-As for now, every resource is limited by [number](./service/src/defaults.rs#25) of providers `32` it can hold, disregarding records for the node services. So local services have no limitation for registration in the local registry. Other providers' records are ranked by peer weights in the local [TrustGraph](https://github.com/fluencelabs/trust-graph/blob/master/README.md#what-is-it) instance.
+As for now, every resource is limited by [number](./service/src/defaults.rs#25) of providers `32` it can hold, disregarding records for the node services. So local services have no limitation for registration in the local registry. Other providers' records are ranked by peer weights in the local [TrustGraph](https://github.com/fluencelabs/trust-graph/blob/master/README.md#what-is-it) instance. So locally every node has a list of the most trusted service providers. "Trusted" means that in terms of TrustGraph, a service provider complies with requirements defined by node owner.
 
 There is no permissions management at the moment, but in the coming updates, an owner of the resource will provide a challenge to check against.
 
