@@ -158,7 +158,6 @@ Discover services without prior knowledge about exact peers and service identifi
 ### Service high-availability
 Service provided by several peers still will be available for the client in case of disconnections and other providers' failures.
 
-
 ### Subnetwork discovery
 You can register a group of peers for a resource (without specifying exact services). So you "tagging" and group the nodes to create a subnetwork.
 
