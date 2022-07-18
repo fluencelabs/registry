@@ -1,0 +1,75 @@
+name: "registry"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "master"
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  service:
+    name: "Build and test Rust service"
+    runs-on: builder
+
+    env:
+      RUST_BACKTRACE: 1
+      CARGO_TERM_COLOR: always
+
+    working-directory: service
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-06-29
+          target: wasm32-wasi
+          components: rustfmt, clippy
+
+      - name: "Cache rust"
+        uses: Swatinem/rust-cache@v1
+
+      - name: "Download marine"
+        run: .github/download_marine.sh
+
+      - name: "cargo fmt"
+        run: cargo fmt --all -- --check
+
+      - name: "Build Aqua DHT service"
+        run: ./build.sh
+
+      - name: "cargo check"
+        run: cargo check -v --all-features
+
+      - name: "cargo test"
+        run: cargo test --no-fail-fast --release -v --all-features -- --test-threads=1
+
+      - name: "cargo clippy"
+        run: cargo clippy -v
+
+  example:
+    name: "Test example"
+    runs-on: ubuntu-latest
+
+    env:
+      RUST_BACKTRACE: 1
+      CARGO_TERM_COLOR: always
+
+    working-directory: example
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: "Install example dependencies"
+        uses: bahmutov/npm-install@v1
+
+      - name: "Run example"
+        run: npm run start
