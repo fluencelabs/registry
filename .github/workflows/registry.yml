@@ -19,22 +19,28 @@ jobs:
       RUST_BACKTRACE: 1
       CARGO_TERM_COLOR: always
 
-    working-directory: service
+    defaults:
+      run:
+        working-directory: service
 
     steps:
       - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-06-29
+          toolchain: nightly
           target: wasm32-wasi
+          default: true
           components: rustfmt, clippy
+
+      - name: "Install libsqlite"
+        run: apt-get install libsqlite3-dev
 
       - name: "Cache rust"
         uses: Swatinem/rust-cache@v1
 
       - name: "Download marine"
-        run: .github/download_marine.sh
+        run: $GITHUB_WORKSPACE/.github/download_marine.sh
 
       - name: "cargo fmt"
         run: cargo fmt --all -- --check
@@ -46,20 +52,18 @@ jobs:
         run: cargo check -v --all-features
 
       - name: "cargo test"
-        run: cargo test --no-fail-fast --release -v --all-features -- --test-threads=1
+        run: cargo test run --release --all-features --no-fail-fast
 
       - name: "cargo clippy"
-        run: cargo clippy -v
+        run: cargo clippy -Z unstable-options --all
 
   example:
     name: "Test example"
     runs-on: ubuntu-latest
 
-    env:
-      RUST_BACKTRACE: 1
-      CARGO_TERM_COLOR: always
-
-    working-directory: example
+    defaults:
+      run:
+        working-directory: example
 
     steps:
       - uses: actions/checkout@v3
@@ -70,6 +74,8 @@ jobs:
 
       - name: "Install example dependencies"
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: example
 
       - name: "Run example"
         run: npm run start
