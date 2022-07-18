@@ -27,6 +27,7 @@
 There are many [services](https://doc.fluence.dev/docs/concepts#services) in the network on different peers and should be a way to find and resolve them in runtime without prior knowledge about exact service providers. This approach gives robustness and flexibility to our solutions in terms of discovery, redundancy and high availability.
 
 In centralized systems, we can have centralized storage and routing, but in p2p decentralized environments, this problem becomes more challenging. Registry is our view on the solution for this problem.
+![image](images/registry.png)
 
 ## Why is it important?
 
@@ -41,6 +42,9 @@ However, Registry is not a plain KV-storage. Instead, it is a composition of the
 If you want to discover a group of services on different peers without prior knowledge in runtime, you should register a **Resource**. A resource is a group of services or a group of peers united by some common feature. Please notice that resource lifetime is ~24 hours. However, if the resource has been accessed recently, it will not be garbage-collected for the next 24 hours from the last access.
 
 A combination of `service_id` and `peer_id` represents a service **Provider**.
+
+![image](images/decentralized.png)
+![image](images/mapping.png)
 
 There are two types of providers depending on a peer this service operates on. **Node Providers** correspond to a full-featured Rust [node](https://doc.fluence.dev/docs/node) and the rest of **Providers** — to a [JS peer/client](https://doc.fluence.dev/docs/fluence-js). And a record for any provider should be renewed every 24 hours to avoid garbage collection.
 
