@@ -50,7 +50,7 @@ jobs:
         run: ./build.sh
 
       - run: cargo install --locked cargo-nextest --version 0.9.22
-      - run: cargo nextest run --release --all-features --no-fail-fast --retries 10 --test-threads 10
+      - run: cargo nextest run --release --all-features --no-fail-fast --retries 10 --test-threads 1
 
   lints:
     name: Lints
@@ -79,11 +79,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --all --manifest-path service/Cargo.toml -- --check
 
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -Z unstable-options --all
+          args: -Z unstable-options --all --manifest-path service/Cargo.toml
         continue-on-error: true # do not fail for now
