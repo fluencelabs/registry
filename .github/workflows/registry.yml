@@ -17,7 +17,7 @@ concurrency:
 jobs:
   lint:
     name: "lint"
-    runs-on: ubuntu-latest
+    runs-on: builder
 
     defaults:
       run:
@@ -30,6 +30,7 @@ jobs:
         with:
           toolchain: nightly
           target: wasm32-wasi
+          default: true
           components: rustfmt, clippy
 
       - name: "Cache rust"
@@ -58,6 +59,7 @@ jobs:
         with:
           toolchain: nightly
           target: wasm32-wasi
+          default: true
           components: rustfmt, clippy
 
       - name: "Install libsqlite"
