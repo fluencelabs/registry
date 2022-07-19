@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lints:
+  lint:
     name: "lint"
     runs-on: ubuntu-latest
 
@@ -37,6 +37,8 @@ jobs:
   nextest:
     name: "cargo nextest"
     runs-on: builder
+
+    needs: lint
 
     defaults:
       run:
