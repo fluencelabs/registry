@@ -28,8 +28,8 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
+          target: wasm32-wasi
           components: rustfmt, clippy
 
       - name: "Cache rust"
