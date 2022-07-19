@@ -28,6 +28,9 @@ jobs:
           toolchain: nightly
           components: rustfmt, clippy
 
+      - name: "Cache rust"
+        uses: Swatinem/rust-cache@v1
+
       - name: "cargo fmt"
         run: cargo fmt --all -- --check
 
