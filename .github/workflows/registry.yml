@@ -1,0 +1,81 @@
+name: registry
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "master"
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  nextest:
+    name: "cargo nextest"
+    runs-on: builder
+
+    defaults:
+      run:
+        working-directory: service
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: wasm32-wasi
+          default: true
+          components: rustfmt, clippy
+
+      - name: "Install libsqlite"
+        run: apt-get install libsqlite3-dev
+
+      - name: "Cache rust"
+        uses: Swatinem/rust-cache@v1
+
+      - name: "Download marine"
+        run: $GITHUB_WORKSPACE/.github/download_marine.sh
+
+      - name: "Build service"
+        run: ./build.sh
+
+      - name: "cargo fmt"
+        run: cargo fmt --all -- --check
+
+      - name: "cargo clippy"
+        run: cargo clippy -Z unstable-options --all
+
+      - name: "Install nextest"
+        run: cargo install --locked cargo-nextest --version 0.9.22
+
+      - name: "cargo nextest"
+        run: cargo nextest run --release --all-features --no-fail-fast --test-threads=1 --
+
+  example:
+    name: "Test example"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: example
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: "Install example dependencies"
+        uses: bahmutov/npm-install@v1
+        with:
+          working-directory: example
+
+      - name: "Run example"
+        run: npm run start
