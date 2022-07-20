@@ -11,7 +11,7 @@
     - [How to register Node Provider](#how-to-register-node-provider)
     - [How to delete Node Provider](#how-to-delete-node-provider)
     - [How to resolve Providers](#how-to-resolve-providers)
-    - [How to execute callback on Providers](#how-to-execute-callback-on-providers)
+    - [How to execute a callback on Providers](#how-to-execute-a-callback-on-providers)
     - [Notes](#notes)
   - [Use cases](#use-cases)
     - [Services discovery](#services-discovery)
@@ -31,7 +31,7 @@ In centralized systems, we can have centralized storage and routing, but in p2p 
 
 ## Why is it important?
 
-Scalability, redundancy and high availability are essential parts of a decentralized system but they are not available out of the box. To enable these, information about services should be bound with peers providing them. Also, these networks are frequently changing and should be reflected and resolvable in runtime to provide unstoppable access. So you should have some decentralized protocol to update and resolve information about routing, both global and local.
+Scalability, redundancy and high availability are essential parts of a decentralized system, but they are not available out of the box. To enable these, information about services should be bound with peers providing them. Also, these networks are frequently changing and should be reflected and resolvable in runtime to provide unstoppable access. So you should have some decentralized protocol to update and resolve information about routing, both global and local.
 
 ## What is it?
 
@@ -39,18 +39,18 @@ Registry is available (built-in) on every Fluence node. It provides service adve
 
 However, Registry is not a plain KV-storage. Instead, it is a composition of the Registry service for each network participant and the scheduled scripts maintaining replication and garbage collection.
 
-If you want to discover a group of services on different peers without prior knowledge in runtime, you should register a **Resource**. A resource is a group of services or a group of peers united by some common feature. Please notice that resource lifetime is ~24 hours. However, if the resource has been accessed recently, it will not be garbage-collected for the next 24 hours from the last access.
+If you want to discover a group of services on different peers without prior knowledge in runtime, you should register a **Resource**. A resource is a group of services or peers united by some common feature. Please notice that resource lifetime is ~24 hours. However, if the resource has been accessed recently, it will not be garbage-collected for the next 24 hours from the last access.
 
 A combination of `service_id` and `peer_id` represents a service **Provider**.
 
-![image](images/decentralized.png)
+![image](images/discovery.png)
 ![image](images/mapping.png)
 
 There are two types of providers depending on a peer this service operates on. **Node Providers** correspond to a full-featured Rust [node](https://doc.fluence.dev/docs/node) and the rest of **Providers** — to a [JS peer/client](https://doc.fluence.dev/docs/fluence-js). And a record for any provider should be renewed every 24 hours to avoid garbage collection.
 
 As for now, every resource is limited by [number](./service/src/defaults.rs#25) of providers `32` it can hold, disregarding records for the node services. So local services have no limitation for registration in the local registry. Other providers' records are ranked by peer weights in the local [TrustGraph](https://github.com/fluencelabs/trust-graph/blob/master/README.md#what-is-it) instance. So locally every node has a list of the most trusted service providers. "Trusted" means that in terms of TrustGraph, a service provider complies with requirements defined by node owner.
 
-There is no permissions management at the moment, but in the coming updates, an owner of the resource will provide a challenge to check against.
+There is no permissions management at the moment, but in the coming updates, a resource owner will provide a challenge to check against.
 
 ## How to Use it in Aqua
 
@@ -60,8 +60,8 @@ import "@fluencelabs/registry/resources-api.aqua"
 import "@fluencelabs/registry/registry-service.aqua"
 
 func my_function(resource_id: string) ->  []Record, *Error:
-    result, error <- resolveProviders(resource_id)
-    <- result, error
+   result, error <- resolveProviders(resource_id)
+   <- result, error
 ```
 
 ### How to create Resource
@@ -72,8 +72,8 @@ func my_function(resource_id: string) ->  []Record, *Error:
 Let's register a resource with the label `sample` by `INIT_PEER_ID`:
 ```rust
 func my_resource() -> ?ResourceId, *Error:
-    id, error <- createResource("sample")
-    <- id, error
+   id, error <- createResource("sample")
+   <- id, error
 ```
 
 - `createResourceAndRegisterProvider` and `createResourceAndRegisterNodeProvider` are the combination of resource creation and provider registration
@@ -88,8 +88,8 @@ func my_resource() -> ?ResourceId, *Error:
 Let's register local service `greeting` and pass some random string like `hi` as a value:
 ```rust
 func register_local_service(resource_id: string) -> ?bool, *Error:
-    success, error <- registerProvider(resource_id, "hi", ?[greeting])
-    <- success, error
+   success, error <- registerProvider(resource_id, "hi", ?[greeting])
+   <- success, error
 ```
 
 - `value` is a user-defined string that can be used at the discretion of the user
@@ -104,8 +104,8 @@ func register_local_service(resource_id: string) -> ?bool, *Error:
 Let's register service `echo` hosted on `peer_id` and pass some random string like `sample` as a value:
 ```rust
 func register_external_service(resource_id: string, peer_id: string) -> ?bool, *Error:
-    success, error <- registerNodeProvider(peer_id, resource_id, "hi", ?[greeting])
-    <- success, error
+   success, error <- registerNodeProvider(peer_id, resource_id, "hi", ?[greeting])
+   <- success, error
 ```
 
 - the record will not be garbage-collected from the provider's node, but it is better to update it every 24 hours. In the following updates renewing process will be handled by the node with scheduled scripts
@@ -115,37 +115,37 @@ func register_external_service(resource_id: string, peer_id: string) -> ?bool, *
 Let's remove node provider's record from target node:
 ```rust
 func stop_provide_external_service(resource_id: string, peer_id: string):
-    removeNodeFromProviders(peer_id, resource_id)
+   removeNodeFromProviders(peer_id, resource_id)
 ```
 
-- it will be removed from target node and maximum in 24 hours from the network
+- it will be removed from the target node and in 24 hours from the network
 ### How to resolve Providers
 - `resolveProviders(resource_id: ResourceId, ack: i16) -> []Record, *Error`
 
 Let's resolve all providers of our resource_id:
 ```rust
 func get_my_providers(resource_id: string, consistency_level: i16) -> []Record, *Error:
-    providers, error <- resolveProviders(resource_id, consistency_level)
-    <- providers, error
+   providers, error <- resolveProviders(resource_id, consistency_level)
+   <- providers, error
 ```
 
 - `ack` is a characteristic that represents min number of peers who asked for known providers
 
-### How to execute callback on Providers
+### How to execute a callback on Providers
 - `executeOnProviders(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error`
 
 
 ```rust
 func call_provider(p: Record):
-    -- topological move to provider via relay
-    on p.peer_id via p.relay_id:
-        -- resolve and call your service on a provider
-        ...
-        Op.noop()
+   -- topological move to a provider via relay
+   on p.peer_id via p.relay_id:
+       -- resolve and call your service on a provider
+       ...
+       Op.noop()
 
 -- call on every provider
 func call_everyone(resource_id: String, ack: i16):
-    executeOnProviders(resource_id, ack, call_provider)
+   executeOnProviders(resource_id, ack, call_provider)
 ```
 
 - it is just a combination of `resolveProviders` and `for` loop through records with callback execution
@@ -162,15 +162,19 @@ Discover services without prior knowledge about exact peers and service identifi
 ### Service high-availability
 Service provided by several peers still will be available for the client in case of disconnections and other providers' failures.
 
+![image](images/availability.png)
+
 ### Subnetwork discovery
 You can register a group of peers for a resource (without specifying exact services). So you "tagging" and group the nodes to create a subnetwork.
+
+![image](images/subnetwork.png)
 
 ### Load balancer
 If you have a list of service providers updated in runtime, you can create a load-balancing service based on your preferred metrics.
 
 ## API
 
-API is defined in the [resources-api.aqua](./aqua/resources-api.aqua) module. API Reference soon will be available in the documentation.
+API is defined in the [resources-api.aqua](./aqua/resources-api.aqua) module. API Reference will soon be available in the documentation.
 
 
 ## References
