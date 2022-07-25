@@ -27,6 +27,7 @@
 There are many [services](https://doc.fluence.dev/docs/concepts#services) in the network on different peers, and there should be a way to find and resolve these services in runtime without prior knowledge about exact service providers. Such approach gives robustness and flexibility to our solutions in terms of discovery, redundancy and high availability.
 
 In centralized systems, we can have centralized storage and routing, but in p2p decentralized environments, the problem becomes more challenging. Registry is our view on the solution for the problem.
+
 ![image](images/registry.png)
 
 ## Why is it important?
