@@ -178,7 +178,7 @@ If you have a list of service providers updated in runtime, you can create a loa
 
 ## API
 
-API is defined in the [resources-api.aqua](./aqua/resources-api.aqua) module. API Reference will be available in the documentation soon.
+Resources API is defined in the [resources-api](./aqua/resources-api.aqua) module. Service API is defined in the [registry-service](./aqua/registry-service.aqua) module. For the details, check out [API Reference](./API_reference.md).
 
 
 ## References
