@@ -45,7 +45,7 @@ func getResource(resource_id: ResourceId) -> ?Key, *Error:
   error: *Error
 
   resources: *Key
-  successful: *bool
+  successful: *`
   for n <- nodes par:
     on n:
       try:
