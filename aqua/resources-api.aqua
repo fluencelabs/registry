@@ -2,88 +2,9 @@ module Registry.ResourcesAPI declares *
 
 import "registry-service.aqua"
 import "registry-api.aqua"
+import "misc.aqua"
+import "constants.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
-
-alias ResourceId: string
-alias Error: string
-
-const REPLICATION_FACTOR = 1
-const CONSISTENCY_LEVEL = 1
-const DEFAULT_TIMEOUT = 6000
-
-service HackOp("op"):
-  identity(a: string) -> string
-
-
-service BoolOp("op"):
-  identity(a: bool) -> bool
-
-
-func wait(successful: *bool, len: i16, timeout: u16) -> bool:
-  status: *string
-  waiting = (arr: *bool, s: *string):
-    join arr[len - 1]
-    s <<- "ok"
-
-  waiting(successful, status)
-  par status <- Peer.timeout(timeout, "timeout")
-
-  result: *bool
-  -- HACK: workaround for #LNG-63
-  stat <- HackOp.identity(status!)
-  if stat == "ok":
-    result <<- true
-  else:
-    result <<- false
-
-  <- result!
-
-func appendErrors(error1: *Error, error2: *Error):
-  for e <- error2:
-    error1 <<- e
-
-func getResourceId(label: string, peer_id: string) -> ResourceId:
-  resource_id <- Registry.get_key_id(label, peer_id)
-  <- resource_id
-
--- Get peers closest to the resource_id's hash in Kademlia network
--- These peers are expected to store list of providers for this key
-func getNeighbours(resource_id: ResourceId) -> []PeerId:
-  k <- Op.string_to_b58(resource_id)
-  nodes <- Kademlia.neighborhood(k, nil, nil)
-  <- nodes
-
-func getResource(resource_id: ResourceId) -> ?Key, *Error:
-  nodes <- getNeighbours(resource_id)
-  result: ?Key
-  error: *Error
-
-  resources: *Key
-  successful: *bool
-  for n <- nodes par:
-    on n:
-      try:
-        t <- Peer.timestamp_sec()
-        get_result <- Registry.get_key_metadata(resource_id, t)
-        if get_result.success:
-          resources <<- get_result.key
-          successful <<- true
-        else:
-          e <- Op.concat_strings(get_result.error, " on ")
-          error <- Op.concat_strings(e, n)
-
-  success <- wait(successful, CONSISTENCY_LEVEL, DEFAULT_TIMEOUT)
-  if success == false:
-    error <<- "resource not found: timeout exceeded"
-  else:
-    merge_result <- Registry.merge_keys(resources)
-
-    if merge_result.success:
-      result <<- merge_result.key
-    else:
-      error <<- merge_result.error
-
-  <- result, error
 
 -- If this peer have set node_id as a provider for resource,
 -- this call will prevent provider from renew
@@ -262,8 +183,7 @@ func registerProvider(resource_id: ResourceId, value: string, service_id: ?strin
                   error <<- put_res.error
 
         success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
-        -- HACK: workaround for #LNG-63
-        succ = BoolOp.identity(success!)
+        succ = success!
         if succ == false:
           error <<- "provider hasn't registered: timeout exceeded"
 
@@ -314,8 +234,7 @@ func registerNodeProvider(provider_node_id: PeerId, resource_id: ResourceId, val
                       error <<- prop_res.error
 
             success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
-  -- HACK: workaround for #LNG-63
-  succ = BoolOp.identity(success!)
+  succ = success!
   if succ == false:
     error <<- "provider hasn't registered: timeout exceeded"
 
