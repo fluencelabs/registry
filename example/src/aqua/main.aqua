@@ -1,0 +1,45 @@
+module Main
+
+import App from "deployed.app.aqua"
+import EchoService from "services/echoService.aqua"
+import "@fluencelabs/registry/resources-api.aqua"
+import "@fluencelabs/registry/registry-service.aqua"
+export App, echo, echoJS, registerResource, registerService, echoAll
+
+func echo(msg: string) -> *string:
+    services <- App.services()
+    results: *string
+
+    for srv <- services.echoService.default:
+        on srv.peerId:
+            EchoService srv.serviceId
+            results <- EchoService.echo(msg)
+    <- results
+
+func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> string:
+    on peer via relay:
+        EchoService serviceId
+        res <- EchoService.echo(msg)
+    <- res
+
+func registerResource() -> ?string:
+    resource_id, error <- createResource("echo")
+    <- resource_id
+
+func registerService(resource_id: string) -> *bool:
+    results: *bool
+    services <- App.services()
+    for srv <- services.echoService.default:
+        results, error <- registerNodeProvider(srv.peerId, resource_id, "", ?[srv.serviceId])
+    <- results
+
+func echoAll(resource_id: string, msg: string) -> []Record:
+		-- 2 is the min number of providers we want to find
+    providers <- resolveProviders(resource_id, 2)
+    <- providers
+    -- results: *string
+    -- for p <- providers:
+    --     on p.peer_id via p.relay_id:
+    --         EchoService p.service_id!
+    --         results <- EchoService.echo(msg)
+    -- <- results

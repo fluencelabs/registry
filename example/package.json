@@ -1,30 +1,23 @@
 {
   "name": "example",
   "version": "1.0.0",
-  "description": "An example of how to use Registry in TypeScript",
-  "main": "dist/example.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "compile-aqua": "aqua -i ./src/aqua -o ./src/generated",
+    "compile-aqua": "fluence aqua -i ./src/aqua/export.aqua -o ./src/generated",
     "build": "npm run compile-aqua && tsc",
     "prestart": "npm run build",
-    "start": "node dist/example.js"
+    "start": "node src/echo.js"
   },
-  "keywords": [
-    "aqua",
-    "dht",
-    "p2p"
-  ],
-  "author": "Fluence Labs",
-  "license": "MIT",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "@fluencelabs/registry": "../aqua",
-    "@fluencelabs/aqua-lib": "^0.5.1",
-    "@fluencelabs/aqua": "^0.7.3-318",
-    "@fluencelabs/fluence": "^0.23.0",
+    "@fluencelabs/fluence": "^0.23.1",
     "@fluencelabs/fluence-network-environment": "^1.0.13",
-    "@fluencelabs/trust-graph": "^3.0.1"
+    "@fluencelabs/registry": "^0.5.5"
   },
   "devDependencies": {
-    "typescript": "^4.4.3"
+    "typescript": "^4.7.4"
   }
 }
