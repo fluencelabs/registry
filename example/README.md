@@ -30,12 +30,16 @@ rust: rustc 1.63.0-nightly
     ```bash
     fluence init .
     ```
+    Output:
+    ```bash
+    Successfully initialized Fluence project template at <your-path-to-registry-repo>/example
+    ```
 
 3. You can use [VSCode with Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for syntax highlighting  and better developer experience.
 
-## Add echo service in rust
+## Add echo service in Rust
 
-0. If you have **Apple Silicon** you should install cargo manually:
+0. If you have **Apple Silicon** you should install cargo manually, or you can ignore this step otherwise:
 
     ```bash
     # for m1:
@@ -55,7 +59,7 @@ rust: rustc 1.63.0-nightly
     Added echoService to fluence.yaml
     ```
 
-2. Following [code](echoService/modules/echoService/src/main.rs) returns peer id of the host and initial message:
+2. Following [code](echoService/modules/echoService/src/main.rs) returns a peer id of the host and an initial message:
 
     ```rust
     #[marine]
@@ -73,7 +77,7 @@ rust: rustc 1.63.0-nightly
     fluence deploy
     ```
 
-    Output, peer ids and service ids may differ:
+    Output, please note that peer ids and service ids may differ:
 
     ```bash
     $ fluence deploy
@@ -106,7 +110,7 @@ rust: rustc 1.63.0-nightly
     ```
 
 
-2.  The following [code](src/aqua/main.aqua) declares module, imports App and EchoService and defines method to call `echo`:
+2.  The following [code](src/aqua/main.aqua) declares a module, imports App and EchoService, and defines a method to call `echo`:
 
     ```rust
     module Main
@@ -144,6 +148,7 @@ rust: rustc 1.63.0-nightly
     "12D3KooWCMr9mU894i8JXAFqpgoFtx6qnV1LFPSfVc3Y34N4h4LS: hi"
     ```
 
+We've successfully built and deployed a service written in Rust, and called it from our Aqua code using the Fluence CLI.
 
 ## Run echo service in JS/TS:
 
@@ -161,7 +166,7 @@ rust: rustc 1.63.0-nightly
     export EchoService
     ```
 
-3. The following [code](src/echo.ts) registers local EchoService:
+3. The following [code](src/echo.ts#L23) registers A local EchoService:
 
     ```tsx
     // register local service with service id "echo"
@@ -181,7 +186,7 @@ rust: rustc 1.63.0-nightly
         <- res
     ```
     <a id="running-service"></a>
-5. Start client with service: `npm run start`
+5. Start the client with our service: `npm run start`
     ```bash
     ...
     > example@1.0.0 start
@@ -192,7 +197,7 @@ rust: rustc 1.63.0-nightly
     fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi", "echo", "msg")'
     ```
 
-6. Open a new terminal and copy the last line and execute to check echo service:
+6. Open a new terminal in the same registry example directory, and execute the following command to check echo service:
 
     ```bash
     $ fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi", "echo", "msg")'
@@ -206,14 +211,14 @@ rust: rustc 1.63.0-nightly
     "12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN: msg"
     ```
 
-
+We've successfully started JS/TS peer with an EchoService and tested it with Fluence CLI.
 ## Register both services in Registry
 
-If we, as service providers, want to be all echo services discoverable without specifying exact peer and service ids, we should use Registry to **advertise** our services.
+As service providers we would like all our echo services to be discoverable without specifying particular peer and service ids, in order to achieve that we should use Registry to **advertise** our services.
 
-Firstly, we need to create a **resource.** A resource represents a group of service providers and has a corresponding resource id for its discovery. Secondly, we need to register service providers on this resource id. So echo services can be discovered and resolved by resource id only.
+Firstly, we need to create a **resource.** A resource represents a group of service providers and has a corresponding resource id for its discovery.  Secondly, we need to register the service providers on this resource id. So the echo services can be discovered and resolved by the resource id only.
 
-1. The following [code](src/aqua/main.aqua) registers resource with label `echo`:
+1. The following [code](src/aqua/main.aqua#L24) registers resource with label `echo`:
 
     ```rust
     func registerResource() -> ?string:
@@ -243,9 +248,11 @@ Firstly, we need to create a **resource.** A resource represents a group of serv
     ]
     ```
 
-    So the resource id is `echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77`. By this resource id we can access any registered provider of this resource. There could be more registered echo service on different peers that we can smoothly use.
+   So the resource id is `echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77`. Please note that the resource id might be different in your case.
 
-3. This [code](src/aqua/main.aqua) registers deployed service by given `resource_id`:
+    Using the resource id we can access any registered provider of the resource. There can be more registered echo services on different peers that we can use transparently.
+
+3. This [code](src/aqua/main.aqua#L28) registers deployed service by given `resource_id`:
 
     ```rust
     func registerService(resource_id: string) -> bool:
@@ -272,17 +279,21 @@ Firstly, we need to create a **resource.** A resource represents a group of serv
 
     Result:
 
-    true
+    [
+      [
+        true
+      ]
+    ]
     ```
 
 5. Next, we need to register JS service. For that we have Aqua imports and exports in [src/aqua/export.aqua](src/aqua/export.aqua):
 
     ```
-    import registerProvider from "@fluencelabs/registry/resources-api.aqua"**
+    import registerProvider from "@fluencelabs/registry/resources-api.aqua"
     export registerProvider
     ```
 
-6. In [src/echo.ts](src/echo.ts) we should pass resource id as cmd argument:
+6. In [src/echo.ts](src/echo.ts#L32) we should pass resource id as cmd argument:
 
     ```tsx
     let [success, error] = await registerProvider(process.argv[2], "echo", serviceId);
@@ -300,10 +311,11 @@ output:
     registration result:  true
     ```
 
+We've successfully registered both services, JS/TS and Rust, in Registry and now we can access them only with `resource_id` without knowledge of particular peer and service ids.
 
 ## Call services with Registry (using resource_id)
 
-1. In [src/aqua/main.aqua](src/aqua/main.aqua) defined `echoAll` to resolve services and call sequentially:
+1. In [src/aqua/main.aqua](src/aqua/main.aqua#L35) defined `echoAll` to resolve services and call sequentially:
 
     ```rust
     func echoAll(resource_id: string, msg: string) -> *string:

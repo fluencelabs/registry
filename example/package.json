@@ -2,7 +2,7 @@
   "name": "example",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/echo.js",
   "scripts": {
     "compile-aqua": "fluence aqua -i ./src/aqua/export.aqua -o ./src/generated",
     "build": "npm run compile-aqua && tsc",
