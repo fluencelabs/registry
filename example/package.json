@@ -1,7 +1,7 @@
 {
-  "name": "example",
+  "name": "echo",
   "version": "1.0.0",
-  "description": "",
+  "description": "Fluence Peer with echo service",
   "main": "src/echo.js",
   "scripts": {
     "compile-aqua": "fluence aqua -i ./src/aqua/export.aqua -o ./src/generated",

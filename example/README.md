@@ -68,8 +68,47 @@ rust: rustc 1.63.0-nightly
     }
     ```
 
+### Test echo service locally with REPL
+0. If you have **Apple Silicon** you should install mrepl manually, or you can ignore this step otherwise:
 
-### Deploy service and test it
+    ```bash
+    # for m1:
+    cargo install mrepl --version '0.18.0' --root ~/.fluence/cargo
+    ```
+
+1. Run the following command to start REPL:
+    ```bash
+    fluence service repl echoService
+    ```
+    output:
+    ```bash
+    $ fluence service repl echoService
+    Making sure service and modules are downloaded and built... done
+    Welcome to the Marine REPL (version 0.18.0)
+    Minimal supported versions
+    sdk: 0.6.0
+    interface-types: 0.20.0
+
+    app service was created with service id = 070fd906-a9e4-44af-963d-81a75526379c
+    elapsed time 55.397166ms
+
+    1>
+    ```
+2. Call `echo` function of `echoService` module and pass `msg` to it:
+   ```bash
+   call echoService echo ["msg"]
+   ```
+   output:
+   ```
+    1> call echoService echo ["msg"]
+    result: String(": msg")
+    elapsed time: 9.207542ms
+   ```
+   Peer id is empty because that is default for Marine REPL.
+
+You can always test your services before deployment with REPL. Check out [documentation](https://doc.fluence.dev/marine-book/marine-tooling-reference/marine-repl) for more details.
+
+### Deploy service and test it on remote peer
 
 1. Deploy service:
 
@@ -166,7 +205,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     export EchoService
     ```
 
-3. The following [code](src/echo.ts#L23) registers A local EchoService:
+3. The following [code](src/echo.ts#L23) registers a local EchoService:
 
     ```tsx
     // register local service with service id "echo"
@@ -352,3 +391,4 @@ We've successfully registered both services, JS/TS and Rust, in Registry and now
         ]
     ]
     ```
+
