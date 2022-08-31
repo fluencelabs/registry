@@ -1,9 +1,4 @@
 module Export
-import createResourceAndRegisterProvider, createResourceAndRegisterNodeProvider, createResource, registerNodeProvider, registerProvider, resolveProviders from "@fluencelabs/registry/resources-api.aqua"
-import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
-export createResourceAndRegisterProvider, createResourceAndRegisterNodeProvider, resolveProviders, createResource, registerNodeProvider, registerProvider, timestamp_sec
-
-
-func timestamp_sec() -> u64:
-    result <- Peer.timestamp_sec()
-    <- result
+import "services/echoService.aqua"
+import registerProvider from "@fluencelabs/registry/resources-api.aqua"
+export EchoService, registerProvider

@@ -57,25 +57,3 @@ jobs:
       - name: "cargo nextest"
         run: cargo nextest run --release --all-features --no-fail-fast --test-threads=1 --
 
-  example:
-    name: "Test example"
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: example
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-
-      - name: "Install example dependencies"
-        uses: bahmutov/npm-install@v1
-        with:
-          working-directory: example
-
-      - name: "Run example"
-        run: npm run start
