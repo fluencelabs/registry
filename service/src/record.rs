@@ -23,14 +23,23 @@ use sha2::{Digest, Sha256};
 #[marine]
 #[derive(Debug, Default, Clone)]
 pub struct RecordMetadata {
+    /// base58-encoded key id
     pub key_id: String,
+    /// peer id of the issuer in base58
     pub issued_by: String,
-    pub timestamp_issued: u64,
-    pub value: String,
+    /// peer_id of hoster
     pub peer_id: String,
-    pub relay_id: Vec<String>,
-    pub service_id: Vec<String>,
+    /// timestamp in seconds
+    pub timestamp_issued: u64,
+    /// will be used for permissions
     pub solution: Vec<u8>,
+    /// any string
+    pub value: String,
+    /// optional (length is 0 or 1), base58 relay id
+    pub relay_id: Vec<String>,
+    /// optional (length is 0 or 1), advertising service id
+    pub service_id: Vec<String>,
+    /// encoded and hashed previous fields signed by `issued_by`
     pub issuer_signature: Vec<u8>,
 }
 
@@ -43,13 +52,16 @@ impl RecordMetadata {
         bytes.push(self.issued_by.len() as u8);
         bytes.extend(self.issued_by.as_bytes());
 
+        bytes.push(self.peer_id.len() as u8);
+        bytes.extend(self.peer_id.as_bytes());
+
         bytes.extend(self.timestamp_issued.to_le_bytes());
+
+        bytes.push(self.solution.len() as u8);
+        bytes.extend(&self.solution);
 
         bytes.push(self.value.len() as u8);
         bytes.extend(self.value.as_bytes());
-
-        bytes.push(self.peer_id.len() as u8);
-        bytes.extend(self.peer_id.as_bytes());
 
         bytes.extend(self.relay_id.len().to_le_bytes());
         for id in &self.relay_id {
@@ -62,9 +74,6 @@ impl RecordMetadata {
             bytes.push(id.len() as u8);
             bytes.extend(id.as_bytes());
         }
-
-        bytes.push(self.solution.len() as u8);
-        bytes.extend(&self.solution);
 
         let mut hasher = Sha256::new();
         hasher.update(bytes);
@@ -92,8 +101,11 @@ impl RecordMetadata {
 #[marine]
 #[derive(Debug, Default, Clone)]
 pub struct Record {
+    /// record metadata
     pub metadata: RecordMetadata,
+    /// timestamp in seconds
     pub timestamp_created: u64,
+    /// encoded and hashed previous fields signed by `metadata.peer_id`
     pub signature: Vec<u8>,
 }
 
@@ -123,6 +135,8 @@ impl Record {
         if self.timestamp_created > current_timestamp_sec {
             return Err(ServiceError::InvalidRecordTimestamp);
         }
+
+        self.metadata.verify(current_timestamp_sec)?;
 
         let pk = extract_public_key(self.metadata.peer_id.clone())?;
         let bytes = self.signature_bytes();

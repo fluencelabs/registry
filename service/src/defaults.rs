@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-// TODO: sanitize tables' names in SQL expressions
 pub static KEYS_TABLE_NAME: &str = "keys_table";
-pub static KEYS_TIMESTAMPS_TABLE_NAME: &str = "keys_timestamps_table";
 pub static RECORDS_TABLE_NAME: &str = "records_table";
 pub static CONFIG_FILE: &str = "/tmp/Config.toml";
 pub static DB_PATH: &str = "/tmp/registry.db";
@@ -28,5 +26,3 @@ pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
 pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
 pub static TRUSTED_WEIGHT_SERVICE_ID: &str = "trust-graph";
 pub static TRUSTED_WEIGHT_FUNCTION_NAME: &str = "get_weight";
-pub static TRUSTED_REGISTRY_SERVICE_ID: &str = "registry";
-pub static TRUSTED_REGISTRY_FUNCTION_NAME: &str = "put_host_record";

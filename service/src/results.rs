@@ -17,6 +17,7 @@
 use crate::error::ServiceError;
 use crate::key::Key;
 use crate::record::Record;
+use crate::tombstone::Tombstone;
 use marine_rs_sdk::marine;
 
 #[marine]
@@ -93,27 +94,55 @@ impl From<Result<Vec<Record>, ServiceError>> for GetRecordsResult {
 
 #[marine]
 #[derive(Debug)]
+pub struct GetTombstonesResult {
+    pub success: bool,
+    pub error: String,
+    pub result: Vec<Tombstone>,
+}
+
+impl From<Result<Vec<Tombstone>, ServiceError>> for GetTombstonesResult {
+    fn from(result: Result<Vec<Tombstone>, ServiceError>) -> Self {
+        match result {
+            Ok(result) => Self {
+                success: true,
+                error: "".to_string(),
+                result,
+            },
+            Err(err) => Self {
+                success: false,
+                error: err.to_string(),
+                result: vec![],
+            },
+        }
+    }
+}
+
+#[marine]
+#[derive(Debug)]
 pub struct ClearExpiredResult {
     pub success: bool,
     pub error: String,
     pub count_keys: u64,
     pub count_records: u64,
+    pub count_tombstones: u64,
 }
 
-impl From<Result<(u64, u64), ServiceError>> for ClearExpiredResult {
-    fn from(result: Result<(u64, u64), ServiceError>) -> Self {
+impl From<Result<(u64, u64, u64), ServiceError>> for ClearExpiredResult {
+    fn from(result: Result<(u64, u64, u64), ServiceError>) -> Self {
         match result {
-            Ok((count_keys, count_records)) => Self {
+            Ok((count_keys, count_records, count_tombstones)) => Self {
                 success: true,
+                error: "".to_string(),
                 count_keys,
                 count_records,
-                error: "".to_string(),
+                count_tombstones,
             },
             Err(err) => Self {
                 success: false,
+                error: err.to_string(),
                 count_keys: 0,
                 count_records: 0,
-                error: err.to_string(),
+                count_tombstones: 0,
             },
         }
     }
@@ -196,6 +225,7 @@ impl From<Result<u64, ServiceError>> for RepublishRecordsResult {
 pub struct EvictStaleItem {
     pub key: Key,
     pub records: Vec<Record>,
+    pub tombstones: Vec<Tombstone>,
 }
 
 #[marine]
@@ -217,30 +247,6 @@ impl From<Result<Vec<EvictStaleItem>, ServiceError>> for EvictStaleResult {
                 success: false,
                 error: err.to_string(),
                 results: vec![],
-            },
-        }
-    }
-}
-
-#[marine]
-pub struct PutHostRecordResult {
-    pub success: bool,
-    pub error: String,
-    pub record: Vec<Record>,
-}
-
-impl From<Result<Record, ServiceError>> for PutHostRecordResult {
-    fn from(result: Result<Record, ServiceError>) -> Self {
-        match result {
-            Ok(result) => Self {
-                success: true,
-                error: "".to_string(),
-                record: vec![result],
-            },
-            Err(err) => Self {
-                success: false,
-                error: err.to_string(),
-                record: vec![],
             },
         }
     }

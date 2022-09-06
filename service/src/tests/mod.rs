@@ -869,4 +869,9 @@ mod tests {
         assert_eq!(record.value, value);
         assert_eq!(record.set_by, kp.get_peer_id().to_base58());
     }
+
+    #[test]
+    fn put_older_record() {
+        // TODO: pass older record
+    }
 }

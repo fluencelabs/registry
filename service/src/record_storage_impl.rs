@@ -19,82 +19,119 @@ use std::collections::HashMap;
 use crate::defaults::{RECORDS_LIMIT, RECORDS_TABLE_NAME};
 use crate::error::ServiceError;
 use crate::error::ServiceError::InternalError;
-use crate::record::{Record, RecordInternal};
+use crate::load_config;
+use crate::record::{Record, RecordInternal, RecordMetadata};
 use crate::storage_impl::{from_custom_option, get_custom_option, Storage};
 use marine_sqlite_connector::{State, Statement, Value};
 
 impl Storage {
-    pub fn create_values_table(&self) -> bool {
+    pub fn create_records_table(&self) -> bool {
+        // TODO: check table schema
         self.connection
             .execute(f!("
             CREATE TABLE IF NOT EXISTS {RECORDS_TABLE_NAME} (
-                key_id TEXT,
-                value TEXT,
+                key_id TEXT NOT,
+                issued_by TEXT,
                 peer_id TEXT,
-                set_by TEXT,
+                timestamp_issued INTEGER NOT NULL,
+                solution BLOB,
+                issuer_signature BLOB NOT NULL,
+                is_tombstoned INTEGER NOT NULL
+                value TEXT,
                 relay_id TEXT,
                 service_id TEXT,
                 timestamp_created INTEGER,
-                solution BLOB,
-                signature BLOB NOT NULL,
+                signature BLOB,
                 weight INTEGER,
-                PRIMARY KEY (key_id, peer_id, set_by)
+                PRIMARY KEY (key_id, issued_by, peer_id)
             );
         "))
             .is_ok()
     }
 
-    /// Put value with caller peer_id if the key exists.
-    /// If the value is NOT a host value and the key already has `VALUES_LIMIT` records, then a value with the smallest weight is removed and the new value is inserted instead.
-    pub fn update_record(&self, record: RecordInternal, host: bool) -> Result<(), ServiceError> {
-        let records_count = self.get_non_host_records_count_by_key(record.record.key_id.clone())?;
+    pub fn update_record(&self, record: RecordInternal) -> Result<(), ServiceError> {
+        let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
-        // check values limits for non-host values
-        if !host && records_count >= RECORDS_LIMIT {
-            let min_weight_record =
-                self.get_min_weight_non_host_record_by_key(record.record.key_id.clone())?;
+        // there is no limits for local service records
+        if record.record.metadata.peer_id == host_id {
+            self.write_record(record)
+        } else {
+            let records_count =
+                self.get_non_host_records_count_by_key(&record.record.metadata.key_id)?;
+            // check values limits for non-host values
+            if records_count >= RECORDS_LIMIT {
+                let min_weight_record =
+                    self.get_min_weight_non_host_record_by_key(&record.record.metadata.key_id)?;
 
-            if min_weight_record.weight < record.weight
-                || (min_weight_record.weight == record.weight
-                    && min_weight_record.record.timestamp_created < record.record.timestamp_created)
-            {
-                // delete the lightest record if the new one is heavier or newer
-                self.delete_record(
-                    min_weight_record.record.key_id,
-                    min_weight_record.record.peer_id,
-                    min_weight_record.record.set_by,
-                )?;
-            } else {
-                // return error if limit is exceeded
-                return Err(ServiceError::ValuesLimitExceeded(record.record.key_id));
+                if min_weight_record.weight < record.weight
+                    || (min_weight_record.weight == record.weight
+                        && min_weight_record.record.timestamp_created
+                            < record.record.timestamp_created)
+                {
+                    // delete the lightest record if the new one is heavier or newer
+                    self.delete_record(
+                        min_weight_record.record.metadata.key_id,
+                        min_weight_record.record.metadata.peer_id,
+                        min_weight_record.record.metadata.issued_by,
+                    )?;
+                } else {
+                    // return error if limit is exceeded
+                    return Err(ServiceError::ValuesLimitExceeded(
+                        record.record.metadata.key_id,
+                    ));
+                }
             }
-        }
 
-        self.write_record(record)?;
-        Ok(())
+            self.write_record(record)
+        }
     }
 
+    /// insert record if a record or tombstone with `(key_id, issued_by, peer_id)` does not exist
+    /// or replace if it has lower `timestamp_issued`
     pub fn write_record(&self, record: RecordInternal) -> Result<(), ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES \
+            (key_id, issued_by, peer_id, timestamp_issued, solution, issuer_signature, is_tombstoned, \
+            value, relay_id, service_id, timestamp_created, signature, weight) \
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? \
+            WHERE NOT EXISTS (SELECT * FROM {RECORDS_TABLE_NAME} WHERE key_id=? AND peer_id=? AND issued_by=? AND timestamp_issued<?"
         ))?;
 
-        statement.bind(1, &Value::String(record.record.key_id))?;
-        statement.bind(2, &Value::String(record.record.value))?;
-        statement.bind(3, &Value::String(record.record.peer_id))?;
-        statement.bind(4, &Value::String(record.record.set_by))?;
+        let is_tombstoned = 0;
+        statement.bind(1, &Value::String(record.record.metadata.key_id.clone()))?;
+        statement.bind(2, &Value::String(record.record.metadata.issued_by.clone()))?;
+        statement.bind(3, &Value::String(record.record.metadata.peer_id.clone()))?;
+
         statement.bind(
-            5,
-            &Value::String(from_custom_option(record.record.relay_id)),
+            4,
+            &Value::Integer(record.record.metadata.timestamp_issued as i64),
+        )?;
+        statement.bind(5, &Value::Binary(record.record.metadata.solution))?;
+        statement.bind(6, &Value::Binary(record.record.metadata.issuer_signature))?;
+        statement.bind(7, &Value::Integer(is_tombstoned))?;
+
+        statement.bind(8, &Value::String(record.record.metadata.value))?;
+        statement.bind(
+            9,
+            &Value::String(from_custom_option(record.record.metadata.relay_id)),
         )?;
         statement.bind(
-            6,
-            &Value::String(from_custom_option(record.record.service_id)),
+            10,
+            &Value::String(from_custom_option(record.record.metadata.service_id)),
         )?;
-        statement.bind(7, &Value::Integer(record.record.timestamp_created as i64))?;
-        statement.bind(8, &Value::Binary(record.record.solution))?;
-        statement.bind(9, &Value::Binary(record.record.signature))?;
-        statement.bind(10, &Value::Integer(record.weight as i64))?;
+
+        statement.bind(11, &Value::Integer(record.record.timestamp_created as i64))?;
+        statement.bind(12, &Value::Binary(record.record.signature))?;
+        statement.bind(13, &Value::Integer(record.weight as i64))?;
+
+        statement.bind(14, &Value::String(record.record.metadata.key_id))?;
+        statement.bind(15, &Value::String(record.record.metadata.issued_by))?;
+        statement.bind(16, &Value::String(record.record.metadata.peer_id))?;
+        statement.bind(
+            17,
+            &Value::Integer(record.record.metadata.timestamp_issued as i64),
+        )?;
+
         statement.next().map(drop)?;
 
         Ok(())
@@ -104,14 +141,14 @@ impl Storage {
         &self,
         key_id: String,
         peer_id: String,
-        set_by: String,
+        issued_by: String,
     ) -> Result<bool, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "DELETE FROM {RECORDS_TABLE_NAME} WHERE key_id=? AND peer_id=? AND set_by=?"
+            "DELETE FROM {RECORDS_TABLE_NAME} WHERE key_id=? AND peer_id=? AND issued_by=?"
         ))?;
         statement.bind(1, &Value::String(key_id))?;
         statement.bind(2, &Value::String(peer_id))?;
-        statement.bind(3, &Value::String(set_by))?;
+        statement.bind(3, &Value::String(issued_by))?;
         statement.next().map(drop)?;
 
         Ok(self.connection.changes() == 1)
@@ -119,16 +156,16 @@ impl Storage {
 
     fn get_min_weight_non_host_record_by_key(
         &self,
-        key_id: String,
+        key_id: &str,
     ) -> Result<RecordInternal, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
         // only only non-host values
         let mut statement = self.connection.prepare(
             f!("SELECT key_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, signature, weight FROM {RECORDS_TABLE_NAME} \
-                     WHERE key_id = ? AND peer_id != ? ORDER BY weight ASC LIMIT 1"))?;
+                     WHERE key_id = ? AND peer_id != ? AND is_tombstoned = 0 ORDER BY weight ASC LIMIT 1"))?;
 
-        statement.bind(1, &Value::String(key_id.clone()))?;
+        statement.bind(1, &Value::String(key_id.to_string()))?;
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
@@ -140,14 +177,14 @@ impl Storage {
         }
     }
 
-    fn get_non_host_records_count_by_key(&self, key: String) -> Result<usize, ServiceError> {
+    fn get_non_host_records_count_by_key(&self, key_id: &str) -> Result<usize, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
 
         // only only non-host values
         let mut statement = self.connection.prepare(f!(
-            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id != ?"
+            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id != ? AND is_tombstoned = 0"
         ))?;
-        statement.bind(1, &Value::String(key))?;
+        statement.bind(1, &Value::String(key_id.to_string()))?;
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
@@ -162,15 +199,11 @@ impl Storage {
         }
     }
 
-    pub fn get_host_records_count_by_key(&self, key_id: String) -> Result<u64, ServiceError> {
-        let host_id = marine_rs_sdk::get_call_parameters().host_id;
-
-        // only only non-host values
+    pub fn get_records_count_by_key(&self, key_id: &str) -> Result<u64, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id = ?"
+            "SELECT COUNT(*) FROM {RECORDS_TABLE_NAME} WHERE key_id = ? and is_tombstoned = 0"
         ))?;
-        statement.bind(1, &Value::String(key_id))?;
-        statement.bind(2, &Value::String(host_id))?;
+        statement.bind(1, &Value::String(key_id.to_string()))?;
 
         if let State::Row = statement.next()? {
             statement
@@ -179,7 +212,7 @@ impl Storage {
                 .map_err(ServiceError::SqliteError)
         } else {
             Err(InternalError(f!(
-                "get_non_host_records_count_by_key: something went totally wrong"
+                "get_records_count_by_key: something went totally wrong"
             )))
         }
     }
@@ -205,11 +238,19 @@ impl Storage {
         Ok(updated)
     }
 
-    pub fn get_records(&self, key_id: String) -> Result<Vec<RecordInternal>, ServiceError> {
-        let mut statement = self.connection.prepare(
-            f!("SELECT key_id, value, peer_id, set_by, relay_id, service_id, timestamp_created, solution, signature, weight FROM {RECORDS_TABLE_NAME} \
-                     WHERE key_id = ? ORDER BY weight DESC"))?;
+    pub fn get_records(
+        &self,
+        key_id: String,
+        current_timestamp_sec: u64,
+    ) -> Result<Vec<RecordInternal>, ServiceError> {
+        let mut statement = self.connection.prepare(f!(
+            "SELECT key_id, issued_by, peer_id, timestamp_issued, solution, issuer_signature,\
+                    value, relay_id, service_id, timestamp_created, signature \
+             FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND is_tombstoned = 0 AND timestamp_created > ? ORDER BY weight DESC"
+        ))?;
+        let expired_timestamp = current_timestamp_sec - load_config().expired_timeout;
         statement.bind(1, &Value::String(key_id))?;
+        statement.bind(2, &Value::Integer(expired_timestamp as i64))?;
 
         let mut result: Vec<RecordInternal> = vec![];
 
@@ -220,24 +261,13 @@ impl Storage {
         Ok(result)
     }
 
-    /// except host records
+    /// Remove expired records except host records (actually we should not have expired host records
+    /// at this stage, all host records should be updated in time or removed via tombstones)
     pub fn clear_expired_records(&self, expired_timestamp: u64) -> Result<u64, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
         self.connection.execute(f!(
-            "DELETE FROM {RECORDS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND peer_id != {host_id}"
+            "DELETE FROM {RECORDS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND peer_id != {host_id} AND is_tombstoned = 0"
         ))?;
-        Ok(self.connection.changes() as u64)
-    }
-
-    /// except host records and for pinned keys
-    pub fn delete_records_by_key(&self, key_id: String) -> Result<u64, ServiceError> {
-        let mut statement = self
-            .connection
-            .prepare(f!("DELETE FROM {RECORDS_TABLE_NAME} WHERE key_id = ?"))?;
-
-        statement.bind(1, &Value::String(key_id))?;
-
-        statement.next().map(drop)?;
         Ok(self.connection.changes() as u64)
     }
 }
@@ -245,17 +275,21 @@ impl Storage {
 pub fn read_record(statement: &Statement) -> Result<RecordInternal, ServiceError> {
     Ok(RecordInternal {
         record: Record {
-            key_id: statement.read::<String>(0)?,
-            value: statement.read::<String>(1)?,
-            peer_id: statement.read::<String>(2)?,
-            set_by: statement.read::<String>(3)?,
-            relay_id: get_custom_option(statement.read::<String>(4)?),
-            service_id: get_custom_option(statement.read::<String>(5)?),
-            timestamp_created: statement.read::<i64>(6)? as u64,
-            solution: statement.read::<Vec<u8>>(7)?,
-            signature: statement.read::<Vec<u8>>(8)?,
+            metadata: RecordMetadata {
+                key_id: statement.read::<String>(0)?,
+                issued_by: statement.read::<String>(1)?,
+                peer_id: statement.read::<String>(2)?,
+                timestamp_issued: statement.read::<i64>(3)? as u64,
+                solution: statement.read::<Vec<u8>>(4)?,
+                issuer_signature: statement.read::<Vec<u8>>(5)?,
+                value: statement.read::<String>(6)?,
+                relay_id: get_custom_option(statement.read::<String>(7)?),
+                service_id: get_custom_option(statement.read::<String>(8)?),
+            },
+            timestamp_created: statement.read::<i64>(9)? as u64,
+            signature: statement.read::<Vec<u8>>(10)?,
         },
-        weight: statement.read::<i64>(9)? as u32,
+        weight: statement.read::<i64>(11)? as u32,
     })
 }
 
@@ -265,7 +299,10 @@ pub fn merge_records(records: Vec<RecordInternal>) -> Result<Vec<RecordInternal>
     let mut result: HashMap<(String, String), RecordInternal> = HashMap::new();
 
     for rec in records.into_iter() {
-        let key = (rec.record.peer_id.clone(), rec.record.set_by.clone());
+        let key = (
+            rec.record.metadata.peer_id.clone(),
+            rec.record.metadata.issued_by.clone(),
+        );
 
         if let Some(other_rec) = result.get_mut(&key) {
             if other_rec.record.timestamp_created < rec.record.timestamp_created {

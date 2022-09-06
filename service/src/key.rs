@@ -25,7 +25,7 @@ use sha2::{Digest, Sha256};
 pub struct Key {
     /// base58-encoded sha256(concat(label, owner_peer_id))
     pub id: String,
-    /// any unique string defined by owner
+    /// any unique string defined by the owner
     pub label: String,
     /// peer id in base58
     pub owner_peer_id: String,
@@ -35,7 +35,7 @@ pub struct Key {
     pub challenge: Vec<u8>,
     /// challenge type, will be used for permissions
     pub challenge_type: String,
-    /// encoded previous fields signed by `owner_peer_id`
+    /// encoded and hashed previous fields signed by `owner_peer_id`
     pub signature: Vec<u8>,
 }
 

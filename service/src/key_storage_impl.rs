@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::defaults::{KEYS_TABLE_NAME, KEYS_TIMESTAMPS_TABLE_NAME};
+use crate::defaults::KEYS_TABLE_NAME;
 
 use crate::error::ServiceError;
 use crate::error::ServiceError::{InternalError, KeyNotExists};
@@ -24,6 +24,7 @@ use marine_sqlite_connector::{State, Statement, Value};
 
 impl Storage {
     pub fn create_key_tables(&self) -> bool {
+        // TODO: check table schema
         self.connection
             .execute(f!("
             CREATE TABLE IF NOT EXISTS {KEYS_TABLE_NAME} (
@@ -39,30 +40,6 @@ impl Storage {
             );
         "))
             .is_ok()
-            && self
-                .connection
-                .execute(f!("
-            CREATE TABLE IF NOT EXISTS {KEYS_TIMESTAMPS_TABLE_NAME} (
-                key_id TEXT PRIMARY KEY,
-                timestamp_accessed INTEGER
-            );
-        "))
-                .is_ok()
-    }
-
-    pub fn update_key_timestamp(
-        &self,
-        key_id: &str,
-        current_timestamp_sec: u64,
-    ) -> Result<(), ServiceError> {
-        let mut statement = self.connection.prepare(f!("
-             INSERT OR REPLACE INTO {KEYS_TIMESTAMPS_TABLE_NAME} VALUES (?, ?);
-         "))?;
-
-        statement.bind(1, &Value::String(key_id.to_string()))?;
-        statement.bind(2, &Value::Integer(current_timestamp_sec as i64))?;
-        statement.next()?;
-        Ok(())
     }
 
     pub fn get_key(&self, key_id: String) -> Result<Key, ServiceError> {
@@ -159,54 +136,26 @@ impl Storage {
         }
     }
 
-    pub fn get_expired_keys(&self, expired_timestamp: u64) -> Result<Vec<Key>, ServiceError> {
+    pub fn clear_expired_keys(&self, expired_timestamp: u64) -> Result<u64, ServiceError> {
         let mut statement = self.connection.prepare(f!(
-            "SELECT key_id, label, owner_peer_id, timestamp_created, challenge, challenge_type, signature \
-                              FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= ?"
+            "SELECT key_id FROM {KEYS_TABLE_NAME} WHERE timestamp_created <= ?"
         ))?;
         statement.bind(1, &Value::Integer(expired_timestamp as i64))?;
 
-        let mut expired_keys: Vec<Key> = vec![];
+        let mut expired_keys: Vec<String> = vec![];
         while let State::Row = statement.next()? {
-            let key = read_key(&statement)?;
-            let timestamp_accessed = self.get_key_timestamp_accessed(&key.id)?;
-            let with_host_records = self.get_host_records_count_by_key(key.id.clone())? != 0;
-
-            if timestamp_accessed <= expired_timestamp && !with_host_records {
-                expired_keys.push(key);
+            let key_id = statement.read::<String>(0)?;
+            if self.get_records_count_by_key(&key_id)? == 0 {
+                expired_keys.push(key_id);
             }
         }
 
-        Ok(expired_keys)
-    }
-
-    pub fn get_key_timestamp_accessed(&self, key_id: &str) -> Result<u64, ServiceError> {
-        let mut statement = self.connection.prepare(f!(
-            "SELECT timestamp_accessed FROM {KEYS_TIMESTAMPS_TABLE_NAME} WHERE key_id = ?"
-        ))?;
-        statement.bind(1, &Value::String(key_id.to_string()))?;
-
-        if let State::Row = statement.next()? {
-            statement
-                .read::<i64>(0)
-                .map(|t| t as u64)
-                .map_err(ServiceError::SqliteError)
-        } else {
-            Err(KeyNotExists(key_id.to_string()))
+        let removed_keys = expired_keys.len();
+        for id in expired_keys.into_iter() {
+            self.delete_key(id)?;
         }
-    }
 
-    pub fn clear_expired_timestamps_accessed(
-        &self,
-        expired_timestamp: u64,
-    ) -> Result<(), ServiceError> {
-        let mut statement = self.connection.prepare(f!(
-            "DELETE FROM {KEYS_TIMESTAMPS_TABLE_NAME} WHERE timestamp_accessed < ?"
-        ))?;
-        statement.bind(1, &Value::Integer(expired_timestamp as i64))?;
-        statement.next().map(drop)?;
-
-        Ok(())
+        Ok(removed_keys as u64)
     }
 }
 

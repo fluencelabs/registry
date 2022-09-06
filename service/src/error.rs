@@ -64,8 +64,14 @@ pub enum ServiceError {
         String,
         #[source] fluence_keypair::error::VerificationError,
     ),
-    #[error("Invalid record signature for key {0} and issued by {1}: {2}")]
+    #[error("Invalid record signature for key_id {0} and issued by {1}: {2}")]
     InvalidRecordSignature(
+        String,
+        String,
+        #[source] fluence_keypair::error::VerificationError,
+    ),
+    #[error("Invalid tombstone signature for key_id {0} and issued by {1}: {2}")]
+    InvalidTombstoneSignature(
         String,
         String,
         #[source] fluence_keypair::error::VerificationError,
@@ -76,8 +82,12 @@ pub enum ServiceError {
     InvalidRecordMetadataTimestamp,
     #[error("Record can't be registered in the future")]
     InvalidRecordTimestamp,
+    #[error("Tombstone can't be issued in the future")]
+    InvalidTombstoneTimestamp,
     #[error("Records to publish should belong to one key id")]
     RecordsPublishingError,
+    #[error("Tombstones to publish should belong to one key id")]
+    TombstonesPublishingError,
     #[error("peer id parse error: {0}")]
     PeerIdParseError(String),
     #[error("public key extraction from peer id failed: {0}")]
