@@ -21,7 +21,7 @@ use crate::record_storage_impl::merge_records;
 use crate::results::{GetRecordsResult, MergeResult, RegistryResult, RepublishRecordsResult};
 use crate::storage_impl::get_storage;
 use crate::tetraplets_checkers::{check_timestamp_tetraplets, check_weight_tetraplets};
-use crate::{wrapped_try, WeightResult};
+use crate::{load_config, wrapped_try, WeightResult};
 use marine_rs_sdk::marine;
 
 #[marine]
@@ -137,8 +137,10 @@ pub fn get_stale_local_records(key_id: String, current_timestamp_sec: u64) -> Ge
         check_timestamp_tetraplets(&call_parameters, 1)?;
         let storage = get_storage()?;
         storage.check_key_existence(&key_id)?;
+        // TODO: add some meaningful constant for expiring local records
+        let stale_timestamp_sec = current_timestamp_sec - load_config().expired_timeout + 100;
         storage
-            .get_stale_records(key_id, current_timestamp_sec)
+            .get_local_stale_records(key_id, stale_timestamp_sec)
             .map(|records| records.into_iter().map(|r| r.record).collect())
     })
     .into()
@@ -181,7 +183,7 @@ pub fn republish_records(
 
         let storage = get_storage()?;
         storage.check_key_existence(&key_id)?;
-        storage.merge_and_update_records(key_id, records_to_merge)
+        storage.merge_and_update_records(key_id, records_to_merge, current_timestamp_sec)
     })
     .into()
 }

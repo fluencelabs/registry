@@ -23,10 +23,9 @@ use crate::storage_impl::Storage;
 use marine_sqlite_connector::{State, Statement, Value};
 
 impl Storage {
-    pub fn create_key_tables(&self) -> bool {
+    pub fn create_key_tables(&self) {
         // TODO: check table schema
-        self.connection
-            .execute(f!("
+        let result = self.connection.execute(f!("
             CREATE TABLE IF NOT EXISTS {KEYS_TABLE_NAME} (
                 key_id TEXT PRIMARY KEY,
                 label TEXT,
@@ -38,8 +37,11 @@ impl Storage {
                 timestamp_published INTEGER,
                 weight INTEGER
             );
-        "))
-            .is_ok()
+        "));
+
+        if let Err(error) = result {
+            println!("create_keys_table error: {}", error);
+        }
     }
 
     pub fn get_key(&self, key_id: String) -> Result<Key, ServiceError> {

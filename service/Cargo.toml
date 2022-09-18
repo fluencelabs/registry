@@ -11,7 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 bs58 = "0.4.0"
-marine-rs-sdk = "0.6.10"
+marine-rs-sdk = "0.7.1"
 marine-sqlite-connector = "0.5.2"
 fstrings = "0.2.3"
 boolinator = "2.4.0"
@@ -25,8 +25,8 @@ libp2p-core = { version = "0.32.1", default-features = false, features = [
 ] }
 
 [dev-dependencies]
-marine-rs-sdk-test = "0.7.0"
+marine-rs-sdk-test = "0.8.0"
 rusqlite = "0.27.0"
 
 [build-dependencies]
-marine-rs-sdk-test = "0.7.0"
+marine-rs-sdk-test = "0.8.0"

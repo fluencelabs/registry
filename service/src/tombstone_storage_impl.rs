@@ -69,7 +69,7 @@ impl Storage {
     ) -> Result<Vec<Tombstone>, ServiceError> {
         let mut statement = self.connection.prepare(f!(
             "SELECT key_id, issued_by, peer_id, timestamp_issued, solution, issuer_signature \
-             FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND is_tombstoned = 1 and timestamp_issued > expired_timestamp"
+             FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND is_tombstoned = 1 and timestamp_issued > ?"
         ))?;
 
         let expired_timestamp = current_timestamp_sec - load_config().expired_timeout;

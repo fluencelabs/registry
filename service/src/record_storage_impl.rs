@@ -25,18 +25,17 @@ use crate::storage_impl::{from_custom_option, get_custom_option, Storage};
 use marine_sqlite_connector::{State, Statement, Value};
 
 impl Storage {
-    pub fn create_records_table(&self) -> bool {
+    pub fn create_records_table(&self) {
         // TODO: check table schema
-        self.connection
-            .execute(f!("
+        let result = self.connection.execute(f!("
             CREATE TABLE IF NOT EXISTS {RECORDS_TABLE_NAME} (
-                key_id TEXT NOT,
+                key_id TEXT,
                 issued_by TEXT,
                 peer_id TEXT,
                 timestamp_issued INTEGER NOT NULL,
                 solution BLOB,
                 issuer_signature BLOB NOT NULL,
-                is_tombstoned INTEGER NOT NULL
+                is_tombstoned INTEGER NOT NULL,
                 value TEXT,
                 relay_id TEXT,
                 service_id TEXT,
@@ -45,8 +44,11 @@ impl Storage {
                 weight INTEGER,
                 PRIMARY KEY (key_id, issued_by, peer_id)
             );
-        "))
-            .is_ok()
+        "));
+
+        if let Err(error) = result {
+            println!("create_records_table error: {}", error);
+        }
     }
 
     pub fn update_record(&self, record: RecordInternal) -> Result<(), ServiceError> {
@@ -188,10 +190,9 @@ impl Storage {
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
-            statement
-                .read::<i64>(0)
-                .map(|n| n as usize)
-                .map_err(ServiceError::SqliteError)
+            statement.read::<i64>(0).map(|n| n as usize).map_err(|e| {
+                ServiceError::SqliteError("get_non_host_records_count_by_key".to_string(), e)
+            })
         } else {
             Err(InternalError(f!(
                 "get_non_host_records_count_by_key: something went totally wrong"
@@ -209,7 +210,7 @@ impl Storage {
             statement
                 .read::<i64>(0)
                 .map(|n| n as u64)
-                .map_err(ServiceError::SqliteError)
+                .map_err(|e| ServiceError::SqliteError("get_record_count_by_key".to_string(), e))
         } else {
             Err(InternalError(f!(
                 "get_records_count_by_key: something went totally wrong"
@@ -221,9 +222,10 @@ impl Storage {
         &self,
         key_id: String,
         records: Vec<RecordInternal>,
+        current_timestamp_sec: u64,
     ) -> Result<u64, ServiceError> {
         let records = merge_records(
-            self.get_records(key_id)?
+            self.get_records(key_id, current_timestamp_sec)?
                 .into_iter()
                 .chain(records.into_iter())
                 .collect(),
@@ -261,12 +263,36 @@ impl Storage {
         Ok(result)
     }
 
+    pub fn get_local_stale_records(
+        &self,
+        key_id: String,
+        stale_timestamp_sec: u64,
+    ) -> Result<Vec<RecordInternal>, ServiceError> {
+        let host_id = marine_rs_sdk::get_call_parameters().host_id;
+        let mut statement = self.connection.prepare(f!(
+            "SELECT key_id, issued_by, peer_id, timestamp_issued, solution, issuer_signature,\
+                    value, relay_id, service_id, timestamp_created, signature \
+             FROM {RECORDS_TABLE_NAME} WHERE key_id = ? AND peer_id = ? AND is_tombstoned = 0 AND timestamp_created < ?"
+        ))?;
+        statement.bind(1, &Value::String(key_id))?;
+        statement.bind(2, &Value::String(host_id))?;
+        statement.bind(3, &Value::Integer(stale_timestamp_sec as i64))?;
+
+        let mut result: Vec<RecordInternal> = vec![];
+
+        while let State::Row = statement.next()? {
+            result.push(read_record(&statement)?)
+        }
+
+        Ok(result)
+    }
+
     /// Remove expired records except host records (actually we should not have expired host records
     /// at this stage, all host records should be updated in time or removed via tombstones)
     pub fn clear_expired_records(&self, expired_timestamp: u64) -> Result<u64, ServiceError> {
         let host_id = marine_rs_sdk::get_call_parameters().host_id;
         self.connection.execute(f!(
-            "DELETE FROM {RECORDS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND peer_id != {host_id} AND is_tombstoned = 0"
+            "DELETE FROM {RECORDS_TABLE_NAME} WHERE timestamp_created <= {expired_timestamp} AND peer_id != '{host_id}' AND is_tombstoned = 0"
         ))?;
         Ok(self.connection.changes() as u64)
     }

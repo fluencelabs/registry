@@ -17,7 +17,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 
-use crate::defaults::{CONFIG_FILE, DEFAULT_EXPIRED_VALUE_AGE, DEFAULT_STALE_VALUE_AGE};
+use crate::defaults::{CONFIG_FILE, DEFAULT_EXPIRED_AGE, DEFAULT_STALE_AGE};
 
 #[derive(Deserialize, Serialize)]
 pub struct Config {
@@ -38,8 +38,8 @@ pub fn load_config() -> Config {
 pub fn create_config() {
     if fs::metadata(CONFIG_FILE).is_err() {
         write_config(Config {
-            expired_timeout: DEFAULT_EXPIRED_VALUE_AGE,
-            stale_timeout: DEFAULT_STALE_VALUE_AGE,
+            expired_timeout: DEFAULT_EXPIRED_AGE,
+            stale_timeout: DEFAULT_STALE_AGE,
         });
     }
 }
