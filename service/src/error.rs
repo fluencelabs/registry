@@ -19,8 +19,13 @@ use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
-    #[error("{0}: Internal Sqlite error: {1}")]
-    SqliteError(String, #[source] SqliteError),
+    #[error("Internal Sqlite error: {0}")]
+    SqliteError(
+        #[from]
+        #[source]
+        #[backtrace]
+        SqliteError,
+    ),
     #[error("Requested key {0} does not exist")]
     KeyNotExists(String),
     #[error("Key {0} for {1} peer_id already exists with newer timestamp")]

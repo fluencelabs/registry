@@ -104,6 +104,7 @@ pub fn put_record(
         };
         record.verify(current_timestamp_sec)?;
 
+        //help
         let storage = get_storage()?;
         storage.check_key_existence(&record.metadata.key_id)?;
         storage.update_record(RecordInternal {

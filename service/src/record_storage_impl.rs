@@ -190,9 +190,10 @@ impl Storage {
         statement.bind(2, &Value::String(host_id))?;
 
         if let State::Row = statement.next()? {
-            statement.read::<i64>(0).map(|n| n as usize).map_err(|e| {
-                ServiceError::SqliteError("get_non_host_records_count_by_key".to_string(), e)
-            })
+            statement
+                .read::<i64>(0)
+                .map(|n| n as usize)
+                .map_err(ServiceError::SqliteError)
         } else {
             Err(InternalError(f!(
                 "get_non_host_records_count_by_key: something went totally wrong"
@@ -210,7 +211,7 @@ impl Storage {
             statement
                 .read::<i64>(0)
                 .map(|n| n as u64)
-                .map_err(|e| ServiceError::SqliteError("get_record_count_by_key".to_string(), e))
+                .map_err(ServiceError::SqliteError)
         } else {
             Err(InternalError(f!(
                 "get_records_count_by_key: something went totally wrong"
