@@ -106,7 +106,7 @@ service Registry("registry"):
   get_record_bytes(metadata: RecordMetadata, timestamp_created: u64) -> []u8
   get_record_metadata_bytes(key_id: string, issued_by: string, timestamp_issued: u64, value: string, peer_id: string, relay_id: []string, service_id: []string, solution: []u8) -> []u8
   get_records(key_id: string, current_timestamp_sec: u64) -> GetRecordsResult
-  get_stale_local_records(key_id: string, current_timestamp_sec: u64) -> GetRecordsResult
+  get_stale_local_records(current_timestamp_sec: u64) -> GetRecordsResult
   get_tombstone_bytes(key_id: string, issued_by: string, peer_id: string, timestamp_issued: u64, solution: []u8) -> []u8
   get_tombstones(key_id: string, current_timestamp_sec: u64) -> GetTombstonesResult
   merge(records: [][]Record) -> MergeResult

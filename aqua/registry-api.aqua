@@ -8,15 +8,25 @@ func getKeySignature(label: string, timestamp_created: u64) -> SignResult:
     result <- Sig.sign(bytes)
   <- result
 
-func getRecordSignature(key_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> SignResult:
-  bytes <- Registry.get_record_bytes(key_id, value, relay_id, service_id, timestamp_created, nil)
-  on INIT_PEER_ID via HOST_PEER_ID:
-    signature <- Sig.sign(bytes)
-  <- signature
+func getRecordMetadata(key_id: string, value: string, peer_id: string, relay_id: []string, service_id: []string, solution: []u8) -> ?RecordMetadata, ?string:
+  t <- Peer.timestamp_sec()
+  bytes <- Registry.get_record_metadata_bytes(key_id, INIT_PEER_ID, t, value, peer_id, relay_id, service_id, solution)
 
-func getHostRecordSignature(key_id: string, value: string, relay_id: ?PeerId, service_id: ?string, timestamp_created: u64) -> SignResult:
-  bytes <- Registry.get_host_record_bytes(key_id, value, relay_id, service_id, timestamp_created, nil)
   on INIT_PEER_ID via HOST_PEER_ID:
+    sig_result <- Sig.sign(bytes)
+
+  result: ?RecordMetadata
+  error: *string
+  if sig_result.success == true:
+    result <- Registry.create_record_metadata(key_id, INIT_PEER_ID, t, value, peer_id, relay_id, service_id, solution, sig_result.signature!)
+  else:
+    error <<- sig_result.error!
+
+  <- result, error
+
+func getRecordSignature(metadata: RecordMetadata, timestamp_created: u64) -> SignResult:
+  bytes <- Registry.get_record_bytes(metadata, timestamp_created)
+  on metadata.peer_id via HOST_PEER_ID:
     signature <- Sig.sign(bytes)
   <- signature
 
@@ -26,27 +36,14 @@ func registerKey(label: string, timestamp_created: u64, signature: []u8) -> Regi
   result <- Registry.register_key(label, nil, timestamp_created, nil, "", signature, weight, t)
   <- result
 
-func putRecord(key_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> RegistryResult:
+func putRecord(metadata: RecordMetadata, timestamp_created: u64, signature: []u8) -> RegistryResult:
   t <- Peer.timestamp_sec()
-  weight <- TrustGraph.get_weight(%init_peer_id%, t)
-  result <- Registry.put_record(key_id, value, relay_id, service_id, timestamp_created, nil, signature, weight, t)
-  <- result
-
-func putHostRecord(key_id: string, value: string, relay_id: ?PeerId, service_id: []string, timestamp_created: u64, signature: []u8) -> PutHostRecordResult:
-  t <- Peer.timestamp_sec()
-  weight <- TrustGraph.get_weight(%init_peer_id%, t)
-  result <- Registry.put_host_record(key_id, value, relay_id, service_id, timestamp_created, nil, signature, weight, t)
-  <- result
-
-func propagateHostRecord(res: PutHostRecordResult) -> RegistryResult:
-  t <- Peer.timestamp_sec()
-  weight <- TrustGraph.get_weight(res.record!.peer_id, t)
-  result <- Registry.propagate_host_record(res, t, weight)
+  weight <- TrustGraph.get_weight(metadata.issued_by, t)
+  result <- Registry.put_record(metadata, timestamp_created, signature, weight, t)
   <- result
 
 func getKeyMetadata(key_id: string) -> GetKeyMetadataResult:
-  t <- Peer.timestamp_sec()
-  result <- Registry.get_key_metadata(key_id, t)
+  result <- Registry.get_key_metadata(key_id)
   <- result
 
 func republishKey(key: Key) -> RegistryResult:

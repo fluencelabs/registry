@@ -23,7 +23,6 @@ pub enum ServiceError {
     SqliteError(
         #[from]
         #[source]
-        #[backtrace]
         SqliteError,
     ),
     #[error("Requested key {0} does not exist")]
@@ -103,4 +102,8 @@ pub enum ServiceError {
     MissingRecordWeight(String, String),
     #[error("merge_keys: keys argument is empty")]
     KeysArgumentEmpty,
+    #[error(
+        "Newer record or tombstone for key_id: {0}, issued_by: {1}, peer_id: {2} already exists"
+    )]
+    NewerRecordOrTombstoneExists(String, String, String),
 }

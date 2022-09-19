@@ -1,8 +1,9 @@
 module Registry.Scheduled declares *
 
-export clearExpired_86400, replicate_3600
+export clearExpired_86400, replicate_3600, renew_43200
 
 import "registry-service.aqua"
+import "registry-api.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
 
@@ -11,6 +12,15 @@ func clearExpired_86400():
   on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
     Registry.clear_expired(t)
+
+-- update stale local records
+func renew_43200():
+  on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    res <- Registry.get_stale_local_records(t)
+    for r <- res.result par:
+      signature <- getRecordSignature(r.metadata, t)
+      putRecord(r.metadata, t, signature.signature!)
 
 -- get all old records and replicate it by routes
 func replicate_3600():
@@ -28,5 +38,5 @@ func replicate_3600():
 
           records_weights: *WeightResult
           for record <- r.records:
-            records_weights <- TrustGraph.get_weight(record.peer_id, tt)
+            records_weights <- TrustGraph.get_weight(record.metadata.issued_by, tt)
           Registry.republish_records(r.records, records_weights, tt)

@@ -104,7 +104,6 @@ pub fn put_record(
         };
         record.verify(current_timestamp_sec)?;
 
-        //help
         let storage = get_storage()?;
         storage.check_key_existence(&record.metadata.key_id)?;
         storage.update_record(RecordInternal {
@@ -132,16 +131,16 @@ pub fn get_records(key_id: String, current_timestamp_sec: u64) -> GetRecordsResu
 
 /// Return all values by key
 #[marine]
-pub fn get_stale_local_records(key_id: String, current_timestamp_sec: u64) -> GetRecordsResult {
+pub fn get_stale_local_records(current_timestamp_sec: u64) -> GetRecordsResult {
     wrapped_try(|| {
         let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_timestamp_tetraplets(&call_parameters, 1)?;
+        check_timestamp_tetraplets(&call_parameters, 0)?;
         let storage = get_storage()?;
-        storage.check_key_existence(&key_id)?;
+
         // TODO: add some meaningful constant for expiring local records
         let stale_timestamp_sec = current_timestamp_sec - load_config().expired_timeout + 100;
         storage
-            .get_local_stale_records(key_id, stale_timestamp_sec)
+            .get_local_stale_records(stale_timestamp_sec)
             .map(|records| records.into_iter().map(|r| r.record).collect())
     })
     .into()

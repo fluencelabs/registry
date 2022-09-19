@@ -1,0 +1,35 @@
+import "@fluencelabs/aqua-lib/builtin.aqua"
+import "registry-service.aqua"
+import "constants.aqua"
+
+alias ResourceId: string
+alias Error: string
+
+func wait(successful: *bool, len: i16, timeout: u16) -> bool:
+  status: *string
+  waiting = (arr: *bool, s: *string):
+    join arr[len - 1]
+    s <<- "ok"
+
+  waiting(successful, status)
+  par status <- Peer.timeout(timeout, "timeout")
+
+  result: *bool
+  stat = status!
+  if stat == "ok":
+    result <<- true
+  else:
+    result <<- false
+
+  <- result!
+
+-- Get peers closest to the resource_id's hash in Kademlia network
+-- These peers are expected to store list of providers for this key
+func getNeighbours(resource_id: ResourceId) -> []PeerId:
+  k <- Op.string_to_b58(resource_id)
+  nodes <- Kademlia.neighborhood(k, nil, nil)
+  <- nodes
+
+func appendErrors(error1: *Error, error2: *Error):
+  for e <- error2:
+    error1 <<- e

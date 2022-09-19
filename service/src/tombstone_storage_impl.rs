@@ -35,27 +35,25 @@ impl Storage {
     /// insert tombstone if a record or tombstone with `(key_id, issued_by, peer_id)` does not exist
     /// or replace if it has lower `timestamp_issued`
     pub fn write_tombstone(&self, tombstone: Tombstone) -> Result<(), ServiceError> {
+        self.check_row(
+            tombstone.key_id.clone(),
+            tombstone.issued_by.clone(),
+            tombstone.peer_id.clone(),
+            tombstone.timestamp_issued,
+        )?;
         let mut statement = self.connection.prepare(f!(
-            "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES \
-            (key_id, issued_by, peer_id, timestamp_issued, solution, issuer_signature, is_tombstoned) \
-            SELECT ?, ?, ?, ?, ?, ?, ? \
-            WHERE NOT EXISTS (SELECT * FROM {RECORDS_TABLE_NAME} WHERE key_id=? AND peer_id=? AND issued_by=? AND timestamp_issued<?"
+            "INSERT OR REPLACE INTO {RECORDS_TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, \
+            NULL, NULL, NULL, NULL, NULL, NULL);"
         ))?;
 
         let is_tombstoned = 1;
         statement.bind(1, &Value::String(tombstone.key_id.clone()))?;
         statement.bind(2, &Value::String(tombstone.issued_by.clone()))?;
         statement.bind(3, &Value::String(tombstone.peer_id.clone()))?;
-
         statement.bind(4, &Value::Integer(tombstone.timestamp_issued as i64))?;
         statement.bind(5, &Value::Binary(tombstone.solution))?;
         statement.bind(6, &Value::Binary(tombstone.issuer_signature))?;
         statement.bind(7, &Value::Integer(is_tombstoned))?;
-
-        statement.bind(8, &Value::String(tombstone.key_id))?;
-        statement.bind(9, &Value::String(tombstone.issued_by))?;
-        statement.bind(10, &Value::String(tombstone.peer_id))?;
-        statement.bind(11, &Value::Integer(tombstone.timestamp_issued as i64))?;
 
         statement.next().map(drop)?;
 

@@ -1315,9 +1315,9 @@ checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 
 [[package]]
 name = "marine-build-rs-generator"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4152b18abc7c491ff90fec491d472ae152b33c88d743261c882a8cca6b15d46f"
+checksum = "38e5fabc40871ff0c5ccea18ea0e36de848b0e97b582df4eb34d5de565f88aa2"
 dependencies = [
  "marine-test-macro-impl",
 ]
@@ -1492,9 +1492,9 @@ dependencies = [
 
 [[package]]
 name = "marine-rs-sdk-test"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35d646785f46d1e06325a682b39748ca878bde0c4dbb4fa45427655eb125e367"
+checksum = "f83cec3d030da1e06b72d241f76e7ff0b701aafe942ddf4ea8a9e053352d9935"
 dependencies = [
  "fluence-app-service",
  "marine-build-rs-generator",
@@ -1543,9 +1543,9 @@ dependencies = [
 
 [[package]]
 name = "marine-test-macro"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66964008fa46e192885ee0d9c33b8ccdbb38b28a2bf2bc279f876ea001a98bd5"
+checksum = "61f9eeff88f59b3eb22a0c8e5adfad132a002d6e004d95b23cc77674f15782c3"
 dependencies = [
  "marine-test-macro-impl",
  "proc-macro-error",
@@ -1556,9 +1556,9 @@ dependencies = [
 
 [[package]]
 name = "marine-test-macro-impl"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b08b3567c266bd3ac69d6234921f09ce96f014ee3d1086ba119e7ee7c2292fb2"
+checksum = "50aa0bc3097682e7a8c90bd19b7d7dac13392b910865008fe27848de62ade756"
 dependencies = [
  "darling 0.14.1",
  "fluence-app-service",
@@ -2494,9 +2494,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.99"
+version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58dbef6ec655055e20b86b15a8cc6d439cca19b667537ac6a1369572d151ab13"
+checksum = "52205623b1b0f064a4e71182c3b18ae902267282930c6d5462c91b859668426e"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -52,7 +52,7 @@ pub fn add_tombstone(
 ) -> RegistryResult {
     wrapped_try(|| {
         let cp = marine_rs_sdk::get_call_parameters();
-        check_timestamp_tetraplets(&cp, 5)?;
+        check_timestamp_tetraplets(&cp, 6)?;
         let tombstone = Tombstone {
             key_id,
             issued_by,

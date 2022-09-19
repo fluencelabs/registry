@@ -22,6 +22,7 @@ mod tests {
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
     use marine_rs_sdk_test::{CallParameters, SecurityTetraplet};
     use marine_test_env::registry::{EvictStaleResult, Record, RegistryResult, ServiceInterface};
+    use toml::to_string;
 
     use crate::defaults::{
         CONFIG_FILE, DB_PATH, DEFAULT_EXPIRED_AGE, DEFAULT_STALE_AGE, KEYS_TABLE_NAME,
@@ -33,7 +34,7 @@ mod tests {
         KeyAlreadyExistsNewerTimestamp,
     };
     use crate::tests::tests::marine_test_env::registry::{
-        Key, RecordMetadata, RegisterKeyResult, WeightResult,
+        Key, RecordMetadata, RegisterKeyResult, Tombstone, WeightResult,
     };
 
     impl PartialEq for Key {
@@ -400,6 +401,81 @@ mod tests {
         let result = registry.get_records_cp(key_id, current_timestamp, cp.get());
         assert!(result.success, "{}", result.error);
         result.result
+    }
+
+    fn get_tombstones(
+        registry: &mut ServiceInterface,
+        key_id: String,
+        current_timestamp: u64,
+    ) -> Vec<Tombstone> {
+        let cp = CPWrapper::new("some_peer_id", "host_id").add_timestamp_tetraplets(1);
+
+        let result = registry.get_tombstones_cp(key_id, current_timestamp, cp.get());
+        assert!(result.success, "{}", result.error);
+        result.result
+    }
+    fn get_signed_tombstone_bytes(
+        registry: &mut ServiceInterface,
+        key_id: String,
+        kp: &KeyPair,
+        timestamp_issued: u64,
+        peer_id: String,
+        solution: Vec<u8>,
+    ) -> Vec<u8> {
+        let issued_by = kp.get_peer_id().to_base58();
+        let key_bytes =
+            registry.get_tombstone_bytes(key_id, issued_by, peer_id, timestamp_issued, solution);
+        kp.sign(&key_bytes).unwrap().to_vec().to_vec()
+    }
+
+    fn add_tombstone(
+        registry: &mut ServiceInterface,
+        key_id: String,
+        peer_id: String,
+        issuer_kp: &KeyPair,
+        timestamp_issued: u64,
+        solution: Vec<u8>,
+    ) -> RegistryResult {
+        let issuer_by = issuer_kp.get_peer_id().to_base58();
+        let signature = get_signed_tombstone_bytes(
+            registry,
+            key_id.clone(),
+            issuer_kp,
+            timestamp_issued,
+            peer_id.clone(),
+            solution.clone(),
+        );
+
+        let cp = CPWrapper::new(&issuer_by, &peer_id).add_timestamp_tetraplets(6);
+        registry.add_tombstone_cp(
+            key_id,
+            issuer_by,
+            peer_id,
+            timestamp_issued,
+            solution,
+            signature,
+            timestamp_issued,
+            cp.get(),
+        )
+    }
+
+    fn add_tombstone_checked(
+        registry: &mut ServiceInterface,
+        key_id: String,
+        peer_id: String,
+        issuer_kp: &KeyPair,
+        timestamp_issued: u64,
+        solution: Vec<u8>,
+    ) {
+        let result = add_tombstone(
+            registry,
+            key_id,
+            peer_id,
+            issuer_kp,
+            timestamp_issued,
+            solution,
+        );
+        assert!(result.success, result.error);
     }
 
     #[test]
@@ -822,12 +898,12 @@ mod tests {
         let host_kp = KeyPair::generate_ed25519();
         let label = "some_key".to_string();
         let timestamp_issued = 100u64;
-        let timestamp_created = 100u64;
+        let timestamp_created = 150u64;
         let value = "some_record_value".to_string();
         let relay_id = vec!["some_relay".to_string()];
         let service_id = vec!["some_service_id".to_string()];
         let solution = vec![1u8, 2u8];
-        let mut current_timestamp = 100u64;
+        let mut current_timestamp = 150u64;
         let weight = 0;
 
         let key_id = register_key_checked(
@@ -846,63 +922,92 @@ mod tests {
             &host_kp,
             timestamp_issued,
             timestamp_created,
-            value,
-            relay_id,
-            service_id,
-            solution,
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            solution.clone(),
             weight,
         );
 
-        let records = get_records(&mut registry, key_id, current_timestamp);
+        let records = get_records(&mut registry, key_id.clone(), current_timestamp);
         assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.metadata.key_id, key_id);
+        assert_eq!(record.metadata.relay_id, relay_id);
+        assert_eq!(record.metadata.service_id, service_id);
+        assert_eq!(record.metadata.peer_id, host_kp.get_peer_id().to_base58());
+        assert_eq!(record.metadata.value, value);
+        assert_eq!(
+            record.metadata.issued_by,
+            issuer_kp.get_peer_id().to_base58()
+        );
+        assert_eq!(record.metadata.solution, solution);
+        assert_eq!(record.metadata.timestamp_issued, timestamp_issued);
+        assert_eq!(record.timestamp_created, timestamp_created);
     }
-    //
-    // #[test]
-    // fn test_put_get_record() {
-    //     clear_env();
-    //     let mut registry = ServiceInterface::new();
-    //     let kp = KeyPair::generate_ed25519();
-    //     let key = "some_key".to_string();
-    //     let timestamp_created = 0u64;
-    //     let current_timestamp = 100u64;
-    //     let weight = 0;
-    //
-    //     let key_id = register_key_checked(
-    //         &mut registry,
-    //         &kp,
-    //         key,
-    //         timestamp_created,
-    //         current_timestamp,
-    //         weight,
-    //     );
-    //     let value = "some_value".to_string();
-    //     let relay_id = vec!["some_relay".to_string()];
-    //     let service_id = vec!["some_service_id".to_string()];
-    //     let weight = 5u32;
-    //
-    //     put_record_checked(
-    //         &mut registry,
-    //         &kp,
-    //         key_id.clone(),
-    //         value.clone(),
-    //         relay_id.clone(),
-    //         service_id.clone(),
-    //         timestamp_created,
-    //         current_timestamp,
-    //         weight,
-    //     );
-    //
-    //     let records = get_records(&mut registry, key_id.clone(), current_timestamp);
-    //     assert_eq!(records.len(), 1);
-    //     let record = &records[0];
-    //     assert_eq!(record.key_id, key_id);
-    //     assert_eq!(record.relay_id, relay_id);
-    //     assert_eq!(record.service_id, service_id);
-    //     assert_eq!(record.peer_id, kp.get_peer_id().to_base58());
-    //     assert_eq!(record.value, value);
-    //     assert_eq!(record.set_by, kp.get_peer_id().to_base58());
-    // }
 
+    #[test]
+    fn put_record_add_tombstone() {
+        clear_env();
+        let mut registry = ServiceInterface::new();
+
+        let issuer_kp = KeyPair::generate_ed25519();
+        let host_kp = KeyPair::generate_ed25519();
+        let label = "some_key".to_string();
+        let timestamp_issued = 100u64;
+        let timestamp_created = 150u64;
+        let value = "some_record_value".to_string();
+        let relay_id = vec!["some_relay".to_string()];
+        let service_id = vec!["some_service_id".to_string()];
+        let solution = vec![1u8, 2u8];
+        let mut current_timestamp = 150u64;
+        let weight = 0;
+
+        let key_id = register_key_checked(
+            &mut registry,
+            &issuer_kp,
+            label.clone(),
+            timestamp_created,
+            current_timestamp,
+            weight,
+        );
+
+        put_record_checked(
+            &mut registry,
+            key_id.clone(),
+            &issuer_kp,
+            &host_kp,
+            timestamp_issued,
+            timestamp_created,
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            solution.clone(),
+            weight,
+        );
+
+        let tombstone_timestamp = timestamp_issued + 1;
+        add_tombstone_checked(
+            &mut registry,
+            key_id.clone(),
+            host_kp.get_peer_id().to_base58(),
+            &issuer_kp,
+            tombstone_timestamp,
+            solution.clone(),
+        );
+        let records = get_records(&mut registry, key_id.clone(), current_timestamp);
+        assert_eq!(records.len(), 0);
+        let tombstones = get_tombstones(&mut registry, key_id.clone(), current_timestamp);
+        assert_eq!(tombstones.len(), 1);
+        let tombstone = &tombstones[0];
+        assert_eq!(tombstone.key_id, key_id);
+        assert_eq!(tombstone.solution, solution);
+        assert_eq!(tombstone.timestamp_issued, tombstone_timestamp);
+        assert_eq!(tombstone.peer_id, host_kp.get_peer_id().to_base58());
+        assert_eq!(tombstone.issued_by, issuer_kp.get_peer_id().to_base58());
+    }
+
+    #[test]
     #[test]
     fn put_older_record() {
         // TODO: pass older record
