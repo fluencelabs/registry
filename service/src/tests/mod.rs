@@ -1006,10 +1006,4 @@ mod tests {
         assert_eq!(tombstone.peer_id, host_kp.get_peer_id().to_base58());
         assert_eq!(tombstone.issued_by, issuer_kp.get_peer_id().to_base58());
     }
-
-    #[test]
-    #[test]
-    fn put_older_record() {
-        // TODO: pass older record
-    }
 }

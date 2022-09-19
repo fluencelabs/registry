@@ -30,6 +30,12 @@ func getRecordSignature(metadata: RecordMetadata, timestamp_created: u64) -> Sig
     signature <- Sig.sign(bytes)
   <- signature
 
+func getTombstoneSignature(key_id: string, peer_id: string, timestamp_issued: u64, solution: []u8) -> SignResult:
+  bytes <- Registry.get_tombstone_bytes(key_id, INIT_PEER_ID, peer_id, timestamp_issued, solution)
+  on INIT_PEER_ID via HOST_PEER_ID:
+    result <- Sig.sign(bytes)
+  <- result
+
 func registerKey(label: string, timestamp_created: u64, signature: []u8) -> RegisterKeyResult:
   t <- Peer.timestamp_sec()
   weight <- TrustGraph.get_weight(%init_peer_id%, t)
@@ -40,6 +46,11 @@ func putRecord(metadata: RecordMetadata, timestamp_created: u64, signature: []u8
   t <- Peer.timestamp_sec()
   weight <- TrustGraph.get_weight(metadata.issued_by, t)
   result <- Registry.put_record(metadata, timestamp_created, signature, weight, t)
+  <- result
+
+func addTombstone(key_id: string, peer_id: string, timestamp_issued: u64, solution: []u8, signature: []u8) -> RegistryResult:
+   t <- Peer.timestamp_sec()
+  result <- Registry.add_tombstone(key_id, INIT_PEER_ID, peer_id, timestamp_issued, solution, signature, t)
   <- result
 
 func getKeyMetadata(key_id: string) -> GetKeyMetadataResult:

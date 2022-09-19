@@ -29,7 +29,7 @@ func registerService(resource_id: string) -> *bool:
     results: *bool
     services <- App.services()
     for srv <- services.echoService.default:
-        results, error <- registerNodeProvider(srv.peerId, resource_id, "", ?[srv.serviceId])
+        results, error <- registerService(srv.peerId, resource_id, "", ?[srv.serviceId])
     <- results
 
 func echoAll(resource_id: string, msg: string) -> *string:
