@@ -36,8 +36,10 @@ jobs:
       - name: "Cache rust"
         uses: Swatinem/rust-cache@v1
 
-      - name: "Download marine"
-        run: $GITHUB_WORKSPACE/.github/download_marine.sh
+      - name: "Install marine"
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: marine
 
       - name: "Build service"
         run: ./build.sh
