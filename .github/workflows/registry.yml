@@ -33,9 +33,6 @@ jobs:
           default: true
           components: rustfmt, clippy
 
-      - name: "Install libsqlite"
-        run: apt-get install libsqlite3-dev
-
       - name: "Cache rust"
         uses: Swatinem/rust-cache@v1
 
