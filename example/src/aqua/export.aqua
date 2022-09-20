@@ -1,4 +1,4 @@
 module Export
 import "services/echoService.aqua"
-import registerProvider from "@fluencelabs/registry/resources-api.aqua"
-export EchoService, registerProvider
+import registerServiceRecord, unregisterService from "@fluencelabs/registry/resources-api.aqua"
+export EchoService, registerServiceRecord, unregisterService

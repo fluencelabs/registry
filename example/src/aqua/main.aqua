@@ -3,7 +3,7 @@ module Main
 import App from "deployed.app.aqua"
 import EchoService from "services/echoService.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
-export App, echo, echoJS, registerResource, registerService, echoAll
+export App, echo, echoJS, registerResource, registerServiceRecord, echoAll
 
 func echo(msg: string) -> *string:
     services <- App.services()
@@ -29,15 +29,15 @@ func registerService(resource_id: string) -> *bool:
     results: *bool
     services <- App.services()
     for srv <- services.echoService.default:
-        results, error <- registerNodeProvider(srv.peerId, resource_id, "", ?[srv.serviceId])
+        results, error <- registerServiceRecord(srv.peerId, resource_id, "", ?[srv.serviceId])
     <- results
 
 func echoAll(resource_id: string, msg: string) -> *string:
     -- 2 is the min number of providers we want to find
-    providers <- resolveProviders(resource_id, 2)
+    records <- resolveResource(resource_id, 2)
     results: *string
-    for p <- providers:
-        on p.peer_id via p.relay_id:
-            EchoService p.service_id!
+    for r <- records:
+        on r.peer_id via r.relay_id:
+            EchoService r.service_id!
             results <- EchoService.echo(msg)
     <- results

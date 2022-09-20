@@ -82,7 +82,6 @@ pub fn register_key(
         let key_id = key.id.clone();
         let weight = weight.weight;
         let storage = get_storage()?;
-        storage.update_key_timestamp(&key.id, current_timestamp_sec)?;
         storage.update_key(KeyInternal {
             key,
             timestamp_published: 0,
@@ -95,16 +94,8 @@ pub fn register_key(
 }
 
 #[marine]
-pub fn get_key_metadata(key_id: String, current_timestamp_sec: u64) -> GetKeyMetadataResult {
-    wrapped_try(|| {
-        let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_timestamp_tetraplets(&call_parameters, 1)?;
-
-        let storage = get_storage()?;
-        storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
-        storage.get_key(key_id)
-    })
-    .into()
+pub fn get_key_metadata(key_id: String) -> GetKeyMetadataResult {
+    wrapped_try(|| get_storage()?.get_key(key_id)).into()
 }
 
 /// Used for replication, same as register_key, updates timestamp_accessed
@@ -125,7 +116,6 @@ pub fn republish_key(
         key.id = Key::get_id(&key.label, &key.owner_peer_id);
 
         let storage = get_storage()?;
-        storage.update_key_timestamp(&key.id, current_timestamp_sec)?;
         match storage.update_key(KeyInternal {
             key,
             timestamp_published: current_timestamp_sec,

@@ -51,20 +51,43 @@ pub enum ServiceError {
     InvalidWeightTetraplet(String),
     #[error("Invalid weight peer_id: expected {0}, found {1}")]
     InvalidWeightPeerId(String, String),
-    #[error("Invalid key {0} signature: {1}")]
-    InvalidKeySignature(String, #[source] fluence_keypair::error::VerificationError),
-    #[error("Invalid record signature for key {0} and value {1}: {2}")]
+    #[error("Invalid signature for key_id {0}; label {1} and peer_id {2}: {3}")]
+    InvalidKeySignature(
+        String,
+        String,
+        String,
+        #[source] fluence_keypair::error::VerificationError,
+    ),
+    #[error("Invalid record metadata signature for key_id {0} and issued by {1}: {2}")]
+    InvalidRecordMetadataSignature(
+        String,
+        String,
+        #[source] fluence_keypair::error::VerificationError,
+    ),
+    #[error("Invalid record signature for key_id {0} and issued by {1}: {2}")]
     InvalidRecordSignature(
+        String,
+        String,
+        #[source] fluence_keypair::error::VerificationError,
+    ),
+    #[error("Invalid tombstone signature for key_id {0} and issued by {1}: {2}")]
+    InvalidTombstoneSignature(
         String,
         String,
         #[source] fluence_keypair::error::VerificationError,
     ),
     #[error("Key can't be registered in the future")]
     InvalidKeyTimestamp,
+    #[error("Record metadata can't be issued in the future")]
+    InvalidRecordMetadataTimestamp,
     #[error("Record can't be registered in the future")]
     InvalidRecordTimestamp,
+    #[error("Tombstone can't be issued in the future")]
+    InvalidTombstoneTimestamp,
     #[error("Records to publish should belong to one key id")]
     RecordsPublishingError,
+    #[error("Tombstones to publish should belong to one key id")]
+    TombstonesPublishingError,
     #[error("peer id parse error: {0}")]
     PeerIdParseError(String),
     #[error("public key extraction from peer id failed: {0}")]
@@ -79,4 +102,8 @@ pub enum ServiceError {
     MissingRecordWeight(String, String),
     #[error("merge_keys: keys argument is empty")]
     KeysArgumentEmpty,
+    #[error(
+        "Newer record or tombstone for key_id: {0}, issued_by: {1}, peer_id: {2} already exists"
+    )]
+    NewerRecordOrTombstoneExists(String, String, String),
 }

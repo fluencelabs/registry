@@ -13,42 +13,72 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use boolinator::Boolinator;
-
 use crate::error::ServiceError;
 use crate::error::ServiceError::MissingRecordWeight;
 use crate::misc::check_weight_result;
-use crate::record::{Record, RecordInternal};
+use crate::record::{Record, RecordInternal, RecordMetadata};
 use crate::record_storage_impl::merge_records;
-use crate::results::{
-    GetRecordsResult, MergeResult, PutHostRecordResult, RegistryResult, RepublishRecordsResult,
-};
+use crate::results::{GetRecordsResult, MergeResult, RegistryResult, RepublishRecordsResult};
 use crate::storage_impl::get_storage;
-use crate::tetraplets_checkers::{
-    check_host_value_tetraplets, check_timestamp_tetraplets, check_weight_tetraplets,
-};
-use crate::{wrapped_try, WeightResult};
+use crate::tetraplets_checkers::{check_timestamp_tetraplets, check_weight_tetraplets};
+use crate::{load_config, wrapped_try, WeightResult};
 use marine_rs_sdk::marine;
 
 #[marine]
-pub fn get_record_bytes(
+pub fn get_record_metadata_bytes(
     key_id: String,
+    issued_by: String,
+    timestamp_issued: u64,
     value: String,
+    peer_id: String,
     relay_id: Vec<String>,
     service_id: Vec<String>,
-    timestamp_created: u64,
     solution: Vec<u8>,
 ) -> Vec<u8> {
-    let cp = marine_rs_sdk::get_call_parameters();
-    Record {
+    RecordMetadata {
         key_id,
+        issued_by,
+        timestamp_issued,
         value,
-        peer_id: cp.init_peer_id.clone(),
-        set_by: cp.init_peer_id,
+        peer_id,
         relay_id,
         service_id,
-        timestamp_created,
         solution,
+        ..Default::default()
+    }
+    .signature_bytes()
+}
+
+#[marine]
+pub fn create_record_metadata(
+    key_id: String,
+    issued_by: String,
+    timestamp_issued: u64,
+    value: String,
+    peer_id: String,
+    relay_id: Vec<String>,
+    service_id: Vec<String>,
+    solution: Vec<u8>,
+    signature: Vec<u8>,
+) -> RecordMetadata {
+    RecordMetadata {
+        key_id,
+        issued_by,
+        timestamp_issued,
+        value,
+        peer_id,
+        relay_id,
+        service_id,
+        solution,
+        issuer_signature: signature,
+    }
+}
+
+#[marine]
+pub fn get_record_bytes(metadata: RecordMetadata, timestamp_created: u64) -> Vec<u8> {
+    Record {
+        metadata,
+        timestamp_created,
         ..Default::default()
     }
     .signature_bytes()
@@ -56,150 +86,30 @@ pub fn get_record_bytes(
 
 #[marine]
 pub fn put_record(
-    key_id: String,
-    value: String,
-    relay_id: Vec<String>,
-    service_id: Vec<String>,
+    metadata: RecordMetadata,
     timestamp_created: u64,
-    solution: Vec<u8>,
     signature: Vec<u8>,
     weight: WeightResult,
     current_timestamp_sec: u64,
 ) -> RegistryResult {
     wrapped_try(|| {
         let cp = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&cp, 7, 0)?;
-        check_timestamp_tetraplets(&cp, 8)?;
+        check_weight_tetraplets(&cp, 3, 0)?;
+        check_timestamp_tetraplets(&cp, 4)?;
         check_weight_result(&cp.init_peer_id, &weight)?;
         let record = Record {
-            key_id,
-            value,
-            peer_id: cp.init_peer_id.clone(),
-            set_by: cp.init_peer_id,
-            relay_id,
-            service_id,
+            metadata,
             timestamp_created,
-            solution,
             signature,
         };
         record.verify(current_timestamp_sec)?;
 
         let storage = get_storage()?;
-        storage.check_key_existence(&record.key_id)?;
-        storage
-            .update_record(
-                RecordInternal {
-                    record,
-                    weight: weight.weight,
-                },
-                false,
-            )
-            .map(|_| {})
-    })
-    .into()
-}
-
-#[marine]
-pub fn get_host_record_bytes(
-    key_id: String,
-    value: String,
-    relay_id: Vec<String>,
-    service_id: Vec<String>,
-    timestamp_created: u64,
-    solution: Vec<u8>,
-) -> Vec<u8> {
-    let cp = marine_rs_sdk::get_call_parameters();
-    Record {
-        key_id,
-        value,
-        peer_id: cp.host_id,
-        set_by: cp.init_peer_id,
-        relay_id,
-        service_id,
-        timestamp_created,
-        solution,
-        ..Default::default()
-    }
-    .signature_bytes()
-}
-#[marine]
-pub fn put_host_record(
-    key_id: String,
-    value: String,
-    relay_id: Vec<String>,
-    service_id: Vec<String>,
-    timestamp_created: u64,
-    solution: Vec<u8>,
-    signature: Vec<u8>,
-    weight: WeightResult,
-    current_timestamp_sec: u64,
-) -> PutHostRecordResult {
-    wrapped_try(|| {
-        let cp = marine_rs_sdk::get_call_parameters();
-        check_weight_tetraplets(&cp, 7, 0)?;
-        check_timestamp_tetraplets(&cp, 8)?;
-        check_weight_result(&cp.init_peer_id, &weight)?;
-        let record = Record {
-            key_id,
-            value,
-            peer_id: cp.host_id,
-            set_by: cp.init_peer_id,
-            relay_id,
-            service_id,
-            timestamp_created,
-            solution,
-            signature,
-        };
-        record.verify(current_timestamp_sec)?;
-
-        let storage = get_storage()?;
-        storage.check_key_existence(&record.key_id)?;
-        storage.update_record(
-            RecordInternal {
-                record: record.clone(),
-                weight: weight.weight,
-            },
-            true,
-        )?;
-
-        Ok(record)
-    })
-    .into()
-}
-
-/// Used for replication of host values to other nodes.
-/// Similar to republish_values but with an additional check that value.set_by == init_peer_id
-#[marine]
-pub fn propagate_host_record(
-    set_host_value: PutHostRecordResult,
-    current_timestamp_sec: u64,
-    weight: WeightResult,
-) -> RegistryResult {
-    wrapped_try(|| {
-        if !set_host_value.success || set_host_value.record.len() != 1 {
-            return Err(ServiceError::InvalidSetHostValueResult);
-        }
-
-        let record = set_host_value.record[0].clone();
-        record.verify(current_timestamp_sec)?;
-
-        let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_host_value_tetraplets(&call_parameters, 0, &record)?;
-        check_timestamp_tetraplets(&call_parameters, 1)?;
-        check_weight_tetraplets(&call_parameters, 2, 0)?;
-        check_weight_result(&record.peer_id, &weight)?;
-        let weight = weight.weight;
-
-        let storage = get_storage()?;
-        storage.check_key_existence(&record.key_id)?;
-        storage.update_key_timestamp(&record.key_id, current_timestamp_sec)?;
-
-        storage
-            .merge_and_update_records(
-                record.key_id.clone(),
-                vec![RecordInternal { record, weight }],
-            )
-            .map(|_| ())
+        storage.check_key_existence(&record.metadata.key_id)?;
+        storage.update_record(RecordInternal {
+            record,
+            weight: weight.weight,
+        })
     })
     .into()
 }
@@ -212,9 +122,25 @@ pub fn get_records(key_id: String, current_timestamp_sec: u64) -> GetRecordsResu
         check_timestamp_tetraplets(&call_parameters, 1)?;
         let storage = get_storage()?;
         storage.check_key_existence(&key_id)?;
-        storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
         storage
-            .get_records(key_id)
+            .get_records(key_id, current_timestamp_sec)
+            .map(|records| records.into_iter().map(|r| r.record).collect())
+    })
+    .into()
+}
+
+/// Return all values by key
+#[marine]
+pub fn get_stale_local_records(current_timestamp_sec: u64) -> GetRecordsResult {
+    wrapped_try(|| {
+        let call_parameters = marine_rs_sdk::get_call_parameters();
+        check_timestamp_tetraplets(&call_parameters, 0)?;
+        let storage = get_storage()?;
+
+        // TODO: add some meaningful constant for expiring local records
+        let stale_timestamp_sec = current_timestamp_sec - load_config().expired_timeout + 100;
+        storage
+            .get_local_stale_records(stale_timestamp_sec)
             .map(|records| records.into_iter().map(|r| r.record).collect())
     })
     .into()
@@ -232,7 +158,7 @@ pub fn republish_records(
             return Ok(0);
         }
 
-        let key_id = records[0].key_id.clone();
+        let key_id = records[0].metadata.key_id.clone();
         let call_parameters = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&call_parameters, 2)?;
         let mut records_to_merge = vec![];
@@ -241,11 +167,11 @@ pub fn republish_records(
             record.verify(current_timestamp_sec)?;
             check_weight_tetraplets(&call_parameters, 1, i)?;
             let weight_result = weights.get(i).ok_or(MissingRecordWeight(
-                record.peer_id.clone(),
-                record.set_by.clone(),
+                record.metadata.peer_id.clone(),
+                record.metadata.issued_by.clone(),
             ))?;
-            check_weight_result(&record.set_by, weight_result)?;
-            if record.key_id != key_id {
+            check_weight_result(&record.metadata.issued_by, weight_result)?;
+            if record.metadata.key_id != key_id {
                 return Err(ServiceError::RecordsPublishingError);
             }
 
@@ -257,28 +183,7 @@ pub fn republish_records(
 
         let storage = get_storage()?;
         storage.check_key_existence(&key_id)?;
-        storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
-        storage.merge_and_update_records(key_id, records_to_merge)
-    })
-    .into()
-}
-
-/// Remove host value by key and caller peer_id
-#[marine]
-pub fn clear_host_record(key_id: String, current_timestamp_sec: u64) -> RegistryResult {
-    wrapped_try(|| {
-        let call_parameters = marine_rs_sdk::get_call_parameters();
-        check_timestamp_tetraplets(&call_parameters, 1)?;
-        let storage = get_storage()?;
-
-        storage.check_key_existence(&key_id)?;
-        storage.update_key_timestamp(&key_id, current_timestamp_sec)?;
-
-        let peer_id = call_parameters.host_id;
-        let set_by = call_parameters.init_peer_id;
-        let deleted = storage.delete_record(key_id.clone(), peer_id, set_by)?;
-
-        deleted.as_result((), ServiceError::HostValueNotFound(key_id))
+        storage.merge_and_update_records(key_id, records_to_merge, current_timestamp_sec)
     })
     .into()
 }

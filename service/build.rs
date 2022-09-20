@@ -31,5 +31,6 @@ fn main() {
 
     println!("cargo:rerun-if-changed=src/key_api.rs");
     println!("cargo:rerun-if-changed=src/record_api.rs");
+    println!("cargo:rerun-if-changed=src/tombstone_api.rs");
     println!("cargo:rerun-if-changed=src/main.rs");
 }

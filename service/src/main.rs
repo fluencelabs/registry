@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 use marine_rs_sdk::marine;
 use marine_rs_sdk::module_manifest;
 
@@ -35,31 +36,12 @@ mod results;
 mod storage_impl;
 mod tests;
 mod tetraplets_checkers;
+mod tombstone;
+mod tombstone_api;
+mod tombstone_storage_impl;
 
 #[macro_use]
 extern crate fstrings;
-
-/*
-   _initialize function that calls __wasm_call_ctors is required to mitigade memory leak
-   that is described in https://github.com/WebAssembly/wasi-libc/issues/298
-
-   In short, without this code rust wraps every export function
-   with __wasm_call_ctors/__wasm_call_dtors calls. This causes memory leaks. When compiler sees
-   an explicit call to __wasm_call_ctors in _initialize function, it disables export wrapping.
-
-   TODO: remove when updating to marine-rs-sdk with fix
-*/
-extern "C" {
-    pub fn __wasm_call_ctors();
-}
-
-#[no_mangle]
-fn _initialize() {
-    unsafe {
-        __wasm_call_ctors();
-    }
-}
-//------------------------------
 
 module_manifest!();
 
@@ -80,10 +62,9 @@ pub struct WeightResult {
 }
 
 fn main() {
-    _initialize(); // As __wasm_call_ctors still does necessary work, we call it at the start of the module
     let storage = get_storage().unwrap();
     storage.create_key_tables();
-    storage.create_values_table();
+    storage.create_records_table();
     create_config();
 }
 
