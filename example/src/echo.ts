@@ -1,7 +1,7 @@
 import { Fluence, KeyPair } from "@fluencelabs/fluence"
 import { krasnodar } from "@fluencelabs/fluence-network-environment"
 import { registerEchoService } from "./generated/export"
-import { registerProvider, registerService } from "./generated/export"
+import { registerServiceRecord } from "./generated/export"
 
 const sk = "Iz3HUmNIB78lkNNVmMkDKrju0nCivtkJNyObrFAr774=";
 
@@ -29,7 +29,7 @@ async function main() {
 
     // don't register if resource id isn't passed
     if (process.argv.length == 3) {
-        let [success, error] = await registerService(process.argv[2], "echo", serviceId);
+        let [success, error] = await registerServiceRecord(process.argv[2], "echo", peerId, serviceId);
         console.log("registration result: ", success);
     }
 

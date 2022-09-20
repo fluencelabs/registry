@@ -22,7 +22,6 @@ mod tests {
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
     use marine_rs_sdk_test::{CallParameters, SecurityTetraplet};
     use marine_test_env::registry::{EvictStaleResult, Record, RegistryResult, ServiceInterface};
-    use toml::to_string;
 
     use crate::defaults::{
         CONFIG_FILE, DB_PATH, DEFAULT_EXPIRED_AGE, DEFAULT_STALE_AGE, KEYS_TABLE_NAME,
@@ -903,7 +902,7 @@ mod tests {
         let relay_id = vec!["some_relay".to_string()];
         let service_id = vec!["some_service_id".to_string()];
         let solution = vec![1u8, 2u8];
-        let mut current_timestamp = 150u64;
+        let current_timestamp = 150u64;
         let weight = 0;
 
         let key_id = register_key_checked(
@@ -954,8 +953,8 @@ mod tests {
         let issuer_kp = KeyPair::generate_ed25519();
         let host_kp = KeyPair::generate_ed25519();
         let label = "some_key".to_string();
-        let timestamp_issued = 100u64;
-        let timestamp_created = 150u64;
+        let mut timestamp_issued = 100u64;
+        let mut timestamp_created = 150u64;
         let value = "some_record_value".to_string();
         let relay_id = vec!["some_relay".to_string()];
         let service_id = vec!["some_service_id".to_string()];
@@ -1005,5 +1004,29 @@ mod tests {
         assert_eq!(tombstone.timestamp_issued, tombstone_timestamp);
         assert_eq!(tombstone.peer_id, host_kp.get_peer_id().to_base58());
         assert_eq!(tombstone.issued_by, issuer_kp.get_peer_id().to_base58());
+
+        current_timestamp += 1000;
+        timestamp_issued = current_timestamp;
+        timestamp_created = current_timestamp;
+
+        // let's put new record
+        put_record_checked(
+            &mut registry,
+            key_id.clone(),
+            &issuer_kp,
+            &host_kp,
+            timestamp_issued,
+            timestamp_created,
+            value.clone(),
+            relay_id.clone(),
+            service_id.clone(),
+            solution.clone(),
+            weight,
+        );
+
+        let records = get_records(&mut registry, key_id.clone(), current_timestamp);
+        assert_eq!(records.len(), 1);
+        let tombstones = get_tombstones(&mut registry, key_id.clone(), current_timestamp);
+        assert_eq!(tombstones.len(), 0);
     }
 }

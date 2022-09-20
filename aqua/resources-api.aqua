@@ -3,6 +3,7 @@ module Registry.ResourcesAPI declares *
 import "registry-service.aqua"
 import "registry-api.aqua"
 import "misc.aqua"
+import "constants.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
 alias ResourceId: string
@@ -80,7 +81,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
   <- resource_id, error
 
 -- Note: resource must be already created
-func registerService(resource_id: ResourceId, value: string, peer_id: PeerId, service_id: ?string) -> bool, *Error:
+func registerServiceRecord(resource_id: ResourceId, value: string, peer_id: PeerId, service_id: ?string) -> bool, *Error:
   relay_id: ?string
   if peer_id == INIT_PEER_ID:
     relay_id <<- HOST_PEER_ID
