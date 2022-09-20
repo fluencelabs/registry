@@ -24,8 +24,7 @@ use marine_sqlite_connector::{State, Statement, Value};
 
 impl Storage {
     pub fn create_key_tables(&self) {
-        // TODO: check table schema
-        let result = self.connection.execute(f!("
+        let table_schema = f!("
             CREATE TABLE IF NOT EXISTS {KEYS_TABLE_NAME} (
                 key_id TEXT PRIMARY KEY,
                 label TEXT,
@@ -37,7 +36,16 @@ impl Storage {
                 timestamp_published INTEGER,
                 weight INTEGER
             );
-        "));
+        ");
+        let current_table_schema = self
+            .get_table_schema(KEYS_TABLE_NAME.to_string())
+            .expect(f!("failed to get {KEYS_TABLE_NAME} table schema").as_str());
+        if !current_table_schema.is_empty() && table_schema != current_table_schema {
+            self.delete_table(KEYS_TABLE_NAME.to_string())
+                .expect(f!("failed to delete {KEYS_TABLE_NAME} table").as_str())
+        }
+
+        let result = self.connection.execute(table_schema);
 
         if let Err(error) = result {
             println!("create_keys_table error: {}", error);

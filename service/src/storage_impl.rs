@@ -19,7 +19,7 @@ use crate::defaults::DB_PATH;
 use crate::error::ServiceError;
 use crate::record::Record;
 use crate::results::EvictStaleItem;
-use marine_sqlite_connector::{Connection, Result as SqliteResult};
+use marine_sqlite_connector::{Connection, Result as SqliteResult, State, Value};
 
 pub struct Storage {
     pub(crate) connection: Connection,
@@ -47,6 +47,28 @@ pub fn from_custom_option(value: Vec<String>) -> String {
 }
 
 impl Storage {
+    pub fn get_table_schema(&self, table_name: String) -> Result<String, ServiceError> {
+        let mut statement = self
+            .connection
+            .prepare(f!("SELECT sql FROM sqlite_master WHERE name=?;"))?;
+
+        statement.bind(1, &Value::String(table_name))?;
+
+        if let State::Row = statement.next()? {
+            let schema = statement.read::<String>(0)?;
+            Ok(schema)
+        } else {
+            Ok("".to_string())
+        }
+    }
+
+    pub fn delete_table(&self, table_name: String) -> Result<(), ServiceError> {
+        let mut statement = self.connection.prepare(f!("DROP TABLE ?;"))?;
+        statement.bind(1, &Value::String(table_name))?;
+        statement.next().map(drop)?;
+        Ok(())
+    }
+
     /// Remove expired records (based on `timestamp_created`), expired tombstones (based on `timestamp_issued`)
     /// and then expired keys without actual records
     pub fn clear_expired(
