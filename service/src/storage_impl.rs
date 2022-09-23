@@ -63,9 +63,9 @@ impl Storage {
     }
 
     pub fn delete_table(&self, table_name: String) -> Result<(), ServiceError> {
-        let mut statement = self.connection.prepare(f!("DROP TABLE ?;"))?;
-        statement.bind(1, &Value::String(table_name))?;
-        statement.next().map(drop)?;
+        let mut statement = self
+            .connection
+            .execute(f!("DROP TABLE IF EXISTS {table_name};"))?;
         Ok(())
     }
 

@@ -1,5 +1,5 @@
 import { Fluence, KeyPair } from "@fluencelabs/fluence"
-import { krasnodar } from "@fluencelabs/fluence-network-environment"
+import { stage } from "@fluencelabs/fluence-network-environment"
 import { registerEchoService } from "./generated/export"
 import { registerServiceRecord } from "./generated/export"
 
@@ -8,7 +8,7 @@ const sk = "Iz3HUmNIB78lkNNVmMkDKrju0nCivtkJNyObrFAr774=";
 async function main() {
     const keypair = await KeyPair.fromEd25519SK(Buffer.from(sk, 'base64'));
     // connect to the Fluence network
-    await Fluence.start({ connectTo: krasnodar[5], KeyPair: keypair });
+    await Fluence.start({ connectTo: stage[5], KeyPair: keypair });
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
