@@ -13,9 +13,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fluencelabs/fluence": "^0.23.1",
+    "@fluencelabs/fluence": "^0.25.1",
     "@fluencelabs/fluence-network-environment": "^1.0.13",
-    "@fluencelabs/registry": "^0.5.5"
+    "@fluencelabs/registry": "file:../aqua",
+    "@fluencelabs/trust-graph": "^3.0.4"
   },
   "devDependencies": {
     "typescript": "^4.7.4"

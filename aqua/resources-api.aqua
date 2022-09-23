@@ -144,7 +144,7 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
   success: *bool
   error: *Error
 
-  on peer_id:
+  on HOST_PEER_ID:
     t <- Peer.timestamp_sec()
     sig_result = getTombstoneSignature(resource_id, peer_id, t, nil)
     if sig_result.success == false:
@@ -156,14 +156,17 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
         appendErrors(error, error_get)
         success <<- false
       else:
-        republish_result <- republishKey(key!)
-        if republish_result.success == false:
-          error <<- republish_result.error
-        else:
-          res <- addTombstone(resource_id, peer_id, t, nil, sig_result.signature!)
-          if res.success == false:
-            error <<- res.error
-            success <<- false
+
+        if peer_id != INIT_PEER_ID:
+          on peer_id:
+            republish_result <- republishKey(key!)
+            if republish_result.success == false:
+              error <<- republish_result.error
+            else:
+              res <- addTombstone(resource_id, peer_id, t, nil, sig_result.signature!)
+              if res.success == false:
+                error <<- res.error
+                success <<- false
 
         nodes <- getNeighbours(resource_id)
         successful: *bool
