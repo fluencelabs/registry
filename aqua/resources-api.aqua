@@ -15,7 +15,7 @@ func getResourceId(label: string, peer_id: string) -> ResourceId:
   <- resource_id
 
 func getResource(resource_id: ResourceId) -> ?Resource, *Error:
-  nodes <- getNeighbours(resource_id)
+  nodes <- getNeighbors(resource_id)
   result: ?Resource
   error: *Error
 
@@ -58,7 +58,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
     else:
       signature = sig_result.signature!
       id <- getResourceId(label, INIT_PEER_ID)
-      nodes <- getNeighbours(id)
+      nodes <- getNeighbors(id)
 
       successful: *bool
       for n <- nodes par:
@@ -117,7 +117,7 @@ func registerServiceRecord(resource_id: ResourceId, value: string, peer_id: Peer
                   error <<- p_res.error
                   success <<- false
 
-          nodes <- getNeighbours(resource_id)
+          nodes <- getNeighbors(resource_id)
           successful: *bool
           for n <- nodes par:
             on n:
@@ -168,7 +168,7 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
                 error <<- res.error
                 success <<- false
 
-        nodes <- getNeighbours(resource_id)
+        nodes <- getNeighbors(resource_id)
         successful: *bool
         for n <- nodes par:
           on n:
@@ -192,7 +192,7 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
 
 func resolveResource(resource_id: ResourceId, ack: i16) -> []Record, *Error:
   on HOST_PEER_ID:
-    nodes <- getNeighbours(resource_id)
+    nodes <- getNeighbors(resource_id)
     res: *[]Record
     error: *Error
     successful: *bool

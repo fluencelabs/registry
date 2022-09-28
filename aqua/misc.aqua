@@ -25,7 +25,7 @@ func wait(successful: *bool, len: i16, timeout: u16) -> bool:
 
 -- Get peers closest to the resource_id's hash in Kademlia network
 -- These peers are expected to store list of providers for this key
-func getNeighbours(resource_id: ResourceId) -> []PeerId:
+func getNeighbors(resource_id: ResourceId) -> []PeerId:
   k <- Op.string_to_b58(resource_id)
   nodes <- Kademlia.neighborhood(k, nil, nil)
   <- nodes
