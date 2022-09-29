@@ -3,6 +3,7 @@ import "registry-service.aqua"
 import "constants.aqua"
 
 alias ResourceId: string
+alias Resource: Key
 alias Error: string
 
 func wait(successful: *bool, len: i16, timeout: u16) -> bool:
@@ -33,3 +34,34 @@ func getNeighbors(resource_id: ResourceId) -> []PeerId:
 func appendErrors(error1: *Error, error2: *Error):
   for e <- error2:
     error1 <<- e
+
+func getResourceHelper(resource_id: ResourceId) -> ?Resource, *Error:
+  nodes <- getNeighbors(resource_id)
+  result: ?Resource
+  error: *Error
+
+  resources: *Key
+  successful: *bool
+  for n <- nodes par:
+    on n:
+      try:
+        get_result <- Registry.get_key_metadata(resource_id)
+        if get_result.success:
+          resources <<- get_result.key
+          successful <<- true
+        else:
+          e <- Op.concat_strings(get_result.error, " on ")
+          error <- Op.concat_strings(e, n)
+
+  success <- wait(successful, CONSISTENCY_LEVEL, DEFAULT_TIMEOUT)
+  if success == false:
+    error <<- "resource not found: timeout exceeded"
+  else:
+    merge_result <- Registry.merge_keys(resources)
+
+    if merge_result.success:
+      result <<- merge_result.key
+    else:
+      error <<- merge_result.error
+
+  <- result, error

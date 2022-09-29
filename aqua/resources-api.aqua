@@ -10,40 +10,15 @@ alias ResourceId: string
 alias Resource: Key
 alias Error: string
 
-func getResourceId(label: string, peer_id: string) -> ResourceId:
-  resource_id <- Registry.get_key_id(label, peer_id)
-  <- resource_id
-
 func getResource(resource_id: ResourceId) -> ?Resource, *Error:
-  nodes <- getNeighbors(resource_id)
-  result: ?Resource
-  error: *Error
-
-  resources: *Key
-  successful: *bool
-  for n <- nodes par:
-    on n:
-      try:
-        get_result <- Registry.get_key_metadata(resource_id)
-        if get_result.success:
-          resources <<- get_result.key
-          successful <<- true
-        else:
-          e <- Op.concat_strings(get_result.error, " on ")
-          error <- Op.concat_strings(e, n)
-
-  success <- wait(successful, CONSISTENCY_LEVEL, DEFAULT_TIMEOUT)
-  if success == false:
-    error <<- "resource not found: timeout exceeded"
-  else:
-    merge_result <- Registry.merge_keys(resources)
-
-    if merge_result.success:
-      result <<- merge_result.key
-    else:
-      error <<- merge_result.error
-
+  on HOST_PEER_ID:
+    result, error <- getResourceHelper(resource_id)
   <- result, error
+
+func getResourceId(label: string, peer_id: string) -> ResourceId:
+  on HOST_PEER_ID:
+    resource_id <- Registry.get_key_id(label, peer_id)
+  <- resource_id
 
 -- Create a resource: register it on the closest peers
 func createResource(label: string) -> ?ResourceId, *Error:
@@ -57,7 +32,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
       error <<- sig_result.error!
     else:
       signature = sig_result.signature!
-      id <- getResourceId(label, INIT_PEER_ID)
+      id <- Registry.get_key_id(label, INIT_PEER_ID)
       nodes <- getNeighbors(id)
 
       successful: *bool
@@ -101,7 +76,7 @@ func registerServiceRecord(resource_id: ResourceId, value: string, peer_id: Peer
         error <<- sig_result.error!
         success <<- false
       else:
-        key, error_get <- getResource(resource_id)
+        key, error_get <- getResourceHelper(resource_id)
         if key == nil:
           appendErrors(error, error_get)
           success <<- false
