@@ -25,10 +25,19 @@ func getRecordMetadata(key_id: string, value: string, peer_id: string, relay_id:
   <- result, error
 
 func getRecordSignature(metadata: RecordMetadata, timestamp_created: u64) -> SignResult:
-  bytes <- Registry.get_record_bytes(metadata, timestamp_created)
-  on metadata.peer_id via HOST_PEER_ID:
-    signature <- Sig.sign(bytes)
-  <- signature
+  signature: *SignResult
+
+  if metadata.peer_id != INIT_PEER_ID:
+    on metadata.peer_id via HOST_PEER_ID:
+      bytes <- Registry.get_record_bytes(metadata, timestamp_created)
+      signature <- Sig.sign(bytes)
+  else:
+    on HOST_PEER_ID:
+      bytess <- Registry.get_record_bytes(metadata, timestamp_created)
+      on INIT_PEER_ID:
+        signature <- Sig.sign(bytess)
+
+  <- signature!
 
 func getTombstoneSignature(key_id: string, peer_id: string, timestamp_issued: u64, solution: []u8) -> SignResult:
   bytes <- Registry.get_tombstone_bytes(key_id, INIT_PEER_ID, peer_id, timestamp_issued, solution)

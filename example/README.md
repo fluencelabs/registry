@@ -2,19 +2,25 @@
 
 ## Overview
 
-The example shows one of the important Registry use-cases — services advertisement and discovery. So it is about advertisement by providers, discovery and usage by clients with the same Aqua code transparently without any knowledge about particular peer and service ids.
+The example shows one of the important Registry use-cases — services advertisement and discovery. So it is about discovery and usage by clients with the same Aqua code transparently without any knowledge about particular peer and service ids.
 
 In the beginning, we will deploy a Rust echo service and call it with the Fluence CLI.
 Then we will start a JS/TS client with echo service and run it.
 
-Finally, we will use Registry to call different types of services with exactly one piece of code.
+Secondly, we will use Registry to call registered services with exactly one piece of code without peer and service identifiers.
+And finally, we will show how to remove service records.
 
-## Requirements
+## Note
+If you face any dependencies issue, you can try to use `fluence dependency` to install any version of `aqua`, `marine` and `mrepl` available in npm and cargo registries:
 
-```markdown
-node: >= 16
-rust: rustc 1.63.0-nightly
-@fluencelabs/cli: 0.2.7
+```bash
+$ fluence dependency
+? Select dependency (Use arrow keys)
+  NPM dependencies:
+❯ aqua
+  Cargo dependencies:
+  marine
+  mrepl
 ```
 
 # Set up environment
@@ -22,7 +28,7 @@ rust: rustc 1.63.0-nightly
 1. Install `fluence` cli:
 
     ```bash
-    npm i -g @fluencelabs/cli@0.2.7
+    npm i -g @fluencelabs/cli
     ```
 
 2. Initialize Fluence project:
@@ -35,15 +41,21 @@ rust: rustc 1.63.0-nightly
     Successfully initialized Fluence project template at <your-path-to-registry-repo>/example
     ```
 
-3. You can use [VSCode with Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for syntax highlighting  and better developer experience.
+3. Install dependencies:
+
+    ```bash
+    npm i
+    ```
+
+4. You can use [VSCode with Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for syntax highlighting  and better developer experience.
 
 ## Add echo service in Rust
 
-0. If you have **Apple Silicon** you should install cargo manually, or you can ignore this step otherwise:
+0. If you have **Apple Silicon** you should install `marine` manually, or you can ignore this step otherwise:
 
     ```bash
     # for m1:
-    cargo install marine --version '0.12.1' --root ~/.fluence/cargo
+    cargo install marine --root ~/.fluence/cargo
     ```
 
 1. Add echo service:
@@ -69,11 +81,11 @@ rust: rustc 1.63.0-nightly
     ```
 
 ### Test echo service locally with REPL
-0. If you have **Apple Silicon** you should install mrepl manually, or you can ignore this step otherwise:
+0. If you have **Apple Silicon** you should install `mrepl` manually, or you can ignore this step otherwise:
 
     ```bash
     # for m1:
-    cargo install mrepl --version '0.18.0' --root ~/.fluence/cargo
+    cargo install mrepl --root ~/.fluence/cargo
     ```
 
 1. Run the following command to start REPL:
@@ -184,20 +196,19 @@ You can always test your services before deployment with REPL. Check out [docume
 
     Result:
 
-    "12D3KooWCMr9mU894i8JXAFqpgoFtx6qnV1LFPSfVc3Y34N4h4LS: hi"
+    [
+      [
+        "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi: hi"
+      ]
+    ]
     ```
 
 We've successfully built and deployed a service written in Rust, and called it from our Aqua code using the Fluence CLI.
 
 ## Run echo service in JS/TS:
 
-1. Install dependencies:
 
-    ```bash
-    npm i
-    ```
-
-2. Check out [src/aqua/export.aqua](src/aqua/export.aqua) with an export of EchoService API to JS/TS:
+1. Check out [src/aqua/export.aqua](src/aqua/export.aqua) with an export of EchoService API to JS/TS:
 
     ```bash
     module Export
@@ -205,7 +216,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     export EchoService
     ```
 
-3. The following [code](src/echo.ts#L23) registers a local EchoService:
+2. The following [code](src/echo.ts#L23) registers a local EchoService:
 
     ```tsx
     // register local service with service id "echo"
@@ -215,7 +226,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     }});
     ```
 
-4. The following [code](src/aqua/main.aqua) is calling our local JS/TS peer with `EchoService`:
+3. The following [code](src/aqua/main.aqua) is calling our local JS/TS peer with `EchoService`:
 
     ```rust
     func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> string:
@@ -225,7 +236,7 @@ We've successfully built and deployed a service written in Rust, and called it f
         <- res
     ```
     <a id="running-service"></a>
-5. Start the client with our service: `npm run start`
+4. Start the client with our service: `npm run start`
     ```bash
     ...
     > example@1.0.0 start
@@ -236,7 +247,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi", "echo", "msg")'
     ```
 
-6. Open a new terminal in the same registry example directory, and execute the following command to check echo service:
+5. Open a new terminal in the same registry example directory, and execute the following command to check echo service:
 
     ```bash
     $ fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi", "echo", "msg")'
@@ -255,7 +266,7 @@ We've successfully started JS/TS peer with an EchoService and tested it with Flu
 
 As service providers we would like all our echo services to be discoverable without specifying particular peer and service ids, in order to achieve that we should use Registry to **advertise** our services.
 
-Firstly, we need to create a **resource.** A resource represents a group of service providers and has a corresponding resource id for its discovery.  Secondly, we need to register the service providers on this resource id. So the echo services can be discovered and resolved by the resource id only.
+Firstly, we need to create a **resource.** A resource represents a group of services and has a corresponding resource id for its discovery. Secondly, we need to register the service records on this resource id. So the echo services can be discovered and resolved by the resource id only.
 
 1. The following [code](src/aqua/main.aqua#L24) registers resource with label `echo`:
 
@@ -283,36 +294,37 @@ Firstly, we need to create a **resource.** A resource represents a group of serv
     Result:
 
     [
-      "echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77"
+      "5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB"
     ]
     ```
 
-   So the resource id is `echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77`. Please note that the resource id might be different in your case.
+   So the resource id is `5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB`. Please note that the resource id might be different in your case.
 
-    Using the resource id we can access any registered provider of the resource. There can be more registered echo services on different peers that we can use transparently.
+    Using the resource id we can access any registered service. There can be more registered echo services on different peers that we can use transparently.
 
 3. This [code](src/aqua/main.aqua#L28) registers deployed service by given `resource_id`:
 
     ```rust
-    func registerService(resource_id: string) -> bool:
+    func registerService(resource_id: string) -> *bool:
+        results: *bool
         services <- App.services()
-        echoService = services.echoService.default[0]
-        success, error <- registerNodeProvider(echoService.peerId, resource_id, "", ?[echoService.serviceId])
-        <- success
+        for srv <- services.echoService.default:
+            results <- registerServiceRecord(resource_id, "" ,srv.peerId, ?[srv.serviceId])
+        <- results
     ```
 
 4. Register service for resource_id from [the step 2](#resource-id):
 
     ```rust
-    fluence run -f 'registerService("echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77")'
+    fluence run -f 'registerService("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB")'
     ```
 
     output:
 
     ```bash
-    $ fluence run -f 'registerService("echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77")'
+    $ fluence run -f 'registerService("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB")'
     Running:
-      function: registerService("echo12D3KooWCWsJLrG6evQKPEsDmKNbaW8NGj5JhVZfHumSvyx1Zw4c")
+      function: registerService("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB")
       relay: /dns4/kras-05.fluence.dev/tcp/19001/wss/p2p/12D3KooWCMr9mU894i8JXAFqpgoFtx6qnV1LFPSfVc3Y34N4h4LS
     ... done
 
@@ -328,19 +340,19 @@ Firstly, we need to create a **resource.** A resource represents a group of serv
 5. Next, we need to register JS service. For that we have Aqua imports and exports in [src/aqua/export.aqua](src/aqua/export.aqua):
 
     ```
-    import registerProvider from "@fluencelabs/registry/resources-api.aqua"
-    export registerProvider
+    import registerServiceRecord from "@fluencelabs/registry/resources-api.aqua"
+    export registerServiceRecord
     ```
 
 6. In [src/echo.ts](src/echo.ts#L32) we should pass resource id as cmd argument:
 
     ```tsx
-    let [success, error] = await registerProvider(process.argv[2], "echo", serviceId);
+    let [success, error] = await registerServiceRecord(process.argv[2], "echo", peerId, serviceId);
     console.log("registration result: ", success);
     ```
 
 7. So, stop the previous JS client from [the step 5](#running-service) and run
-`npm run start echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77` (Note: resource_id is from [the step 2](#resource-id))
+`npm run start 5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB` (Note: resource_id is from [the step 2](#resource-id))
 output:
 
     ```rust
@@ -358,12 +370,12 @@ We've successfully registered both services, JS/TS and Rust, in Registry and now
 
     ```rust
     func echoAll(resource_id: string, msg: string) -> *string:
-    		-- 2 is the min number of providers we want to find
-        providers <- resolveProviders(resource_id, 2)
+        -- 2 is the min number of peers we want to ask
+        records <- resolveResource(resource_id, 2)
         results: *string
-        for p <- providers:
-            on p.peer_id via p.relay_id:
-                EchoService p.service_id!
+        for r <- records:
+            on r.metadata.peer_id via r.metadata.relay_id:
+                EchoService r.metadata.service_id!
                 results <- EchoService.echo(msg)
         <- results
     ```
@@ -371,14 +383,14 @@ We've successfully registered both services, JS/TS and Rust, in Registry and now
 2. Let’s run all registered echo services with only resource id:
 
     ```bash
-    fluence run -f 'echoAll("echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77", "hi")'
+    fluence run -f 'echoAll("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB", "hi")'
     ```
 
     output:
     ```
-    $ fluence run -f 'echoAll("echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77", "hi")'
+    $ fluence run -f 'echoAll("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB", "hi")'
     Running:
-    function: echoAll("echo12D3KooWRgEgxP4qAyUR5jerwKE1rwTLZoAhJ3YwAhpeSMC5pi77", "hi")
+    function: echoAll("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB", "hi")
     relay: /dns4/kras-06.fluence.dev/tcp/19001/wss/p2p/12D3KooWDUszU2NeWyUVjCXhGEt1MoZrhvdmaQQwtZUriuGN1jTr
     ... done
 
@@ -392,3 +404,62 @@ We've successfully registered both services, JS/TS and Rust, in Registry and now
     ]
     ```
 
+## Remove service record
+
+If we want to remove a service record from resource, we should use `unregisterService` method from Resources API:
+
+```rust
+func unregisterEchoService(resource_id: string) -> *bool:
+    results: *bool
+    services <- App.services()
+    for srv <- services.echoService.default:
+        results <- unregisterService(resource_id, srv.peerId)
+    <- results
+```
+
+1. Let's unregister our deployed EchoService:
+
+    ```bash
+    fluence run -f 'unregisterEchoService("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB")'
+    ```
+    output:
+    ```
+    $ fluence run -f 'unregisterEchoService("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB")'
+    Running:
+        function: unregisterEchoService("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB")
+        relay: /dns4/kras-05.fluence.dev/tcp/19001/wss/p2p/12D3KooWCMr9mU894i8JXAFqpgoFtx6qnV1LFPSfVc3Y34N4h4LS
+    ... done
+
+    Result:
+
+    [
+        [
+            true
+        ]
+    ]
+    ```
+
+2. Let’s run again `echoAll` method:
+
+    ```bash
+    fluence run -f 'echoAll("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB", "hi")'
+    ```
+
+    output:
+    ```
+    $ fluence run -f 'echoAll("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB", "hi")'
+    Running:
+    function: echoAll("5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB", "hi")
+    relay: /dns4/kras-06.fluence.dev/tcp/19001/wss/p2p/12D3KooWDUszU2NeWyUVjCXhGEt1MoZrhvdmaQQwtZUriuGN1jTr
+    ... done
+
+    Result:
+
+    [
+        [
+            "12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN: hi"
+        ]
+    ]
+    ```
+
+So now we know how to add and remove service records for Resource and use it for advertising and discovering services in runtime.
