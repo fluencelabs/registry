@@ -2,20 +2,25 @@
 
 ## Overview
 
-The example shows one of the important Registry use-cases — services advertisement and discovery. So it is about advertisement, discovery and usage by clients with the same Aqua code transparently without any knowledge about particular peer and service ids.
+The example shows one of the important Registry use-cases — services advertisement and discovery. So it is about discovery and usage by clients with the same Aqua code transparently without any knowledge about particular peer and service ids.
 
 In the beginning, we will deploy a Rust echo service and call it with the Fluence CLI.
 Then we will start a JS/TS client with echo service and run it.
 
-Secondly, we will use Registry to call different types of services with exactly one piece of code.
+Secondly, we will use Registry to call registered services with exactly one piece of code without peer and service identifiers.
 And finally, we will show how to remove service records.
 
-## Requirements
+## Note
+If you face any dependencies issue, you can try to use `fluence dependency` to install any version of `aqua`, `marine` and `mrepl` available in npm and cargo registries:
 
-```markdown
-node: >= 16
-rust: rustc 1.63.0-nightly
-@fluencelabs/cli: 0.2.13
+```bash
+$ fluence dependency
+? Select dependency (Use arrow keys)
+  NPM dependencies:
+❯ aqua
+  Cargo dependencies:
+  marine
+  mrepl
 ```
 
 # Set up environment
@@ -23,7 +28,7 @@ rust: rustc 1.63.0-nightly
 1. Install `fluence` cli:
 
     ```bash
-    npm i -g @fluencelabs/cli@0.2.13
+    npm i -g @fluencelabs/cli
     ```
 
 2. Initialize Fluence project:
@@ -36,15 +41,21 @@ rust: rustc 1.63.0-nightly
     Successfully initialized Fluence project template at <your-path-to-registry-repo>/example
     ```
 
-3. You can use [VSCode with Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for syntax highlighting  and better developer experience.
+3. Install dependencies:
+
+    ```bash
+    npm i
+    ```
+
+4. You can use [VSCode with Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for syntax highlighting  and better developer experience.
 
 ## Add echo service in Rust
 
-0. If you have **Apple Silicon** you should install cargo manually, or you can ignore this step otherwise:
+0. If you have **Apple Silicon** you should install `marine` manually, or you can ignore this step otherwise:
 
     ```bash
     # for m1:
-    cargo install marine --version '0.12.1' --root ~/.fluence/cargo
+    cargo install marine --root ~/.fluence/cargo
     ```
 
 1. Add echo service:
@@ -70,11 +81,11 @@ rust: rustc 1.63.0-nightly
     ```
 
 ### Test echo service locally with REPL
-0. If you have **Apple Silicon** you should install mrepl manually, or you can ignore this step otherwise:
+0. If you have **Apple Silicon** you should install `mrepl` manually, or you can ignore this step otherwise:
 
     ```bash
     # for m1:
-    cargo install mrepl --version '0.18.6' --root ~/.fluence/cargo
+    cargo install mrepl --root ~/.fluence/cargo
     ```
 
 1. Run the following command to start REPL:
@@ -185,20 +196,19 @@ You can always test your services before deployment with REPL. Check out [docume
 
     Result:
 
-    "12D3KooWCMr9mU894i8JXAFqpgoFtx6qnV1LFPSfVc3Y34N4h4LS: hi"
+    [
+      [
+        "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi: hi"
+      ]
+    ]
     ```
 
 We've successfully built and deployed a service written in Rust, and called it from our Aqua code using the Fluence CLI.
 
 ## Run echo service in JS/TS:
 
-1. Install dependencies:
 
-    ```bash
-    npm i
-    ```
-
-2. Check out [src/aqua/export.aqua](src/aqua/export.aqua) with an export of EchoService API to JS/TS:
+1. Check out [src/aqua/export.aqua](src/aqua/export.aqua) with an export of EchoService API to JS/TS:
 
     ```bash
     module Export
@@ -206,7 +216,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     export EchoService
     ```
 
-3. The following [code](src/echo.ts#L23) registers a local EchoService:
+2. The following [code](src/echo.ts#L23) registers a local EchoService:
 
     ```tsx
     // register local service with service id "echo"
@@ -216,7 +226,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     }});
     ```
 
-4. The following [code](src/aqua/main.aqua) is calling our local JS/TS peer with `EchoService`:
+3. The following [code](src/aqua/main.aqua) is calling our local JS/TS peer with `EchoService`:
 
     ```rust
     func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> string:
@@ -226,7 +236,7 @@ We've successfully built and deployed a service written in Rust, and called it f
         <- res
     ```
     <a id="running-service"></a>
-5. Start the client with our service: `npm run start`
+4. Start the client with our service: `npm run start`
     ```bash
     ...
     > example@1.0.0 start
@@ -237,7 +247,7 @@ We've successfully built and deployed a service written in Rust, and called it f
     fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi", "echo", "msg")'
     ```
 
-6. Open a new terminal in the same registry example directory, and execute the following command to check echo service:
+5. Open a new terminal in the same registry example directory, and execute the following command to check echo service:
 
     ```bash
     $ fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWFEwNWcHqi9rtsmDhsYcDbRUCDXH84RC4FW6UfsFWaoHi", "echo", "msg")'
