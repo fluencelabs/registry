@@ -123,19 +123,19 @@ func get_my_records(resource_id: string, consistency_level: i16) -> []Record, *E
 - `ack` represents a minimal number of peers that requested for known records
 
 ### How to execute a callback on Resource
-- `executeOnResource(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error`
+- `executeOnProviders(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error`
 
 ```rust
 func call_provider(p: Record):
    -- topological move to a provider via relay
-   on p.peer_id via p.relay_id:
+   on p.metadata.peer_id via p.metadata.relay_id:
        -- resolve and call your service on a provider
        ...
        Op.noop()
 
 -- call on every provider
-func call_everyone(resource_id: String, ack: i16):
-   executeOnResource(resource_id, ack, call_provider)
+func call_everyone(resource_id: string, ack: i16):
+   executeOnProviders(resource_id, ack, call_provider)
 ```
 
 - it is a combination of `resolveResource` and a `for` loop through records with the callback execution
