@@ -63,9 +63,11 @@ npm run start
 
 First, aqua code in [src/aqua/export.aqua](src/aqua/export.aqua) will be compiled to typescript and you will see it in [src/generated/export.ts](src/generated/export.ts).
 
-Then [src/echo.ts](src/echo.ts) will be executed. It registers local js service with serviceId "echo" so anyone who has `relayId`, `peerId` and `serviceId` ("echo") will be able to call it. Leave this fluence js peer running for now
-
-Copy the command from the terminal where you ran JS/TS echo service. This command executes [echoJS](src/aqua/main.aqua#L16) aqua function with arguments: relayId, peerId, serviceId and msg
+Then [src/echo.ts](src/echo.ts) will be executed. It registers local js service with serviceId "echo" so anyone who has `relayId`, `peerId` and `serviceId` ("echo") will be able to call it. Copy the command from the terminal, which will look similar to this: 
+```sh
+fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWSD5PToNiLQwKDXsu8JSysCwUt8BVUJEqCHcDe7P5h45e", "echo", "hi")'
+```
+This command executes [echoJS](src/aqua/main.aqua#L16) aqua function with arguments: relayId, peerId, serviceId and msg
 
 Open another terminal in the same directory, paste the command and run it
 
@@ -94,7 +96,7 @@ You should see output similar to this:
 ]
 ```
 
-This is `resourceId`, which we will use to register our services and then other people will be able to use the same `resourceId` to discover and call our services
+This is `resourceId`, which we will use to register our services and then we will be able to use the same `resourceId` to discover and call our services
 
 To register echo service written in Rust, replace `RESOURCE_ID` and execute
 ```sh
@@ -110,9 +112,9 @@ You should see this output:
   ]
 ]
 ```
-This means the service is registered in Registry and should be accessible by anyone who has only resource id of this service
+This means the service is registered in Registry and should be accessible by anyone who only has `resourceId` of this service
 
-Then you need to stop fluence js peer in the terminal that you previously ran.
+Then you need to stop fluence js peer in the previous terminal that you ran.
 
 To register echo service written in JS/TS on the resource, replace `RESOURCE_ID` and execute
 ```sh
@@ -120,11 +122,11 @@ npm run start -- 'RESOURCE_ID'
 ```
 
 ## Call both services using resourceId
-Go to a different terminal in the same directory, replace `RESOURCE_ID` and execute
+Go to a different terminal in the same directory, replace `RESOURCE_ID` and execute this command to call [echoAll](src/aqua/main.aqua#L33) aqua function
 ```sh
 fluence run -f 'echoAll("RESOURCE_ID", "hi")'
 ```
-to call [echoAll](src/aqua/main.aqua#L33) aqua function, which uses `resourceId` to resolve minimum 2 records with peer and service ids and then uses them to call our services
+It uses `resourceId` to resolve minimum 2 records with peer and service ids and then uses them to call our services
 
 You should see output similar to this:
 ```
