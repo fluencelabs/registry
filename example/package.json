@@ -1,24 +1,20 @@
 {
   "name": "echo",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Fluence Peer with echo service",
-  "main": "src/echo.js",
   "scripts": {
     "compile-aqua": "fluence aqua -i ./src/aqua/export.aqua -o ./src/generated",
-    "build": "npm run compile-aqua && tsc",
-    "prestart": "npm run build",
-    "start": "node src/echo.js"
+    "start": "npm run compile-aqua && npx ts-node src/echo.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "aqua",
+    "dht",
+    "p2p"
+  ],
+  "author": "Fluence Labs",
   "dependencies": {
     "@fluencelabs/fluence": "^0.25.1",
-    "@fluencelabs/fluence-network-environment": "^1.0.13",
-    "@fluencelabs/registry": "file:../aqua",
-    "@fluencelabs/trust-graph": "^3.0.4"
+    "@fluencelabs/fluence-network-environment": "^1.0.13"
   },
-  "devDependencies": {
-    "typescript": "^4.7.4"
-  }
+  "prettier": {}
 }

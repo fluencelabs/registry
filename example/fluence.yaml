@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=.fluence/schemas/fluence.yaml.json
+
+version: 2
+
+services:
+  echoService:
+    get: ./echoService
+    deploy:
+      - deployId: default
+
+dependencies:
+  npm:
+    "@fluencelabs/aqua": 0.7.6-344
+    "@fluencelabs/registry": 0.6.2
+    "@fluencelabs/aqua-lib": 0.4.3
+  cargo:
+    marine: 0.12.4
+    mrepl: 0.18.6
+
