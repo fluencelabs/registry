@@ -3,7 +3,7 @@ module Main
 import App from "deployed.app.aqua"
 import EchoService from "services/echoService.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
-export App, echo, echoJS, registerResource, registerService, echoAll, unregisterEchoService
+export App, echo, echoJS, createRes, registerService, echoAll, unregisterEchoService
 
 func echo(msg: string) -> string:
     services <- App.services() -- Get ids of the deployed services
@@ -19,7 +19,7 @@ func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> stri
         res <- EchoService.echo(msg)
     <- res
 
-func registerResource() -> ?string:
+func createRes() -> ?string:
     resourceId, error <- createResource("echo")
     <- resourceId
 
