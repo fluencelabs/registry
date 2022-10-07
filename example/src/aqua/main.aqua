@@ -3,17 +3,15 @@ module Main
 import App from "deployed.app.aqua"
 import EchoService from "services/echoService.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
-export App, echo, echoJS, registerResource, registerService, echoAll, unregisterEchoService
+export App, echo, echoJS, createRes, registerService, echoAll, unregisterEchoService
 
-func echo(msg: string) -> *string:
-    services <- App.services()
-    results: *string
+func echo(msg: string) -> string:
+    services <- App.services() -- Get ids of the deployed services
 
-    for srv <- services.echoService.default:
-        on srv.peerId:
-            EchoService srv.serviceId
-            results <- EchoService.echo(msg)
-    <- results
+    on services.echoService.default!.peerId: -- on the peer, where echo service is deployed
+        EchoService services.echoService.default!.serviceId -- init EchoService written in rust
+        res <- EchoService.echo(msg) -- call echo function of the echo service
+    <- res
 
 func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> string:
     on peer via relay:
@@ -21,30 +19,30 @@ func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> stri
         res <- EchoService.echo(msg)
     <- res
 
-func registerResource() -> ?string:
-    resource_id, error <- createResource("echo")
-    <- resource_id
+func createRes() -> ?string:
+    resourceId, error <- createResource("echo")
+    <- resourceId
 
-func registerService(resource_id: string) -> *bool:
+func registerService(resourceId: string) -> *bool:
     results: *bool
     services <- App.services()
     for srv <- services.echoService.default:
-        results <- registerServiceRecord(resource_id, "" ,srv.peerId, ?[srv.serviceId])
+        results <- registerServiceRecord(resourceId, "" ,srv.peerId, ?[srv.serviceId])
     <- results
 
-func unregisterEchoService(resource_id: string) -> *bool:
-    results: *bool
-    services <- App.services()
-    for srv <- services.echoService.default:
-        results <- unregisterService(resource_id, srv.peerId)
-    <- results
-
-func echoAll(resource_id: string, msg: string) -> *string:
+func echoAll(resourceId: string, msg: string) -> *string:
     -- 2 is the min number of peers we want to ask
-    records <- resolveResource(resource_id, 2)
+    records <- resolveResource(resourceId, 2)
     results: *string
     for r <- records:
         on r.metadata.peer_id via r.metadata.relay_id:
             EchoService r.metadata.service_id!
             results <- EchoService.echo(msg)
+    <- results
+
+func unregisterEchoService(resourceId: string) -> *bool:
+    results: *bool
+    services <- App.services()
+    for srv <- services.echoService.default:
+        results <- unregisterService(resourceId, srv.peerId)
     <- results

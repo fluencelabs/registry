@@ -82,6 +82,8 @@ pub enum ServiceError {
     InvalidRecordMetadataTimestamp,
     #[error("Record can't be registered in the future")]
     InvalidRecordTimestamp,
+    #[error("Record is already expired")]
+    RecordAlreadyExpired,
     #[error("Tombstone can't be issued in the future")]
     InvalidTombstoneTimestamp,
     #[error("Records to publish should belong to one key id")]
