@@ -63,8 +63,7 @@ impl Storage {
     }
 
     pub fn delete_table(&self, table_name: String) -> Result<(), ServiceError> {
-        let mut statement = self
-            .connection
+        self.connection
             .execute(f!("DROP TABLE IF EXISTS {table_name};"))?;
         Ok(())
     }
@@ -79,7 +78,6 @@ impl Storage {
 
         let expired_timestamp = current_timestamp_sec - config.expired_timeout;
         let deleted_tombstones = self.clear_expired_tombstones(expired_timestamp)?;
-        // delete expired non-host records
         let deleted_records = self.clear_expired_records(expired_timestamp)?;
         let deleted_keys = self.clear_expired_keys(expired_timestamp)?;
 
