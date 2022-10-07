@@ -17,3 +17,6 @@ dependencies:
     marine: 0.12.4
     mrepl: 0.18.6
 
+relays:
+  - /dns4/kras-02.fluence.dev/tcp/19001/wss/p2p/12D3KooWHLxVhUQyAuZe6AHMB29P7wkvTNMn7eDMcsqimJYLKREf
+

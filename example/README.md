@@ -27,7 +27,7 @@ This example shows how to use Registry to discover and call fluence services wit
     ```sh
     npm i
     ```
-4. You can use VSCode with [Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for [Aqua language](https://fluence.dev/docs/aqua-book/getting-started/) syntax highlighting and better developer experience.
+You can also use VSCode with [Aqua extension](https://marketplace.visualstudio.com/items?itemName=FluenceLabs.aqua) for [Aqua language](https://fluence.dev/docs/aqua-book/getting-started/) syntax highlighting and better developer experience.
 
 ## Deploy echo service written in Rust
 
@@ -61,7 +61,7 @@ npm run start
 
 First, aqua code in [src/aqua/export.aqua](src/aqua/export.aqua) will be compiled to typescript and you will see it in [src/generated/export.ts](src/generated/export.ts).
 
-Then [src/echo.ts](src/echo.ts) will be executed. It registers local js service with serviceId "echo", so anyone who has `relayId`, `peerId` and `serviceId` ("echo") will be able to call it. Copy the command from the terminal, which will look similar to this: 
+Then you possibly will have to confirm ts-node installation and [src/echo.ts](src/echo.ts) will be executed. It registers local js service with serviceId "echo", so anyone who has `relayId`, `peerId` and `serviceId` ("echo") will be able to call it. Copy the command from the terminal, which will look similar to this: 
 ```sh
 fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWSD5PToNiLQwKDXsu8JSysCwUt8BVUJEqCHcDe7P5h45e", "echo", "hi")'
 ```

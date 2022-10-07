@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Fluence, KeyPair } from "@fluencelabs/fluence";
+import { Fluence, KeyPair, setLogLevel } from "@fluencelabs/fluence";
 import { krasnodar } from "@fluencelabs/fluence-network-environment";
 import { registerEchoService, registerServiceRecord } from "./generated/export";
 import assert from "node:assert";
@@ -28,6 +28,7 @@ async function main() {
 
   // connect to the Fluence network
   await Fluence.start({ connectTo, KeyPair: keypair });
+  setLogLevel("SILENT");
 
   const peerId = Fluence.getStatus().peerId;
   const relayId = Fluence.getStatus().relayPeerId;
