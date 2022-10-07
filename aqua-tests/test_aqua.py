@@ -7,8 +7,7 @@ def get_sk():
     return ed25519.create_keypair()[0].to_ascii(encoding="base64").decode("utf-8")
 
 def get_relay():
-    c = delegator.run("npx aqua config default_peers stage")
-    c.block()
+    c = delegator.run("npx aqua config default_peers testnet", block=True)
     peers = c.out.strip().split("\n")
     assert len(peers) != 0, c.err
     peer = peers[random.randint(0, len(peers) - 1)]
@@ -29,8 +28,7 @@ def run_aqua(func, args, sk, relay=get_relay()):
 
     command = f"npx aqua run --addr {relay} -f '{call}' -i {file} --sk {sk} -d '{json.dumps(data)}'"
     print(command)
-    c = delegator.run(command)
-    c.block()
+    c = delegator.run(command, block=True)
     if len(c.err) != 0:
         print(c.err)
 
