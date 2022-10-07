@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::{error::ServiceError, defaults::DEFAULT_EXPIRED_AGE};
 use crate::misc::extract_public_key;
+use crate::{defaults::DEFAULT_EXPIRED_AGE, error::ServiceError};
 use fluence_keypair::Signature;
 use marine_rs_sdk::marine;
 use sha2::{Digest, Sha256};
@@ -157,5 +157,4 @@ impl Record {
     pub fn is_expired(&self, current_timestamp_sec: u64) -> bool {
         (current_timestamp_sec - self.timestamp_created) > DEFAULT_EXPIRED_AGE
     }
-
 }
