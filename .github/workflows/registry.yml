@@ -56,3 +56,29 @@ jobs:
       - name: "cargo nextest"
         run: cargo nextest run --release --all-features --no-fail-fast --test-threads=1 --
 
+  aqua-tests:
+    name: "aqua-tests"
+    runs-on: builder
+
+    defaults:
+      run:
+        working-directory: aqua-tests
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "16"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm i
+
+      - name: "Run aqua tests"
+        run: pytest -n auto
