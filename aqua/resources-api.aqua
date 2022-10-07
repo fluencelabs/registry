@@ -116,7 +116,7 @@ func registerServiceRecord(resource_id: ResourceId, value: string, peer_id: Peer
 
 
 func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error:
-  success: *bool
+  success: ?bool
   error: *Error
 
   on HOST_PEER_ID:
@@ -165,10 +165,11 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
 
   <- succ, error
 
-func resolveResource(resource_id: ResourceId, ack: i16) -> []Record, *Error:
+func resolveResource(resource_id: ResourceId, ack: i16) -> ?[]Record, *Error:
   on HOST_PEER_ID:
     nodes <- getNeighbors(resource_id)
-    res: *[]Record
+    result: ?[]Record
+    records: *[]Record
     error: *Error
     successful: *bool
     for n <- nodes par:
@@ -177,7 +178,7 @@ func resolveResource(resource_id: ResourceId, ack: i16) -> []Record, *Error:
           t <- Peer.timestamp_sec()
           get_result <- Registry.get_records(resource_id, t)
           if get_result.success:
-            res <<- get_result.result
+            records <<- get_result.result
             successful <<- true
           else:
             error <<- get_result.error
@@ -185,17 +186,25 @@ func resolveResource(resource_id: ResourceId, ack: i16) -> []Record, *Error:
     success <- wait(successful, ack, DEFAULT_TIMEOUT)
     if success == false:
       error <<- "timeout exceeded"
-
-    result <- Registry.merge(res)
-    if result.success == false:
-      error <<- result.error
-  <- result.result, error
+    else:
+      merged <- Registry.merge(records)
+      if merged.success == false:
+        error <<- merged.error
+      else:
+        result <<- merged.result
+  <- result, error
 
 -- Execute the given call on providers
 -- Note that you can provide another Aqua function as an argument to this one
-func executeOnProviders(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error:
-  providers, error <- resolveResource(resource_id, ack)
-  for r <- providers par:
-    on r.metadata.peer_id via r.metadata.relay_id:
-      call(r)
-  <- error
+func executeOnResource(resource_id: ResourceId, ack: i16, call: Record -> ()) -> bool, *Error:
+  success: ?bool
+  result, error <- resolveResource(resource_id, ack)
+
+  if result == nil:
+    success <<- false
+  else:
+    for r <- result! par:
+      on r.metadata.peer_id via r.metadata.relay_id:
+        call(r)
+    success <<- true
+  <- success!, error
