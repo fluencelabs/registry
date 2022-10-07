@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::error::ServiceError;
+use crate::{error::ServiceError, defaults::DEFAULT_EXPIRED_AGE};
 use crate::misc::extract_public_key;
 use fluence_keypair::Signature;
 use marine_rs_sdk::marine;
@@ -136,6 +136,10 @@ impl Record {
             return Err(ServiceError::InvalidRecordTimestamp);
         }
 
+        if self.is_expired(current_timestamp_sec) {
+            return Err(ServiceError::RecordAlreadyExpired);
+        }
+
         self.metadata.verify(current_timestamp_sec)?;
 
         let pk = extract_public_key(self.metadata.peer_id.clone())?;
@@ -149,4 +153,9 @@ impl Record {
             )
         })
     }
+
+    pub fn is_expired(&self, current_timestamp_sec: u64) -> bool {
+        (current_timestamp_sec - self.timestamp_created) > DEFAULT_EXPIRED_AGE
+    }
+
 }
