@@ -75,13 +75,13 @@ func my_resource() -> ?ResourceId, *Error:
 - `*Error` accumulates errors from all the affected peers
 ### How to register a service
   ```
-  registerServiceRecord(resource_id: ResourceId, value: string, peer_id: string service_id: ?string) -> bool, *Error
+  registerService(resource_id: ResourceId, value: string, peer_id: string service_id: ?string) -> bool, *Error
   ```
 
 Let's register a local service `greeting` and pass a random string `hi` as a value:
 ```rust
 func register_local_service(resource_id: string) -> ?bool, *Error:
-   success, error <- registerServiceRecord(resource_id, "hi", INIT_PEER_ID, ?[greeting])
+   success, error <- registerService(resource_id, "hi", INIT_PEER_ID, ?[greeting])
    <- success, error
 ```
 
@@ -89,7 +89,7 @@ func register_local_service(resource_id: string) -> ?bool, *Error:
 Let's register a service `echo` hosted on `peer_id` and pass a random string like `sample` as a value:
 ```rust
 func register_external_service(resource_id: string, peer_id: string) -> ?bool, *Error:
-   success, error <- registerServiceRecord(resource_id, "hi", peer_id, ?[greeting])
+   success, error <- registerService(resource_id, "hi", peer_id, ?[greeting])
    <- success, error
 ```
 
