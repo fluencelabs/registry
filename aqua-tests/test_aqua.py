@@ -85,7 +85,8 @@ def test_register_record_unregister():
     result, error = run_aqua("registerServiceRecord", [resource_id, value, peer_id, service_id], sk, relay)
     assert result, error
 
-    result, error = run_aqua("resolveResource", [resource_id, 2], sk, relay)
+    # we want at least 1 successful response
+    result, error = run_aqua("resolveResource", [resource_id, 1], sk, relay)
     assert len(result) == 1, error
 
     records = result[0]
