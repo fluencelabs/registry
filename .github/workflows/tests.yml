@@ -94,7 +94,7 @@ jobs:
 
       # TODO run an aqua script in a loop to check
       - name: Wait for registry to be deployed
-        run: sleep 20
+        run: sleep 40
 
       - name: Run aqua tests
         run: pytest -n auto
