@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { Fluence, KeyPair, setLogLevel } from "@fluencelabs/fluence";
-import { stage } from "@fluencelabs/fluence-network-environment";
+import { testNet } from "@fluencelabs/fluence-network-environment";
 import { registerEchoService, registerServiceRecordRecord } from "./generated/export";
 import assert from "node:assert";
 
@@ -23,7 +23,7 @@ const secretKey = "Iz3HUmNIB78lkNNVmMkDKrju0nCivtkJNyObrFAr774=";
 
 async function main() {
   const keypair = await KeyPair.fromEd25519SK(Buffer.from(secretKey, "base64"));
-  const connectTo = stage[0];
+  const connectTo = testNet[0];
   assert(connectTo !== undefined);
 
   // connect to the Fluence network
