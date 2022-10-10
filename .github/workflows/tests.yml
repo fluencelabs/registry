@@ -108,6 +108,11 @@ jobs:
       - name: Pull rust-peer image
         run: docker pull $RUST_PEER_IMAGE
 
+      - name: Setup docker-compose
+        uses: KengoTODA/actions-setup-docker-compose@v1.0.9
+        with:
+          version: 'v2.10.0'
+
       - name: Run rust-peer
         uses: isbang/compose-action@v1.1.0
         with:
