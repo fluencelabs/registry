@@ -23,7 +23,7 @@ env:
 jobs:
   aqua:
     name: "Run aqua tests"
-    runs-on: ubuntu-latest
+    runs-on: builder
 
     permissions:
       contents: read
