@@ -53,6 +53,10 @@ def create_resource(label, sk):
 def get_peer_id(sk):
     return run_aqua("get_peer_id", [], sk)
 
+def test_aqua_version():
+    c = delegator.run("npx aqua --version", block=True)
+    assert c.out.strip() == "v0.0.1-bug-VM-168-temporary-hack-for-canon-eb5f143-173-1.0"
+
 def test_create_resource():
     sk = get_sk()
     label = "some_label"
