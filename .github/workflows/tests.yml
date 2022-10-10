@@ -92,6 +92,10 @@ jobs:
         if: inputs.aqua-version != ''
         run: npm i @fluencelabs/aqua@${{ inputs.aqua-version }}
 
+      # TODO run an aqua script in a loop to check
+      - name: Wait for registry to be deployed
+        run: sleep 20
+
       - name: Run aqua tests
         run: pytest -n auto
 
