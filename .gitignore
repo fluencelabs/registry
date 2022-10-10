@@ -13,3 +13,5 @@ registry.tar.gz
 # Remove after https://github.com/fluencelabs/aqua/issues/287
 aqua/target/typescript/**
 example/src/generated/**
+
+**/__pycache__

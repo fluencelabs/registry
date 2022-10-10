@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 import { Fluence, KeyPair, setLogLevel } from "@fluencelabs/fluence";
-import { krasnodar } from "@fluencelabs/fluence-network-environment";
-import { registerEchoService, registerServiceRecord } from "./generated/export";
+import { testNet } from "@fluencelabs/fluence-network-environment";
+import { registerEchoService, registerServiceRecordRecord } from "./generated/export";
 import assert from "node:assert";
 
 // don't store your secret key in the code. This is just for the example
@@ -23,7 +23,7 @@ const secretKey = "Iz3HUmNIB78lkNNVmMkDKrju0nCivtkJNyObrFAr774=";
 
 async function main() {
   const keypair = await KeyPair.fromEd25519SK(Buffer.from(secretKey, "base64"));
-  const connectTo = krasnodar[0];
+  const connectTo = testNet[0];
   assert(connectTo !== undefined);
 
   // connect to the Fluence network
@@ -52,11 +52,11 @@ async function main() {
     console.log(
       `
   Copy this code to call this service:
-  
+
   fluence run -f 'echoJS("${peerId}", "${relayId}", "${serviceId}", "hi")'`
     );
   } else {
-    const [success, error] = await registerServiceRecord(
+    const [success, error] = await registerServiceRecordRecord(
       resourceId,
       "echo",
       peerId,

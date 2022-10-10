@@ -2,8 +2,8 @@ module Main
 
 import App from "deployed.app.aqua"
 import EchoService from "services/echoService.aqua"
-import "@fluencelabs/registry/resources-api.aqua"
-export App, echo, echoJS, createRes, registerService, echoAll, unregisterEchoService
+import "../../aqua/resources-api.aqua"
+export App, echo, echoJS, createRes, registerEchoService, echoAll, unregisterEchoService
 
 func echo(msg: string) -> string:
     services <- App.services() -- Get ids of the deployed services
@@ -23,7 +23,7 @@ func createRes() -> ?string:
     resourceId, error <- createResource("echo")
     <- resourceId
 
-func registerService(resourceId: string) -> *bool:
+func registerEchoService(resourceId: string) -> *bool:
     results: *bool
     services <- App.services()
     for srv <- services.echoService.default:
@@ -34,7 +34,7 @@ func echoAll(resourceId: string, msg: string) -> *string:
     -- 2 is the min number of peers we want to ask
     records <- resolveResource(resourceId, 2)
     results: *string
-    for r <- records:
+    for r <- records!:
         on r.metadata.peer_id via r.metadata.relay_id:
             EchoService r.metadata.service_id!
             results <- EchoService.echo(msg)
