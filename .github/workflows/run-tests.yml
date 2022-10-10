@@ -1,4 +1,4 @@
-name: registry
+name: Run tests
 
 on:
   pull_request:
