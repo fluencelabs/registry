@@ -56,7 +56,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
   <- resource_id, error
 
 -- Note: resource must be already created
-func registerService(resource_id: ResourceId, value: string, peer_id: PeerId, service_id: ?string) -> bool, *Error:
+func registerServiceRecord(resource_id: ResourceId, value: string, peer_id: PeerId, service_id: ?string) -> bool, *Error:
   relay_id: ?string
   if peer_id == INIT_PEER_ID:
     relay_id <<- HOST_PEER_ID
@@ -126,7 +126,7 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
       error <<- sig_result.error!
       success <<- false
     else:
-      key, error_get <- getResource(resource_id)
+      key, error_get <- getResourceHelper(resource_id)
       if key == nil:
         appendErrors(error, error_get)
         success <<- false

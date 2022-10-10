@@ -2,12 +2,7 @@ module Test
 
 import "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
-export test, createResource, getResourceId, getResource, get_peer_id, registerService, resolveResource, unregisterService
+export getResource, createResource, getResourceId, get_peer_id, registerServiceRecord, resolveResource, unregisterService
 
 func get_peer_id() -> PeerId:
     <- INIT_PEER_ID
-
-func test(a: ?string) -> u32:
-    on HOST_PEER_ID:
-        len <- Op.array_length(a)
-    <- len

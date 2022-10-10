@@ -6,12 +6,15 @@ This example shows how to use Registry to discover and call fluence services wit
 
 ## Table of contents:
 
-1. [Set up the environment](#set-up-the-environment)
-2. [Deploy echo service written in Rust](#deploy-echo-service-written-in-rust)
-3. [Run echo service written in JS/TS](#run-echo-service-written-in-jsts)
-4. [Register both services in Registry](#register-both-services-using-registry)
-5. [Call both services using resourceId](#call-both-services-using-resourceid)
-6. [Remove service record](#remove-service-record)
+- [Services advertisement and discovery](#services-advertisement-and-discovery)
+  - [Overview](#overview)
+  - [Table of contents:](#table-of-contents)
+  - [Set up the environment](#set-up-the-environment)
+  - [Deploy echo service written in Rust](#deploy-echo-service-written-in-rust)
+  - [Run echo service written in JS/TS](#run-echo-service-written-in-jsts)
+  - [Register both services using Registry](#register-both-services-using-registry)
+  - [Call both services using resourceId](#call-both-services-using-resourceid)
+  - [Remove service record](#remove-service-record)
 
 ## Set up the environment
 
@@ -31,7 +34,7 @@ You can also use VSCode with [Aqua extension](https://marketplace.visualstudio.c
 
 ## Deploy echo service written in Rust
 
-To deploy the Fluence application execute 
+To deploy the Fluence application execute
 ```sh
 fluence deploy
 ```
@@ -61,7 +64,7 @@ npm run start
 
 First, aqua code in [src/aqua/export.aqua](src/aqua/export.aqua) will be compiled to typescript and you will see it in [src/generated/export.ts](src/generated/export.ts).
 
-Then you possibly will have to confirm ts-node installation and [src/echo.ts](src/echo.ts) will be executed. It registers local js service with serviceId "echo", so anyone who has `relayId`, `peerId` and `serviceId` ("echo") will be able to call it. Copy the command from the terminal, which will look similar to this: 
+Then you possibly will have to confirm ts-node installation and [src/echo.ts](src/echo.ts) will be executed. It registers local js service with serviceId "echo", so anyone who has `relayId`, `peerId` and `serviceId` ("echo") will be able to call it. Copy the command from the terminal, which will look similar to this:
 ```sh
 fluence run -f 'echoJS("12D3KooWCmnhnGvKTqEXpVLzdrYu3TkQ3HcLyArGJpLPooJQ69dN", "12D3KooWSD5PToNiLQwKDXsu8JSysCwUt8BVUJEqCHcDe7P5h45e", "echo", "hi")'
 ```
@@ -98,9 +101,9 @@ It is `resourceId`, which we will use to register our services, and then we will
 
 To register the `echo` service written in Rust, replace `RESOURCE_ID` and execute
 ```sh
-fluence run -f 'registerService("RESOURCE_ID")'
+fluence run -f 'registerServiceRecord("RESOURCE_ID")'
 ```
-This command calls [registerService](src/aqua/main.aqua#L26) aqua function, which uses `registerService` function from Resources API to register the rust service on this `resourceId`
+This command calls [registerServiceRecord](src/aqua/main.aqua#L26) aqua function, which uses `registerServiceRecord` function from Resources API to register the rust service on this `resourceId`
 
 You should see this output:
 ```

@@ -2,13 +2,22 @@ import delegator
 import random
 import json
 import ed25519
+import os
+from config import get_local
 
 def get_sk():
     return ed25519.create_keypair()[0].to_ascii(encoding="base64").decode("utf-8")
 
 def get_relay():
-    c = delegator.run("npx aqua config default_peers testnet", block=True)
-    peers = c.out.strip().split("\n")
+    env = os.environ.get("FLUENCE_ENV")
+    if env == "local":
+        peers = get_local()
+    else:
+        if env is None:
+            env = "testnet"
+        c = delegator.run(f"npx aqua config default_peers {env}", block=True)
+        peers = c.out.strip().split("\n")
+
     assert len(peers) != 0, c.err
     peer = peers[random.randint(0, len(peers) - 1)]
     assert len(peer) != 0, c.err
