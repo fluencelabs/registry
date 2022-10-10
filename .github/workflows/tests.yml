@@ -141,3 +141,7 @@ jobs:
       - name: Dump rust-peer logs on failure
         if: failure()
         uses: jwalton/gh-docker-logs@v1
+
+      - name: Remove registry directory
+        if: always()
+        run: sudo rm -rf registry
