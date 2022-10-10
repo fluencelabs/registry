@@ -84,6 +84,7 @@ jobs:
           node-version: "16"
           registry-url: "https://npm.fluence.dev"
           cache: "npm"
+          cache-dependency-path: "aqua-tests/package-lock.json"
 
       - run: npm install
 

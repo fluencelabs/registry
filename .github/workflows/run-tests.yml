@@ -40,7 +40,7 @@ jobs:
         run: ./build.sh
 
       - name: Run cargo fmt
-        uses: actions-rust-lang/rustfmt@v1
+        uses: cargo fmt --all -- --check
 
       - name: Run cargo clippy
         run: cargo clippy -Z unstable-options --all
