@@ -68,7 +68,7 @@ jobs:
 
       - name: Set aqua version from branch
         if: inputs.aqua-version != ''
-        run: npm i --save-dev @fluencelabs/aqua@${{ inputs.aqua-version }}
+        run: npm i --save-dev -E @fluencelabs/aqua@${{ inputs.aqua-version }}
         working-directory: aqua
 
       - name: Run npm install in aqua-tests
@@ -77,7 +77,7 @@ jobs:
 
       - name: Set aqua version from branch
         if: inputs.aqua-version != ''
-        run: npm i --save-dev @fluencelabs/aqua@${{ inputs.aqua-version }}
+        run: npm i --save-dev -E @fluencelabs/aqua@${{ inputs.aqua-version }}
         working-directory: aqua-tests
 
       - name: Setup rust toolchain
