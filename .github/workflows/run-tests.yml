@@ -44,6 +44,7 @@ jobs:
 
       - name: Run cargo clippy
         run: cargo clippy -Z unstable-options --all
+        continue-on-error: true
 
       - name: Install cargo-nextest
         uses: baptiste0928/cargo-install@v1
