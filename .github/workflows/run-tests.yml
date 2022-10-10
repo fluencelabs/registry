@@ -16,6 +16,8 @@ concurrency:
 jobs:
   aqua:
     uses: ./.github/workflows/tests.yml
+    with:
+      ref: ${{ github.ref }}
 
   cargo:
     name: "Run cargo tests"
