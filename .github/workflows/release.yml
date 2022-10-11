@@ -3,7 +3,7 @@ name: "publish-release"
 on:
   push:
     tags:
-      - "v*"
+      - "*"
 
 jobs:
   npm-publish:
