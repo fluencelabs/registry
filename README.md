@@ -169,12 +169,8 @@ If you have a list of service records updated in runtime, you can create a load-
 
 API is defined in the [resources-api.aqua](./aqua/resources-api.aqua) module. API Reference will be available in the documentation soon.
 
-
-## References
-- [Registry documentation](https://fluence.dev/aqua-book/libraries/registry).
-
 ### Learn Aqua
 
-* [Aqua Book](https://fluence.dev/aqua-book/)
+* [Aqua Book](https://fluence.dev/docs/aqua-book/getting-started/)
 * [Aqua Playground](https://github.com/fluencelabs/aqua-playground)
 * [Aqua repo](https://github.com/fluencelabs/aqua)
