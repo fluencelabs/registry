@@ -2,11 +2,10 @@
   "name": "aqua-tests",
   "version": "1.0.0",
   "description": "Aqua Registry library",
-
   "dependencies": {
     "@fluencelabs/aqua-lib": "^0.5.1",
-    "@fluencelabs/trust-graph": "^3.0.1",
-    "@fluencelabs/registry": "file:../aqua"
+    "@fluencelabs/registry": "file:../aqua",
+    "@fluencelabs/trust-graph": "^3.0.1"
   },
   "scripts": {
     "compile-aqua": "aqua -i . -o ./target/typescript",
@@ -29,6 +28,6 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/aqua": "0.7.6-344"
+    "@fluencelabs/aqua": "0.7.7-350"
   }
 }
