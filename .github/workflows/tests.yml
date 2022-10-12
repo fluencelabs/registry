@@ -134,8 +134,12 @@ jobs:
       - name: Wait for registry to be deployed
         run: sleep 40
 
+      - name: Print aqua version
+        run: pytest -s test_aqua_version.py
+        working-directory: aqua-tests
+
       - name: Run aqua tests
-        run: pytest -n auto
+        run: pytest -n auto test_aqua.py
         working-directory: aqua-tests
 
       - name: Dump rust-peer logs on failure
