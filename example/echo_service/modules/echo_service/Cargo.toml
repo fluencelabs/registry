@@ -1,10 +1,10 @@
 [package]
-name = "echoService"
+name = "echo_service"
 version = "0.1.0"
 edition = "2018"
 
 [[bin]]
-name = "echoService"
+name = "echo_service"
 path = "src/main.rs"
 
 [dependencies]

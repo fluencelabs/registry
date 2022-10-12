@@ -1,15 +1,15 @@
 module Main
 
 import App from "deployed.app.aqua"
-import EchoService from "services/echoService.aqua"
+import EchoService from "services/echo_service.aqua"
 import "../../aqua/resources-api.aqua"
 export App, echo, echoJS, createRes, registerEchoService, echoAll, unregisterEchoService
 
 func echo(msg: string) -> string:
     services <- App.services() -- Get ids of the deployed services
 
-    on services.echoService.default!.peerId: -- on the peer, where echo service is deployed
-        EchoService services.echoService.default!.serviceId -- init EchoService written in rust
+    on services.echo_service.default!.peerId: -- on the peer, where echo service is deployed
+        EchoService services.echo_service.default!.serviceId -- init EchoService written in rust
         res <- EchoService.echo(msg) -- call echo function of the echo service
     <- res
 
@@ -26,7 +26,7 @@ func createRes() -> ?string:
 func registerEchoService(resourceId: string) -> *bool:
     results: *bool
     services <- App.services()
-    for srv <- services.echoService.default:
+    for srv <- services.echo_service.default:
         results <- registerServiceRecord(resourceId, "" ,srv.peerId, ?[srv.serviceId])
     <- results
 
@@ -43,6 +43,6 @@ func echoAll(resourceId: string, msg: string) -> *string:
 func unregisterEchoService(resourceId: string) -> *bool:
     results: *bool
     services <- App.services()
-    for srv <- services.echoService.default:
+    for srv <- services.echo_service.default:
         results <- unregisterService(resourceId, srv.peerId)
     <- results

@@ -40,7 +40,7 @@ fluence deploy
 ```
 Press Enter when prompted `? Do you want to deploy all of these services? (Y/n)`
 
-This Fluence application, described in [fluence.yaml](fluence.yaml), consists of just one [echo service](./echoService) which has only one [module](./echoService/modules/echoService/) written in Rust. [The module code](echoService/modules/echoService/src/main.rs) has only one function [echo](echoService/modules/echoService/src/main.rs#L9), which returns your `msg` along with peerId of the host:
+This Fluence application, described in [fluence.yaml](fluence.yaml), consists of just one [echo service](./echo_service) which has only one [module](./echo_service/modules/echo_service/) written in Rust. [The module code](echo_service/modules/echo_service/src/main.rs) has only one function [echo](echo_service/modules/echo_service/src/main.rs#L9), which returns your `msg` along with peerId of the host:
 
 To call [echo](src/aqua/main.aqua#L8) aqua function execute:
 ```sh
@@ -101,9 +101,9 @@ It is `resourceId`, which we will use to register our services, and then we will
 
 To register the `echo` service written in Rust, replace `RESOURCE_ID` and execute
 ```sh
-fluence run -f 'registerServiceRecord("RESOURCE_ID")'
+fluence run -f 'registerEchoService("RESOURCE_ID")'
 ```
-This command calls [registerServiceRecord](src/aqua/main.aqua#L26) aqua function, which uses `registerServiceRecord` function from Resources API to register the rust service on this `resourceId`
+This command calls [registerEchoService](src/aqua/main.aqua#L26) aqua function, which uses `registerServiceRecord` function from Resources API to register the rust service on this `resourceId`
 
 You should see this output:
 ```
