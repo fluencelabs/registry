@@ -2,4 +2,4 @@
 
 version: 0
 type: rust
-name: echoService
+name: echo_service

@@ -1,4 +1,4 @@
 module Export
-import "services/echoService.aqua"
+import "services/echo_service.aqua"
 import registerServiceRecord from  "../../aqua/resources-api.aqua"
 export EchoService, registerServiceRecord
