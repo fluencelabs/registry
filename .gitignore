@@ -9,6 +9,7 @@ registry.tar.gz
 **/.DS_Store
 **/node_modules
 **/dist
+*.drawio
 
 # Remove after https://github.com/fluencelabs/aqua/issues/287
 aqua/target/typescript/**
