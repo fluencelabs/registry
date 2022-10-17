@@ -169,7 +169,7 @@ func callEveryone(resource_id: ResourceId, ack: i16):
 Resources with corresponding records and tombstones are automatically and periodically replicated to the Kademlia neighborhood of `resource_id`.
 
 ### Notes
-You can redefine [`REPLICATION_FACTOR`](https://github.com/fluencelabs/registry/blob/main/aqua/resources-api.aqua#L10) and [`CONSISTENCY_LEVEL`](https://github.com/fluencelabs/registry/blob/main/aqua/resources-api.aqua#L11).
+You can redefine [`INITIAL_REPLICATION_FACTOR`](https://github.com/fluencelabs/registry/blob/main/aqua/resources-api.aqua#L10) and [`CONSISTENCY_LEVEL`](https://github.com/fluencelabs/registry/blob/main/aqua/resources-api.aqua#L11). The first constant is used to define the number of peers to which data will be replicated during the API call. This constant doesn't affect the network-wide replication factor, which is defined by Kademlia. The second constant defines the minimal number of peers requested to obtain the data.
 
 ## Use cases
 
