@@ -50,7 +50,7 @@ jobs:
         run: cargo clippy -Z unstable-options --all
 
       - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v1
+        uses: baptiste0928/cargo-install@v1.3.0
         with:
           crate: cargo-nextest
 

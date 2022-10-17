@@ -13,7 +13,7 @@
       - [createResource](#createresource)
       - [getResource](#getresource)
       - [getResourceId](#getresourceid)
-      - [registerServiceRecord](#registerservicerecord)
+      - [registerService](#registerService)
       - [unregisterService](#unregisterservice)
       - [resolveResource](#resolveresource)
       - [executeOnResource](#executeonresource)
@@ -138,9 +138,9 @@ func getResourceId(label: string, peer_id: string) -> ResourceId:
 ```
 
 Returns a deterministic hash of the `label` and the `peer_id`.
-#### registerServiceRecord
+#### registerService
 ```rust
-func registerServiceRecord(
+func registerService(
     resource_id: ResourceId,
     value: string,
     peer_id: PeerId,

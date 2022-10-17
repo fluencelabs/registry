@@ -103,7 +103,7 @@ To register the `echo` service written in Rust, replace `RESOURCE_ID` and execut
 ```sh
 fluence run -f 'registerEchoService("RESOURCE_ID")'
 ```
-This command calls [registerEchoService](src/aqua/main.aqua#L26) aqua function, which uses `registerServiceRecord` function from Resources API to register the rust service on this `resourceId`
+This command calls [registerEchoService](src/aqua/main.aqua#L26) aqua function, which uses `registerService` function from Resources API to register the rust service on this `resourceId`
 
 You should see this output:
 ```
