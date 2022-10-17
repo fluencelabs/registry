@@ -46,7 +46,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
             else:
               error <<- res.error
 
-      success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+      success <- wait(successful, INITIAL_REPLICATION_FACTOR, DEFAULT_TIMEOUT)
 
       if success == false:
         error <<- "resource wasn't created: timeout exceeded"
@@ -106,7 +106,7 @@ func registerServiceRecord(resource_id: ResourceId, value: string, peer_id: Peer
                     successful <<- true
                   else:
                     error <<- put_res.error
-          success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+          success <- wait(successful, INITIAL_REPLICATION_FACTOR, DEFAULT_TIMEOUT)
 
   succ = success!
   if succ == false:
@@ -157,7 +157,7 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
                   successful <<- true
                 else:
                   error <<- add_res.error
-        success <- wait(successful, REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+        success <- wait(successful, INITIAL_REPLICATION_FACTOR, DEFAULT_TIMEOUT)
 
   succ = success!
   if succ == false:

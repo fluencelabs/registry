@@ -1,4 +1,6 @@
-
-const REPLICATION_FACTOR = 1
+-- the number of peers to which data will be replicated during the API call
+const INITIAL_REPLICATION_FACTOR = 1
+-- the minimal number of peers requested to obtain the data.
 const CONSISTENCY_LEVEL = 1
+-- default timeout for waiting for results
 const DEFAULT_TIMEOUT = 6000
