@@ -15,7 +15,7 @@
  */
 import { Fluence, KeyPair, setLogLevel } from "@fluencelabs/fluence";
 import { stage } from "@fluencelabs/fluence-network-environment";
-import { registerEchoService, registerServiceRecord } from "./generated/export";
+import { registerEchoService, registerService } from "./generated/export";
 import assert from "node:assert";
 
 // don't store your secret key in the code. This is just for the example
@@ -56,7 +56,7 @@ async function main() {
   fluence run -f 'echoJS("${peerId}", "${relayId}", "${serviceId}", "hi")'`
     );
   } else {
-    const [success, error] = await registerServiceRecord(
+    const [success, error] = await registerService(
       resourceId,
       "echo",
       peerId,

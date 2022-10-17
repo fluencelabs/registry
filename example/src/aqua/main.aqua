@@ -27,7 +27,7 @@ func registerEchoService(resourceId: string) -> *bool:
     results: *bool
     services <- App.services()
     for srv <- services.echo_service.default:
-        results <- registerServiceRecord(resourceId, "" ,srv.peerId, ?[srv.serviceId])
+        results <- registerService(resourceId, "" ,srv.peerId, ?[srv.serviceId])
     <- results
 
 func echoAll(resourceId: string, msg: string) -> *string:

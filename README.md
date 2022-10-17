@@ -98,13 +98,13 @@ For now there is no method for Resource removal but it can be expired and garbag
 
 ### How to register a service
   ```
-  registerServiceRecord(resource_id: ResourceId, value: string, peer_id: string service_id: ?string) -> bool, *Error
+  registerService(resource_id: ResourceId, value: string, peer_id: string service_id: ?string) -> bool, *Error
   ```
 
 Let's register a local service `greeting` and pass a random string `hi` as a value:
 ```rust
 func registerLocalService(resource_id: ResourceId) -> ?bool, *Error:
-   success, error <- registerServiceRecord(resource_id, "hi", INIT_PEER_ID, ?[greeting])
+   success, error <- registerService(resource_id, "hi", INIT_PEER_ID, ?[greeting])
    <- success, error
 ```
 
@@ -112,7 +112,7 @@ func registerLocalService(resource_id: ResourceId) -> ?bool, *Error:
 Let's register a service `echo` hosted on `peer_id` and pass a random string like `sample` as a value:
 ```rust
 func registerExternalService(resource_id: ResourceId, peer_id: PeerId) -> ?bool, *Error:
-   success, error <- registerServiceRecord(resource_id, "hi", peer_id, ?[greeting])
+   success, error <- registerService(resource_id, "hi", peer_id, ?[greeting])
    <- success, error
 ```
 
