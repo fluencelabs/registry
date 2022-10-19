@@ -73,9 +73,9 @@ npm i @fluencelabs/registry@nightly
 import "@fluencelabs/registry/resources-api.aqua"
 import "@fluencelabs/registry/registry-service.aqua"
 
-func myFunction(resource_id: string) ->  []Record, *Error:
-   result, error <- resolveResource(resource_id, 2)
-   <- result, error
+func myFunction(resource_id: string) ->  ?[]Record, *Error:
+   result, errors <- resolveResource(resource_id, 2)
+   <- result, errors
 ```
 
 ### How to create a Resource
@@ -84,8 +84,8 @@ func myFunction(resource_id: string) ->  []Record, *Error:
 Let's register a resource with the label `sample` by `INIT_PEER_ID`:
 ```rust
 func my_resource() -> ?ResourceId, *Error:
-   id, error <- createResource("sample")
-   <- id, error
+   id, errors <- createResource("sample")
+   <- id, errors
 ```
 
 - `label` is a unique string for the peer id
@@ -103,17 +103,17 @@ For now there is no method for Resource removal but it can be expired and garbag
 
 Let's register a local service `greeting` and pass a random string `hi` as a value:
 ```rust
-func registerLocalService(resource_id: ResourceId) -> ?bool, *Error:
-   success, error <- registerService(resource_id, "hi", INIT_PEER_ID, ?[greeting])
-   <- success, error
+func registerLocalService(resource_id: ResourceId) -> bool, *Error:
+   success, errors <- registerService(resource_id, "hi", INIT_PEER_ID, ?[greeting])
+   <- success, errors
 ```
 
 
 Let's register a service `echo` hosted on `peer_id` and pass a random string like `sample` as a value:
 ```rust
-func registerExternalService(resource_id: ResourceId, peer_id: PeerId) -> ?bool, *Error:
-   success, error <- registerService(resource_id, "hi", peer_id, ?[greeting])
-   <- success, error
+func registerExternalService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error:
+   success, errors <- registerService(resource_id, "hi", peer_id, ?[greeting])
+   <- success, errors
 ```
 
 - `value` is a user-defined string that can be used at the discretion of the user
@@ -134,11 +134,11 @@ func stopProvideExternalService(resource_id: ResourceId, peer_id: PeerId):
 - it will be removed from the target node and eventually from the network
 
 ### How to resolve service records
-- `resolveResource(resource_id: ResourceId, ack: i16) -> []Record, *Error`
+- `resolveResource(resource_id: ResourceId, ack: i16) -> ?[]Record, *Error`
 
 Let's resolve all service records for our resource_id:
 ```rust
-func getMyRecords(resource_id: ResourceId, consistency_level: i16) -> []Record, *Error:
+func getMyRecords(resource_id: ResourceId, consistency_level: i16) -> ?[]Record, *Error:
    records, error <- resolveResource(resource_id, consistency_level)
    <- records, error
 ```
@@ -146,7 +146,7 @@ func getMyRecords(resource_id: ResourceId, consistency_level: i16) -> []Record, 
 - `ack` represents a minimal number of peers that requested for known records
 
 ### How to execute a callback on Resource
-- `executeOnResource(resource_id: ResourceId, ack: i16, call: Record -> ()) -> *Error`
+- `executeOnResource(resource_id: ResourceId, ack: i16, call: Record -> ()) -> bool, *Error`
 
 ```rust
 func callProvider(r: Record):
@@ -157,8 +157,8 @@ func callProvider(r: Record):
        MyService.do_smth()
 
 -- call on every provider
-func callEveryone(resource_id: ResourceId, ack: i16):
-   executeOnResource(resource_id, ack, callProvider)
+func callEveryone(resource_id: ResourceId, ack: i16) -> bool, *Error:
+   success, errors <- executeOnResource(resource_id, ack, callProvider)
 ```
 
 - it is a combination of `resolveResource` and a `for` loop through records with the callback execution

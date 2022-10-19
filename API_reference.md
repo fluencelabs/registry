@@ -13,7 +13,7 @@
       - [createResource](#createresource)
       - [getResource](#getresource)
       - [getResourceId](#getresourceid)
-      - [registerService](#registerService)
+      - [registerService](#registerservice)
       - [unregisterService](#unregisterservice)
       - [resolveResource](#resolveresource)
       - [executeOnResource](#executeonresource)
