@@ -28,6 +28,6 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/aqua": "0.7.7-353"
+    "@fluencelabs/aqua": "^0.7.7-361"
   }
 }
