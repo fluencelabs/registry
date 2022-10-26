@@ -136,7 +136,7 @@ impl Storage {
             record.record.metadata.key_id.clone(),
             record.record.metadata.issued_by.clone(),
             record.record.metadata.peer_id.clone(),
-            record.record.metadata.timestamp_issued.clone(),
+            record.record.metadata.timestamp_issued,
         )?;
 
         let mut statement = self.connection.prepare(f!(
@@ -378,5 +378,5 @@ pub fn merge_records(records: Vec<RecordInternal>) -> Result<Vec<RecordInternal>
         }
     }
 
-    Ok(result.into_iter().map(|(_, rec)| rec).collect())
+    Ok(result.into_values().collect())
 }
