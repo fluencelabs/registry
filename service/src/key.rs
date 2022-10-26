@@ -73,7 +73,7 @@ impl Key {
     pub fn get_id(label: &str, owner_peer_id: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(format!("{}{}", label, owner_peer_id).as_bytes());
-        bs58::encode(hasher.finalize().to_vec()).into_string()
+        bs58::encode(hasher.finalize()).into_string()
     }
 
     pub fn signature_bytes(&self) -> Vec<u8> {

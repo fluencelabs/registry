@@ -37,7 +37,7 @@ pub(crate) fn check_timestamp_tetraplets(
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
         && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
         && tetraplet.peer_pk == call_parameters.host_id)
-        .then(|| ())
+        .then_some(())
         .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
 }
 
@@ -56,6 +56,6 @@ pub(crate) fn check_weight_tetraplets(
     (tetraplet.service_id == TRUSTED_WEIGHT_SERVICE_ID
         && tetraplet.function_name == TRUSTED_WEIGHT_FUNCTION_NAME
         && tetraplet.peer_pk == call_parameters.host_id)
-        .then(|| ())
+        .then_some(())
         .ok_or_else(|| InvalidWeightTetraplet(format!("{:?}", tetraplet)))
 }

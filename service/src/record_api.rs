@@ -166,10 +166,12 @@ pub fn republish_records(
         for (i, record) in records.into_iter().enumerate() {
             record.verify(current_timestamp_sec)?;
             check_weight_tetraplets(&call_parameters, 1, i)?;
-            let weight_result = weights.get(i).ok_or(MissingRecordWeight(
-                record.metadata.peer_id.clone(),
-                record.metadata.issued_by.clone(),
-            ))?;
+            let weight_result = weights.get(i).ok_or_else(|| {
+                MissingRecordWeight(
+                    record.metadata.peer_id.clone(),
+                    record.metadata.issued_by.clone(),
+                )
+            })?;
             check_weight_result(&record.metadata.issued_by, weight_result)?;
             if record.metadata.key_id != key_id {
                 return Err(ServiceError::RecordsPublishingError);

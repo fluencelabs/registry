@@ -47,7 +47,7 @@ jobs:
       - name: Run cargo clippy
         env:
           RUSTFLAGS: ""
-        run: cargo clippy -Z unstable-options --all
+        run: cargo clippy -Z unstable-options --all -- -D warnings
 
       - name: Install cargo-nextest
         uses: baptiste0928/cargo-install@v1.3.0
