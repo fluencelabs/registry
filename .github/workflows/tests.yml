@@ -142,8 +142,19 @@ jobs:
         run: pytest -n auto test_aqua.py
         working-directory: aqua-tests
 
+      - name: Print versions to check summary
+        if: always()
+        run: |
+          cat <<SNAPSHOT >> $GITHUB_STEP_SUMMARY
+          ## Used versions
+          | name       | version                                                              |
+          | ---------- | -------------------------------------------------------------------- |
+          | rust-peer  | $(docker run --rm --entrypoint=fluence ${RUST_PEER_IMAGE} --version) |
+          | aqua       | $(npx aqua --version)                                                |
+          SNAPSHOT
+
       - name: Dump rust-peer logs on failure
-        if: failure()
+        if: always()
         uses: jwalton/gh-docker-logs@v1
 
       - name: Remove registry directory
