@@ -142,6 +142,10 @@ jobs:
         run: pytest -n auto test_aqua.py
         working-directory: aqua-tests
 
+      - name: Setup dasel
+        if: always()
+        uses: allejo/setup-dasel@v1
+
       - name: Print versions to check summary
         if: always()
         working-directory: aqua-tests
@@ -151,7 +155,9 @@ jobs:
           | name       | version                                                              |
           | ---------- | -------------------------------------------------------------------- |
           | rust-peer  | $(docker run --rm --entrypoint=fluence ${RUST_PEER_IMAGE} --version) |
+          | avm        | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/avm).version') |
           | aqua       | $(npx aqua --version)                                                |
+          | fluence-js | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/fluence).version') |
           SNAPSHOT
 
       - name: Dump rust-peer logs on failure
