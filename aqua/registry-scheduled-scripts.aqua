@@ -1,11 +1,68 @@
 module Registry.Scheduled declares *
 
-export clearExpired_86400, replicate_3600, renew_43200
+export clearExpired_86400, replicate_3600, renew_43200, get_script
 
 import "registry-service.aqua"
 import "registry-api.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
+
+data LastError:
+  error_code: u32
+  instruction: string
+  message: string
+  peer_id: string
+
+data LastErrorEntry:
+  last_error: LastError
+  error_idx: u32
+
+data ParticleErrors:
+  particle_id: string
+  errors: []LastErrorEntry
+
+data AllErrorsResult:
+  particle_errors: []ParticleErrors
+  success: bool
+  error: string
+
+data CID:
+  v1_str: string
+  success: bool
+  error: string
+
+data Script:
+  source_code: string
+  success: bool
+  error: string
+
+data StringValue:
+  str: string
+  success: bool
+  error: string
+
+data U32Value:
+  num: u32
+  success: bool
+  error: string
+
+data UnitResult:
+  success: bool
+  error: string
+
+service Spell:
+  get_all_errors() -> AllErrorsResult
+  get_errors(particle_id: string) -> []LastErrorEntry
+  get_script_source_from_env() -> Script
+  get_script_source_from_file() -> Script
+  get_string(key: string) -> StringValue
+  get_u32(key: string) -> U32Value
+  script_cid() -> CID
+  set_script_source_to_file(script: string) -> UnitResult
+  set_string(key: string, value: string) -> UnitResult
+  set_u32(key: string, value: u32) -> UnitResult
+  store_error(error: LastError, particle_timestamp: u64, error_idx: u32) -> UnitResult
+
 
 -- clears expired records
 func clearExpired_86400():
@@ -40,3 +97,29 @@ func replicate_3600():
           for record <- r.records:
             records_weights <- TrustGraph.get_weight(record.metadata.issued_by, tt)
           Registry.republish_records(r.records, records_weights, tt)
+
+func get_script(spell: string, spell_id: string) -> ?string, ?u32, ?string:
+  script: ?string
+  count: ?u32
+  error: ?string
+
+  on spell:
+    Spell spell_id
+    script_res <- Spell.get_script_source_from_file()
+    if script_res.success:
+      count_res <- Spell.get_u32("counter")
+      if count_res.success:
+        on HOST_PEER_ID:
+          next_counter = count_res.num + 1
+        set_result <- Spell.set_u32("counter", next_counter)
+        if set_result.success:
+          script <<- script_res.source_code
+          count <<- count_res.num
+        else:
+          error <<- set_result.error
+      else:
+        error <<- count_res.error
+    else:
+      error <<- script_res.error
+
+  <- script, count, error

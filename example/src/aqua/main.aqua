@@ -3,7 +3,7 @@ module Main
 import App from "deployed.app.aqua"
 import EchoService from "services/echo_service.aqua"
 import "../../aqua/resources-api.aqua"
-export App, echo, echoJS, createRes, registerEchoService, echoAll, unregisterEchoService
+export App, echo, echoJS, createRes, registerEchoService, echoAll, unregisterEchoService, on_start, test
 
 func echo(msg: string) -> string:
     services <- App.services() -- Get ids of the deployed services
@@ -46,3 +46,29 @@ func unregisterEchoService(resourceId: string) -> *bool:
     for srv <- services.echo_service.default:
         results <- unregisterService(resourceId, srv.peerId)
     <- results
+
+func and(l: bool, r: bool) -> bool:
+    res: ?bool
+    if l:
+        res <<- r
+    else:
+        res <<- false
+    <- res!
+
+func or(l: bool, r: bool) -> bool:
+    res: ?bool
+    if l:
+        res <<- true
+    else:
+        res <<- r
+    <- res!
+
+func not(u: bool) -> bool:
+    res: ?bool
+    if u:
+        res <<- false
+    else:
+        res <<- true
+    <- res!
+
+func test() ->
