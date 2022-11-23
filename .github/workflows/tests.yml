@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Import secrets
-        uses: hashicorp/vault-action@v2.4.1
+        uses: hashicorp/vault-action@v2.4.3
         with:
           url: https://vault.fluence.dev
           path: jwt/github
@@ -66,25 +66,33 @@ jobs:
         run: npm install
         working-directory: aqua
 
-      - name: Set aqua version from branch
+      - name: Set aqua version
         if: inputs.aqua-version != ''
-        run: npm i --save-dev -E @fluencelabs/aqua@${{ inputs.aqua-version }}
-        working-directory: aqua
+        uses: fluencelabs/github-actions/npm-set-dependency@main
+        with:
+          package: "@fluencelabs/aqua"
+          version: ${{ inputs.aqua-version }}
+          working-directory: aqua
+          flags: "--save-dev"
 
       - name: Run npm install in aqua-tests
         run: npm install
         working-directory: aqua-tests
 
-      - name: Set aqua version from branch
+      - name: Set aqua version
         if: inputs.aqua-version != ''
-        run: npm i --save-dev -E @fluencelabs/aqua@${{ inputs.aqua-version }}
-        working-directory: aqua-tests
+        uses: fluencelabs/github-actions/npm-set-dependency@main
+        with:
+          package: "@fluencelabs/aqua"
+          version: ${{ inputs.aqua-version }}
+          working-directory: aqua-tests
+          flags: "--save-dev"
 
-      - name: Setup rust toolchain
+      - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Install marine
-        uses: baptiste0928/cargo-install@v1
+      - name: Install Marine
+        uses: baptiste0928/cargo-install@v1.3.0
         with:
           crate: marine
 
@@ -108,13 +116,8 @@ jobs:
       - name: Pull rust-peer image
         run: docker pull $RUST_PEER_IMAGE
 
-      - name: Setup docker-compose
-        uses: KengoTODA/actions-setup-docker-compose@v1.0.9
-        with:
-          version: 'v2.10.0'
-
       - name: Run rust-peer
-        uses: isbang/compose-action@v1.1.0
+        uses: isbang/compose-action@v1.4.1
         with:
           compose-file: ".github/e2e/docker-compose.yml"
           down-flags: "--volumes"
@@ -144,7 +147,7 @@ jobs:
 
       - name: Setup dasel
         if: always()
-        uses: allejo/setup-dasel@v1
+        uses: allejo/setup-dasel@e40b64a6fd36df95cedd8266da9e585996934181
 
       - name: Print versions to check summary
         if: always()
@@ -156,13 +159,14 @@ jobs:
           | ---------- | -------------------------------------------------------------------- |
           | rust-peer  | $(docker run --rm --entrypoint=fluence ${RUST_PEER_IMAGE} --version) |
           | avm        | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/avm).version') |
+          | marine-js  | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/marine-js).version') |
           | aqua       | $(npx aqua --version)                                                |
           | fluence-js | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/fluence).version') |
           SNAPSHOT
 
       - name: Dump rust-peer logs on failure
         if: always()
-        uses: jwalton/gh-docker-logs@v1
+        uses: jwalton/gh-docker-logs@v2
 
       - name: Remove registry directory
         if: always()
