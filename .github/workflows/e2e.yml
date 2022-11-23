@@ -1,4 +1,4 @@
-name: Run tests
+name: "e2e"
 
 on:
   pull_request:
@@ -14,13 +14,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  aqua:
+  registry:
     uses: ./.github/workflows/tests.yml
     with:
       ref: ${{ github.ref }}
 
   cargo:
-    name: "Run cargo tests"
+    name: "registry / Run cargo tests"
     runs-on: builder
 
     defaults:
