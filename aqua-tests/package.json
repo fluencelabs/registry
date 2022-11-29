@@ -28,6 +28,6 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/aqua": "v0.0.1-debug-no-handler-432d432-84-1.0"
+    "@fluencelabs/aqua": "0.0.1-debug-no-handler-f1b6e53-27-1.0"
   }
 }

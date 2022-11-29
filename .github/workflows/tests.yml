@@ -139,7 +139,7 @@ jobs:
         working-directory: aqua-tests
 
       - name: Run aqua tests
-        run: pytest test_aqua.py --count 500
+        run: pytest test_aqua.py --count 250
         working-directory: aqua-tests
 
       - name: Setup dasel
