@@ -4,7 +4,7 @@
     "config:base",
     ":semanticCommitTypeAll(chore)"
   ],
-  "enabledManagers": ["cargo", "npm", "github-actions"],
+  "enabledManagers": ["cargo", "npm", "github-actions", "pip_requirements"],
   "rangeStrategy": "pin",
   "packageRules": [
     {
