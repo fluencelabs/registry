@@ -148,7 +148,9 @@ jobs:
 
       - name: Setup dasel
         if: always()
-        uses: allejo/setup-dasel@e40b64a6fd36df95cedd8266da9e585996934181
+        uses: allejo/setup-dasel@1
+        with:
+          version: 1.27.3
 
       - name: Print versions to check summary
         if: always()
