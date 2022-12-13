@@ -1,51 +1,7 @@
 module Main
 
-import App from "deployed.app.aqua"
-import EchoService from "services/echo_service.aqua"
-import "../../aqua/resources-api.aqua"
-export App, echo, echoJS, createRes, registerEchoService, echoAll, unregisterEchoService, on_start, test
+export and
 
-func echo(msg: string) -> string:
-    services <- App.services() -- Get ids of the deployed services
-
-    on services.echo_service.default!.peerId: -- on the peer, where echo service is deployed
-        EchoService services.echo_service.default!.serviceId -- init EchoService written in rust
-        res <- EchoService.echo(msg) -- call echo function of the echo service
-    <- res
-
-func echoJS(peer: string, relay: string, serviceId: string, msg: string) -> string:
-    on peer via relay:
-        EchoService serviceId
-        res <- EchoService.echo(msg)
-    <- res
-
-func createRes() -> ?string:
-    resourceId, error <- createResource("echo")
-    <- resourceId
-
-func registerEchoService(resourceId: string) -> *bool:
-    results: *bool
-    services <- App.services()
-    for srv <- services.echo_service.default:
-        results <- registerService(resourceId, "" ,srv.peerId, ?[srv.serviceId])
-    <- results
-
-func echoAll(resourceId: string, msg: string) -> *string:
-    -- 2 is the min number of peers we want to ask
-    records <- resolveResource(resourceId, 2)
-    results: *string
-    for r <- records!:
-        on r.metadata.peer_id via r.metadata.relay_id:
-            EchoService r.metadata.service_id!
-            results <- EchoService.echo(msg)
-    <- results
-
-func unregisterEchoService(resourceId: string) -> *bool:
-    results: *bool
-    services <- App.services()
-    for srv <- services.echo_service.default:
-        results <- unregisterService(resourceId, srv.peerId)
-    <- results
 
 func and(l: bool, r: bool) -> bool:
     res: ?bool
@@ -70,5 +26,3 @@ func not(u: bool) -> bool:
     else:
         res <<- true
     <- res!
-
-func test() ->
