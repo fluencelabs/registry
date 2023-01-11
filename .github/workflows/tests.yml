@@ -139,7 +139,7 @@ jobs:
         run: sleep 40
 
       - name: Print aqua version
-        run: pytest -s test_aqua_version.py
+        run: pytest -s test_fluence_cli_version.py
         working-directory: aqua-tests
 
       - name: Run aqua tests
