@@ -12,7 +12,7 @@ dependencies:
   npm:
     "@fluencelabs/aqua": 0.7.7-353
     "@fluencelabs/aqua-lib": 0.4.3
-    "@fluencelabs/registry": nightly
+    "@fluencelabs/registry": latest
   cargo:
     marine: 0.12.4
     mrepl: 0.18.6
