@@ -9,32 +9,33 @@ default_peers = json.loads(delegator.run(
     f"node ./getDefaultPeers.js", block=True).out)
 
 
-def get_peers():
+def get_relays():
     env = os.environ.get("FLUENCE_ENV")
     if env == "local":
         peers = get_local()
     else:
         if env is None:
             env = "testnet"
-        peers = default_peers[env]
+        peers = [peer["multiaddr"] for peer in default_peers[env]]
 
     assert len(peers) != 0
     return peers
 
 
-peers = get_peers()
+relays = get_relays()
+peer_ids = [relay.split("/")[-1] for relay in relays]
 
 
-def get_random_peer():
-    return peers[random.randint(0, len(peers) - 1)]
+def get_random_list_item(ar):
+    return ar[random.randint(0, len(ar) - 1)]
 
 
 def get_random_relay():
-    return get_random_peer()["multiaddr"]
+    return get_random_list_item(relays)
 
 
 def get_random_peer_id():
-    return get_random_peer()["peerId"]
+    return get_random_list_item(peer_ids)
 
 
 def get_label():
