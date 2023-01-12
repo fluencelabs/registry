@@ -3,43 +3,52 @@ import random
 import json
 import os
 from config import get_local
-import inspect
+
+delegator.run("npx fluence dep npm i", block=True)
+default_peers = json.loads(delegator.run(
+    f"node ./getDefaultPeers.js", block=True).out)
 
 
-def get_function_name():
-    return inspect.stack()[1][3]
-
-
-def get_relay():
+def get_peers():
     env = os.environ.get("FLUENCE_ENV")
     if env == "local":
         peers = get_local()
     else:
         if env is None:
             env = "testnet"
-        c = delegator.run(f"node ./getDefaultPeers.js -- {env}", block=True)
-        peers = c.out.strip().split("\n")
+        peers = default_peers[env]
 
-    assert len(peers) != 0, c.err
-    peer = peers[random.randint(0, len(peers) - 1)]
-    assert len(peer) != 0, c.err
+    assert len(peers) != 0
+    return peers
 
-    return peer
+
+peers = get_peers()
+
+
+def get_random_peer():
+    return peers[random.randint(0, len(peers) - 1)]
+
+
+def get_random_relay():
+    return get_random_peer()["multiaddr"]
 
 
 def get_random_peer_id():
-    addr = get_relay()
-    return addr.split("/")[-1]
+    return get_random_peer()["peerId"]
 
 
-def run_aqua(func, args, k, relay=get_relay()):
+def get_label():
+    return ''.join(random.choice('0123456789ABCDEF') for i in range(16))
+
+
+def run_aqua(func, args, relay=get_random_relay()):
 
     # "a" : arg1, "b" : arg2 .....
     data = {chr(97 + i): arg for (i, arg) in enumerate(args)}
     call = f"{func}(" + ", ".join([chr(97 + i)
                                    for i in range(0, len(args))]) + ")"
 
-    command = f"npx fluence run --relay {relay} -f '{call}' -k '{k}' --data '{json.dumps(data)}' --import 'node_modules' --quiet"
+    command = f"npx fluence run --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet"
     print(command)
     c = delegator.run(command, block=True)
     if len(c.err) != 0:
@@ -54,31 +63,29 @@ def run_aqua(func, args, k, relay=get_relay()):
         return c.out
 
 
-def create_resource(label, k):
-    result, error = run_aqua("createResource", [label], k)
+def create_resource(label):
+    result, error = run_aqua("createResource", [label])
     assert result != None, error
     return result
 
 
-def get_peer_id(k):
-    return run_aqua("get_peer_id", [], k)
+def get_peer_id():
+    return run_aqua("get_peer_id", [])
 
 
 def test_create_resource():
-    k = get_function_name()
-    label = "some_label"
-    result = create_resource(label, k)
-    peer_id = get_peer_id(k)
-    resource_id = run_aqua("getResourceId", [label, peer_id], k)
+    label = get_label()
+    result = create_resource(label)
+    peer_id = get_peer_id()
+    resource_id = run_aqua("getResourceId", [label, peer_id])
     assert result == resource_id
 
 
 def test_get_resource():
-    k = get_function_name()
-    label = "some_label"
-    resource_id = create_resource(label, k)
-    peer_id = get_peer_id(k)
-    result, error = run_aqua("getResource", [resource_id], k)
+    label = get_label()
+    resource_id = create_resource(label)
+    peer_id = get_peer_id()
+    result, error = run_aqua("getResource", [resource_id])
     assert result != None, error
     assert result["id"] == resource_id, error
     assert result["owner_peer_id"] == peer_id, error
@@ -86,20 +93,19 @@ def test_get_resource():
 
 
 def test_register_record_unregister():
-    k = get_function_name()
-    relay = get_relay()
-    label = "some_label"
+    relay = get_random_relay()
+    label = get_label()
     value = "some_value"
-    peer_id = get_peer_id(k)
+    peer_id = get_peer_id()
     service_id = "id"
 
-    resource_id = create_resource(label, k)
+    resource_id = create_resource(label)
     result, error = run_aqua(
-        "registerService", [resource_id, value, peer_id, service_id], k, relay)
+        "registerService", [resource_id, value, peer_id, service_id], relay)
     assert result, error
 
     # we want at least 1 successful response
-    result, error = run_aqua("resolveResource", [resource_id, 1], k, relay)
+    result, error = run_aqua("resolveResource", [resource_id, 1], relay)
     assert result != None, error
 
     assert len(result) == 1, "records not found"
@@ -111,29 +117,28 @@ def test_register_record_unregister():
     assert record["metadata"]["service_id"] == [service_id]
 
     result, error = run_aqua("unregisterService", [resource_id, peer_id],
-                             k, relay)
+                             relay)
     assert result, error
 
-    result, error = run_aqua("resolveResource", [resource_id, 2], k, relay)
+    result, error = run_aqua("resolveResource", [resource_id, 2], relay)
     assert result != None, error
     assert len(result) == 0
 
 
 def test_register_unregister_remote_record():
-    k = get_function_name()
-    relay = get_relay()
-    label = "some_label"
+    relay = get_random_relay()
+    label = get_label()
     value = "some_value"
-    issuer_peer_id = get_peer_id(k)
+    issuer_peer_id = get_peer_id()
     peer_id = get_random_peer_id()
     service_id = "id"
 
-    resource_id = create_resource(label, k)
+    resource_id = create_resource(label)
     result, error = run_aqua(
-        "registerService", [resource_id, value, peer_id, service_id], k, relay)
+        "registerService", [resource_id, value, peer_id, service_id], relay)
     assert result, error
 
-    result, error = run_aqua("resolveResource", [resource_id, 2], k, relay)
+    result, error = run_aqua("resolveResource", [resource_id, 2], relay)
     assert result != None, error
 
     assert len(result) == 1, "records not found"
@@ -145,9 +150,9 @@ def test_register_unregister_remote_record():
     assert record["metadata"]["service_id"] == [service_id]
 
     result, error = run_aqua("unregisterService", [resource_id, peer_id],
-                             k, relay)
+                             relay)
     assert result, error
 
-    result, error = run_aqua("resolveResource", [resource_id, 2], k, relay)
+    result, error = run_aqua("resolveResource", [resource_id, 2], relay)
     assert result != None, error
     assert len(result) == 0
