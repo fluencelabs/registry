@@ -20,7 +20,7 @@ serde = { version = "1.0.118", features = ["derive"] }
 thiserror = "1.0.29"
 sha2 = "0.10.1"
 fluence-keypair = "0.7.0"
-libp2p-core = { version = "0.32.1", default-features = false, features = [
+libp2p-core = { version = "0.38.0", default-features = false, features = [
   "secp256k1",
 ] }
 
