@@ -6,8 +6,8 @@
     "*.aqua"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "^0.6.0",
-    "@fluencelabs/trust-graph": "^3.0.1"
+    "@fluencelabs/aqua-lib": "0.6.0",
+    "@fluencelabs/trust-graph": "3.0.1"
   },
   "scripts": {
     "compile-aqua": "aqua -i . -o ./target/typescript",
