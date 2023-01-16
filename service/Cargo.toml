@@ -19,7 +19,7 @@ toml = "0.5.10"
 serde = { version = "1.0.118", features = ["derive"] }
 thiserror = "1.0.29"
 sha2 = "0.10.6"
-fluence-keypair = "0.7.0"
+fluence-keypair = "0.8.1"
 libp2p-core = { version = "0.32.1", default-features = false, features = [
   "secp256k1",
 ] }
