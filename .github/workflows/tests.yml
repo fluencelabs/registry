@@ -134,7 +134,7 @@ jobs:
         run: pip install -r requirements.txt
         working-directory: aqua-tests
 
-      - name: Wair for registry to be deployed
+      - name: Wait for registry to be deployed
         uses: Wandalen/wretry.action@v1.0.36
         env:
           PEER_ADDR: /ip4/127.0.0.1/tcp/9991/ws/p2p/12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR
