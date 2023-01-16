@@ -144,6 +144,7 @@ jobs:
             | jq -c 'has("function_signatures")'
           attempt_limit: 5
           attempt_delay: 10000
+          current-path: ${{ github.workspace}}/aqua-tests
 
       - name: Print aqua version
         run: pytest -s test_aqua_version.py
