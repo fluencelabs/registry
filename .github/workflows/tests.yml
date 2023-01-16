@@ -134,9 +134,12 @@ jobs:
         run: pip install -r requirements.txt
         working-directory: aqua-tests
 
-      # TODO run an aqua script in a loop to check
-      - name: Wait for registry to be deployed
-        run: sleep 40
+      - name: Wair for registry to be deployed
+        uses: Wandalen/wretry.action@master
+        with:
+          command: npx aqua remote get_interface --addr /ip4/127.0.0.1/tcp/9991/ws/p2p/12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR --id registry
+          attempt_limit: 5
+          attempt_delay: 10000
 
       - name: Print aqua version
         run: pytest -s test_aqua_version.py
