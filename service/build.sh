@@ -5,7 +5,6 @@ set -o errexit -o nounset -o pipefail
 cd "$(dirname "$0")"
 
 # build registry.wasm
-cargo update
 marine build --release
 
 # copy .wasm to artifacts
