@@ -139,7 +139,7 @@ jobs:
         env:
           PEER_ADDR: /ip4/127.0.0.1/tcp/9991/ws/p2p/12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR
         with:
-          command: npx aqua remote get_interface --addr ${PEER_ADDR} --id registry
+          command: npx aqua remote get_interface --addr ${PEER_ADDR} --id registry | jq -ec 'has("function_signatures")'
           attempt_limit: 5
           attempt_delay: 10000
           current_path: ${{ github.workspace}}/aqua-tests
