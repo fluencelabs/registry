@@ -10,7 +10,7 @@ PEERS=(
   "12D3KooWPisGn7JhooWhggndz25WM7vQ2JmA121EV8jUDQ5xMovJ"
 )
 
-cd ../aqua-tests
+cd ${GITHUB_WORKSPACE}/aqua-tests
 
 for PEER_ID in ${PEERS[@]}; do
   echo "Checking peer ${PEER_ID}"
