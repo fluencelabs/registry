@@ -143,7 +143,7 @@ jobs:
         with:
           command: |
             for PEER_ID in $PEERS; do
-            echo "Checking peer ${PEER_ID}"
+              echo "Checking peer ${PEER_ID}"
               npx aqua remote get_interface --addr /ip4/127.0.0.1/tcp/${PORT}/ws/p2p/${PEER_ID} --id registry | jq -ec 'has("function_signatures")'
               ((PORT++))
             done
