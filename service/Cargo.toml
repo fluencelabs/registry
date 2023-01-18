@@ -19,10 +19,8 @@ toml = "0.5.10"
 serde = { version = "1.0.152", features = ["derive"] }
 thiserror = "1.0.38"
 sha2 = "0.10.6"
-fluence-keypair = "0.7.0"
-libp2p-core = { version = "0.32.1", default-features = false, features = [
-  "secp256k1",
-] }
+fluence-keypair = "0.8.1"
+libp2p-core = { version = "0.36.0", default-features = false, features = [ "secp256k1" ] }
 
 [dev-dependencies]
 marine-rs-sdk-test = "0.8.1"
