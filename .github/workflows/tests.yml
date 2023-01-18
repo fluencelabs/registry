@@ -137,7 +137,7 @@ jobs:
       - name: Wait for registry to be deployed
         uses: Wandalen/wretry.action@v1.0.36
         with:
-          command: ./github/check_registry.sh
+          command: ./github/check-registry.sh
           attempt_limit: 5
           attempt_delay: 10000
 
