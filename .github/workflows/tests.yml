@@ -144,8 +144,8 @@ jobs:
           attempt_delay: 10000
           current_path: ${{ github.workspace}}/aqua-tests
 
-      - name: Print aqua version
-        run: pytest -s test_aqua_version.py
+      - name: Print Fluence CLI version
+        run: pytest -s test_fluence_cli_version.py
         working-directory: aqua-tests
 
       - name: Run aqua tests
