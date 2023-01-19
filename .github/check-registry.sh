@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 
 PORT=9991
 PEERS=(
@@ -11,6 +12,7 @@ PEERS=(
 )
 
 cd ${GITHUB_WORKSPACE}/aqua-tests
+pwd
 
 for PEER_ID in ${PEERS[@]}; do
   echo "Checking peer ${PEER_ID}"
