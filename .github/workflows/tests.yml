@@ -147,6 +147,8 @@ jobs:
         working-directory: aqua-tests
 
       - name: Run aqua tests
+        env:
+          FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: pytest -n auto test_aqua.py
         working-directory: aqua-tests
 
@@ -178,3 +180,7 @@ jobs:
       - name: Remove registry directory
         if: always()
         run: sudo rm -rf registry
+
+      - name: Remove tmp directory
+        if: always()
+        run: sudo rm -rf tmp
