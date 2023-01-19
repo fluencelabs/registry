@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-PORT=9991
 PEERS=(
   "12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR"
   "12D3KooWQdpukY3p2DhDfUfDgphAqsGu5ZUrmQ4mcHSGrRag6gQK"
@@ -14,9 +13,7 @@ cd ${GITHUB_WORKSPACE}/aqua-tests
 
 for PEER_ID in ${PEERS[@]}; do
   echo "Checking peer ${PEER_ID}"
-  if npx fluence run get_interface --addr /ip4/127.0.0.1/tcp/${PORT}/ws/p2p/${PEER_ID} --id registry | jq -ec 'has("function_signatures")'; then
+  if ! npx fluence run -f get_interface --no-input --quiet --addr /ip4/127.0.0.1/tcp/9991/ws/p2p/${PEER_ID} --id registry | jq -ec 'has("function_signatures")'; then
     exit 1
-  else
-    ((PORT++))
   fi
 done
