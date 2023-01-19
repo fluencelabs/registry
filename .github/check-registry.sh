@@ -14,7 +14,7 @@ cd ${GITHUB_WORKSPACE}/aqua-tests
 
 for PEER_ID in ${PEERS[@]}; do
   echo "Checking peer ${PEER_ID}"
-  if npx fluence run remote get_interface --addr /ip4/127.0.0.1/tcp/${PORT}/ws/p2p/${PEER_ID} --id registry | jq -ec 'has("function_signatures")'; then
+  if npx fluence run get_interface --addr /ip4/127.0.0.1/tcp/${PORT}/ws/p2p/${PEER_ID} --id registry | jq -ec 'has("function_signatures")'; then
     exit 1
   else
     ((PORT++))
