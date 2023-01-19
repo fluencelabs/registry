@@ -135,11 +135,12 @@ jobs:
         working-directory: aqua-tests
 
       - name: Wait for registry to be deployed
-        uses: Wandalen/wretry.action@v1.0.36
+        uses: nick-fields/retry@v2
         with:
+          timeout_seconds: 10
+          max_attempts: 5
+          shell: bash
           command: ${{ github.workspace }}/.github/check-registry.sh
-          attempt_limit: 5
-          attempt_delay: 10000
 
       - name: Print Fluence CLI version
         run: pytest -s test_fluence_cli_version.py
