@@ -156,17 +156,17 @@ jobs:
           files: registry.tar.gz
           tag_name: ${{ needs.release-please.outputs.tag-name }}
 
-     - name: Update version in node-distro repo
-       if: needs.release-please.outputs.release-created
-       uses: benc-uk/workflow-dispatch@v1
-       with:
-         workflow: update_service
-         repo: fluencelabs/node-distro
-         ref: "main"
-         token: ${{ secrets.PERSONAL_TOKEN }}
-         inputs: '{
-           "name": "registry",
-           "version": "${{ needs.release-please.outputs.version }}",
-           "url": "https://github.com/fluencelabs/registry/releases/download/${{ needs.release-please.outputs.tag-name }}/registry.tar.gz",
-           "sha256": "${{ steps.sha.outputs.sha256 }}"
-         }'
+      - name: Update version in node-distro repo
+        if: needs.release-please.outputs.release-created
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: update_service
+          repo: fluencelabs/node-distro
+          ref: "main"
+          token: ${{ secrets.PERSONAL_TOKEN }}
+          inputs: '{
+            "name": "registry",
+            "version": "${{ needs.release-please.outputs.version }}",
+            "url": "https://github.com/fluencelabs/registry/releases/download/${{ needs.release-please.outputs.tag-name }}/registry.tar.gz",
+            "sha256": "${{ steps.sha.outputs.sha256 }}"
+          }'
