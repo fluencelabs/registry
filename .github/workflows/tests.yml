@@ -89,6 +89,13 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
+      - name: Set aqua version in fluence.yml
+        if: inputs.aqua-version != 'null'
+        env:
+          NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
+        run: |
+          sed -i 's/"@fluencelabs\/aqua": .*/"@fluencelabs\/aqua": ${{ inputs.aqua-version }}/g' fluence.yaml
+
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
