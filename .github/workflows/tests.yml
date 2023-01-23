@@ -96,6 +96,12 @@ jobs:
         run: |
           sed -i 's/"@fluencelabs\/aqua": .*/"@fluencelabs\/aqua": ${{ inputs.aqua-version }}/g' fluence.yaml
 
+      - name: install fluence-cli dependencies
+        env:
+          fluence_user_dir: "${{ github.workspace }}/tmp/.fluence"
+        run: npx fluence dep install
+        working-directory: aqua-tests
+
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
@@ -148,6 +154,12 @@ jobs:
           max_attempts: 5
           shell: bash
           command: ${{ github.workspace }}/.github/check-registry.sh
+
+      - name: Install fluence-cli dependencies
+        env:
+          fluence_user_dir: "${{ github.workspace }}/tmp/.fluence"
+        run: npx fluence dep install
+        working-directory: aqua-tests
 
       - name: Print Fluence CLI version
         run: pytest -s test_fluence_cli_version.py
