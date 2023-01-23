@@ -217,25 +217,40 @@
     "dependencies": {
       "type": "object",
       "title": "Dependencies",
-      "nullable": true,
       "description": "A map of dependency versions",
       "properties": {
         "npm": {
           "type": "object",
           "title": "npm dependencies",
-          "nullable": true,
           "description": "A map of npm dependency versions. CLI ensures dependencies are installed each time you run aqua",
-          "required": []
+          "properties": {
+            "@fluencelabs/aqua": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "@fluencelabs/aqua"
+          ]
         },
         "cargo": {
           "type": "object",
           "title": "Cargo dependencies",
-          "nullable": true,
           "description": "A map of cargo dependency versions. CLI ensures dependencies are installed each time you run commands that depend on Marine or Marine REPL",
+          "properties": {
+            "marine": {
+              "type": "string"
+            },
+            "mrepl": {
+              "type": "string"
+            }
+          },
           "required": []
         }
       },
-      "required": []
+      "required": [
+        "npm",
+        "cargo"
+      ]
     },
     "aquaInputPath": {
       "type": "string",
