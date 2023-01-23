@@ -93,6 +93,7 @@ jobs:
         if: inputs.aqua-version != 'null'
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
+        working-directory: aqua-tests
         run: |
           sed -i 's/"@fluencelabs\/aqua": .*/"@fluencelabs\/aqua": ${{ inputs.aqua-version }}/g' fluence.yaml
 
