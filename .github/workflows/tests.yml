@@ -152,7 +152,7 @@ jobs:
       - name: Install fluence-cli dependencies
         env:
           fluence_user_dir: "${{ github.workspace }}/tmp/.fluence"
-        run: npx fluence dep install
+        run: npx fluence dep i --no-input
         working-directory: aqua-tests
 
       - name: Print Fluence CLI version
