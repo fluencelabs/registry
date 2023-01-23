@@ -1,0 +1,12 @@
+{
+  "bootstrap-sha": "1126e01580c2b91674a6c016844e5b1b8c5b2b14",
+  "release-type": "simple",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "packages": {
+    ".": {
+      "package-name": "registry",
+      "component": "registry"
+    }
+  }
+}
