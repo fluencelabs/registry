@@ -89,6 +89,13 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
+      - name: Set aqua version in fluence.yml
+        if: inputs.aqua-version != 'null'
+        env:
+          NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
+        run: |
+          sed -i 's/"@fluencelabs\/aqua": .*/"@fluencelabs\/aqua": ${{ inputs.aqua-version }}/g' fluence.yaml
+
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
@@ -135,14 +142,18 @@ jobs:
         working-directory: aqua-tests
 
       - name: Wait for registry to be deployed
-        uses: Wandalen/wretry.action@v1.0.36
-        env:
-          PEER_ADDR: /ip4/127.0.0.1/tcp/9991/ws/p2p/12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR
+        uses: nick-fields/retry@v2
         with:
-          command: npx aqua remote get_interface --addr ${PEER_ADDR} --id registry | jq -ec 'has("function_signatures")'
-          attempt_limit: 5
-          attempt_delay: 10000
-          current_path: ${{ github.workspace}}/aqua-tests
+          timeout_seconds: 20
+          max_attempts: 5
+          shell: bash
+          command: ${{ github.workspace }}/.github/check-registry.sh
+
+      - name: Install fluence-cli dependencies
+        env:
+          FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
+        run: npx fluence dep i --no-input
+        working-directory: aqua-tests
 
       - name: Print Fluence CLI version
         run: pytest -s test_fluence_cli_version.py
