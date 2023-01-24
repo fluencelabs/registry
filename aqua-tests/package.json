@@ -29,7 +29,7 @@
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
     "@fluencelabs/aqua": "0.9.3",
-    "@fluencelabs/cli": "0.2.34",
+    "@fluencelabs/cli": "0.2.35",
     "@fluencelabs/fluence-network-environment": "1.0.13"
   }
 }

@@ -2,6 +2,7 @@ import delegator
 import random
 import json
 import os
+import inspect
 from config import get_local
 
 delegator.run("npx fluence dep npm i", block=True)
@@ -49,7 +50,8 @@ def run_aqua(func, args, relay=get_random_relay()):
     call = f"{func}(" + ", ".join([chr(97 + i)
                                    for i in range(0, len(args))]) + ")"
 
-    command = f"npx fluence run --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet"
+    test_name = inspect.stack()[-32][3]
+    command = f"npx fluence run -k {test_name} --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet"
     print(command)
     c = delegator.run(command, block=True)
     if len(c.err) != 0:
