@@ -50,7 +50,7 @@ def run_aqua(func, args, relay=get_random_relay()):
     call = f"{func}(" + ", ".join([chr(97 + i)
                                    for i in range(0, len(args))]) + ")"
 
-    test_name = inspect.stack()[-34][3]
+    test_name = inspect.stack()[-39][3]
     command = f"npx fluence run -k {test_name} --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet"
     print(command)
     c = delegator.run(command, block=True)
