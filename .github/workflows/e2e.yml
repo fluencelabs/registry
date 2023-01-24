@@ -22,6 +22,7 @@ jobs:
   cargo:
     name: "registry / Run cargo tests"
     runs-on: builder
+    timeout-minutes: 60
 
     defaults:
       run:

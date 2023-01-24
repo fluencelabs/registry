@@ -29,6 +29,7 @@ jobs:
   aqua:
     name: "Run aqua tests"
     runs-on: builder
+    timeout-minutes: 60
 
     permissions:
       contents: read
