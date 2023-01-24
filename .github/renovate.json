@@ -21,9 +21,9 @@
     },
     {
       "matchDepTypes": ["devDependencies"],
-      "prPriority": -1
+      "prPriority": -1,
       "semanticCommitType": "chore",
-      "semanticCommitScope": "deps",
+      "semanticCommitScope": "deps"
     },
     {
       "matchUpdateTypes": ["major"],
