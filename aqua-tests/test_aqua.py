@@ -62,7 +62,7 @@ def run_aqua(func, args, relay=get_random_relay()):
     print(command)
     c = delegator.run(command, block=True)
     lines = c.out.splitlines()
-    particle_id = lines[0]
+    particle_id = lines[0] if len(lines) != 0 else ""
 
     if len(c.err.strip()) != 0:
         print(f"{particle_id}\n{c.err}")
