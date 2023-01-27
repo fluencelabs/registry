@@ -10,7 +10,8 @@
   "scripts": {
     "compile-aqua": "aqua -i . -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
-    "build": "npm run compile-aqua"
+    "build": "npm run compile-aqua",
+    "secret": "npx fluence key new"
   },
   "repository": {
     "type": "git",
@@ -29,7 +30,7 @@
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
     "@fluencelabs/aqua": "0.9.3",
-    "@fluencelabs/cli": "0.2.34",
+    "@fluencelabs/cli": "0.2.36",
     "@fluencelabs/fluence-network-environment": "1.0.13"
   }
 }

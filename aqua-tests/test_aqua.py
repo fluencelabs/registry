@@ -2,6 +2,7 @@ import delegator
 import random
 import json
 import os
+import inspect
 from config import get_local
 
 delegator.run("npx fluence dep npm i", block=True)
@@ -48,20 +49,33 @@ def run_aqua(func, args, relay=get_random_relay()):
     data = {chr(97 + i): arg for (i, arg) in enumerate(args)}
     call = f"{func}(" + ", ".join([chr(97 + i)
                                    for i in range(0, len(args))]) + ")"
+    # inspect.stack method inspects the current execution stack as the name suggests
+    # it's possible to infer that the minus 39th element of the stack always contains info
+    # about the test function that is currently running. The third element is the function's name
+    try:
+        test_name = inspect.stack()[-39][3]
+    except:
+        # when running one test at a time, the stack is shorter so we need to use a different index
+        test_name = inspect.stack()[-32][3]
 
-    command = f"npx fluence run --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet"
+    command = f"npx fluence run -k {test_name} --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet --print-particle-id"
     print(command)
     c = delegator.run(command, block=True)
-    if len(c.err) != 0:
-        print(c.err)
+    lines = c.out.splitlines()
+    particle_id = lines[0] if len(lines) != 0 else ""
+
+    if len(c.err.strip()) != 0:
+        print(f"{particle_id}\n{c.err}")
+
+    result = '\n'.join(lines[1:])
 
     try:
-        result = json.loads(c.out)
+        result = json.loads(result)
         print(result)
         return result
     except:
-        print(c.out)
-        return c.out
+        print(result)
+        return result
 
 
 def create_resource(label):
