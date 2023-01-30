@@ -67,6 +67,11 @@ jobs:
         working-directory: service
         run: cargo set-version ${{ steps.version.outputs.version }}
 
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
       - name: Set version in aqua
         working-directory: aqua
         run: npm version ${{ steps.version.outputs.version }}
