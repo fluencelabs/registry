@@ -1,10 +1,11 @@
-module Registry.ResourcesAPI declares *
+module Registry.Subnetwork declares *
 
 import "registry-service.aqua"
 import "registry-api.aqua"
 import "misc.aqua"
 import "constants.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 alias Error: string
 
@@ -27,10 +28,34 @@ func getWorkerRecordSignature(metadata: RecordMetadata, timestamp_created: u64) 
 
   <- signature!
 
-func registerDeal(deal_id: string) -> ?string, *Error:
+func getWorkerRecordMetadata(subnetwork_id: string) -> ?RecordMetadata, ?string:
+  t <- Peer.timestamp_sec()
+  relay_id = ?[HOST_PEER_ID]
+  bytes <- Registry.get_record_metadata_bytes(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil)
+
+  sig_result <- Sig.sign(bytes)
+
+  result: ?RecordMetadata
+  error: *string
+  if sig_result.success == true:
+    result <- Registry.create_record_metadata(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil, sig_result.signature!)
+  else:
+    error <<- sig_result.error!
+
+  <- result, error
+
+
+-- peer_id comes from ("insecure_sig" "get_peer_id")
+func registerSubnetworkKey(deal_id: string, peer_id: PeerId, timestamp_created: u64, signature: []u8) -> RegisterKeyResult:
+  t <- Peer.timestamp_sec()
+  weight <- TrustGraph.get_weight(peer_id, t)
+  result <- Registry.register_key(deal_id, ?[peer_id], timestamp_created, nil, "", signature, weight, t)
+  <- result
+
+func createSubnetwork(deal_id: string) -> ?string, *Error:
   t <- Peer.timestamp_sec()
 
-  key_id: ?string
+  subnetwork_id: ?string
   error: *Error
   on HOST_PEER_ID:
     sig_result <- getKeyInsecuredSignature(deal_id, t)
@@ -38,36 +63,37 @@ func registerDeal(deal_id: string) -> ?string, *Error:
       error <<- sig_result.error!
     else:
       signature = sig_result.signature!
-      peer_id = getInsecuredPeerId()
+      peer_id <- getInsecuredPeerId()
       id <- Registry.get_key_id(deal_id, peer_id)
       nodes <- getNeighbors(id)
 
       successful: *bool
-      for n <- nodes par:
-        on n:
-          try:
-            res <- registerKey(deal_id, t, signature)
+      on HOST_PEER_ID:
+        for n <- nodes par:
+          on n:
+            try:
+              res <- registerSubnetworkKey(deal_id, peer_id, t, signature)
 
-            if res.success:
-              successful <<- true
-            else:
-              error <<- res.error
+              if res.success:
+                successful <<- true
+              else:
+                error <<- res.error
 
       success <- wait(successful, INITIAL_REPLICATION_FACTOR, DEFAULT_TIMEOUT)
 
       if success == false:
         error <<- "key wasn't created: timeout exceeded"
       else:
-        key_id <<- id
+        subnetwork_id <<- id
 
-  <- key_id, error
+  <- subnetwork_id, error
 
 
-func registerWorker(key_id: string) -> bool, *Error:
+func registerWorker(subnetwork_id: string) -> bool, *Error:
   success: *bool
   error: *Error
 
-  metadata, err <- getRecordMetadata(key_id, "", INIT_PEER_ID, ?[HOST_PEER_ID], nil, nil)
+  metadata, err <- getWorkerRecordMetadata(subnetwork_id)
   if metadata == nil:
       success <<- false
       error <<- err!
@@ -78,7 +104,7 @@ func registerWorker(key_id: string) -> bool, *Error:
         error <<- sig_result.error!
         success <<- false
     else:
-      key, error_get <- getResourceHelper(key_id)
+      key, error_get <- getResourceHelper(subnetwork_id)
 
       if key == nil:
         appendErrors(error, error_get)
@@ -94,7 +120,7 @@ func registerWorker(key_id: string) -> bool, *Error:
             error <<- p_res.error
             success <<- false
           else:
-            nodes <- getNeighbors(key_id)
+            nodes <- getNeighbors(subnetwork_id)
             successful: *bool
             for n <- nodes par:
               on n:
