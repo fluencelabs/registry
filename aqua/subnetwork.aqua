@@ -1,0 +1,118 @@
+module Registry.ResourcesAPI declares *
+
+import "registry-service.aqua"
+import "registry-api.aqua"
+import "misc.aqua"
+import "constants.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+alias Error: string
+
+func getInsecuredPeerId() -> PeerId:
+  Sig "insecure_sig"
+  peer_id <- Sig.get_peer_id()
+  <- peer_id
+
+func getKeyInsecuredSignature(label: string, timestamp_created: u64) -> SignResult:
+  bytes <- Registry.get_key_bytes(label, nil, timestamp_created, nil, "")
+  Sig "insecure_sig"
+  result <- Sig.sign(bytes)
+  <- result
+
+func getWorkerRecordSignature(metadata: RecordMetadata, timestamp_created: u64) -> SignResult:
+  signature: *SignResult
+  bytes <- Registry.get_record_bytes(metadata, timestamp_created)
+  Sig "sig"
+  signature <- Sig.sign(bytes)
+
+  <- signature!
+
+func registerDeal(deal_id: string) -> ?string, *Error:
+  t <- Peer.timestamp_sec()
+
+  key_id: ?string
+  error: *Error
+  on HOST_PEER_ID:
+    sig_result <- getKeyInsecuredSignature(deal_id, t)
+    if sig_result.success == false:
+      error <<- sig_result.error!
+    else:
+      signature = sig_result.signature!
+      peer_id = getInsecuredPeerId()
+      id <- Registry.get_key_id(deal_id, peer_id)
+      nodes <- getNeighbors(id)
+
+      successful: *bool
+      for n <- nodes par:
+        on n:
+          try:
+            res <- registerKey(deal_id, t, signature)
+
+            if res.success:
+              successful <<- true
+            else:
+              error <<- res.error
+
+      success <- wait(successful, INITIAL_REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+
+      if success == false:
+        error <<- "key wasn't created: timeout exceeded"
+      else:
+        key_id <<- id
+
+  <- key_id, error
+
+
+func registerWorker(key_id: string) -> bool, *Error:
+  success: *bool
+  error: *Error
+
+  metadata, err <- getRecordMetadata(key_id, "", INIT_PEER_ID, ?[HOST_PEER_ID], nil, nil)
+  if metadata == nil:
+      success <<- false
+      error <<- err!
+  else:
+    t <- Peer.timestamp_sec()
+    sig_result = getWorkerRecordSignature(metadata!, t)
+    if sig_result.success == false:
+        error <<- sig_result.error!
+        success <<- false
+    else:
+      key, error_get <- getResourceHelper(key_id)
+
+      if key == nil:
+        appendErrors(error, error_get)
+        success <<- false
+      else:
+        republish_result <- republishKey(key!)
+        if republish_result.success == false:
+          error <<- republish_result.error
+          success <<- false
+        else:
+          p_res <- putRecord(metadata!, t, sig_result.signature!)
+          if p_res.success == false:
+            error <<- p_res.error
+            success <<- false
+          else:
+            nodes <- getNeighbors(key_id)
+            successful: *bool
+            for n <- nodes par:
+              on n:
+                try:
+                  republish_res <- republishKey(key!)
+                  if republish_res.success == false:
+                    error <<- republish_res.error
+                  else:
+                    put_res <- putRecord(metadata!, t, sig_result.signature!)
+                    if put_res.success:
+                      successful <<- true
+                    else:
+                      error <<- put_res.error
+
+            success <- wait(successful, INITIAL_REPLICATION_FACTOR, DEFAULT_TIMEOUT)
+
+  succ = success!
+  if succ == false:
+    error <<- "worker hasn't registered: timeout exceeded"
+
+  <- succ, error
