@@ -14,36 +14,11 @@ func getInsecuredPeerId() -> PeerId:
   peer_id <- Sig.get_peer_id()
   <- peer_id
 
-func getKeyInsecuredSignature(label: string, timestamp_created: u64) -> SignResult:
-  bytes <- Registry.get_key_bytes(label, nil, timestamp_created, nil, "")
+func getKeyInsecuredSignature(label: string, peer_id: PeerId, timestamp_created: u64) -> SignResult:
+  bytes <- Registry.get_key_bytes(label, ?[peer_id], timestamp_created, nil, "")
   Sig "insecure_sig"
   result <- Sig.sign(bytes)
   <- result
-
-func getWorkerRecordSignature(metadata: RecordMetadata, timestamp_created: u64) -> SignResult:
-  signature: *SignResult
-  bytes <- Registry.get_record_bytes(metadata, timestamp_created)
-  Sig "sig"
-  signature <- Sig.sign(bytes)
-
-  <- signature!
-
-func getWorkerRecordMetadata(subnetwork_id: string) -> ?RecordMetadata, ?string:
-  t <- Peer.timestamp_sec()
-  relay_id = ?[HOST_PEER_ID]
-  bytes <- Registry.get_record_metadata_bytes(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil)
-
-  sig_result <- Sig.sign(bytes)
-
-  result: ?RecordMetadata
-  error: *string
-  if sig_result.success == true:
-    result <- Registry.create_record_metadata(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil, sig_result.signature!)
-  else:
-    error <<- sig_result.error!
-
-  <- result, error
-
 
 -- peer_id comes from ("insecure_sig" "get_peer_id")
 func registerSubnetworkKey(deal_id: string, peer_id: PeerId, timestamp_created: u64, signature: []u8) -> RegisterKeyResult:
@@ -58,15 +33,15 @@ func createSubnetwork(deal_id: string) -> ?string, *Error:
   subnetwork_id: ?string
   error: *Error
   on HOST_PEER_ID:
-    sig_result <- getKeyInsecuredSignature(deal_id, t)
+    peer_id <- getInsecuredPeerId()
+    sig_result <- getKeyInsecuredSignature(deal_id, peer_id, t)
     if sig_result.success == false:
       error <<- sig_result.error!
     else:
       signature = sig_result.signature!
-      peer_id <- getInsecuredPeerId()
+
       id <- Registry.get_key_id(deal_id, peer_id)
       nodes <- getNeighbors(id)
-
       successful: *bool
       on HOST_PEER_ID:
         for n <- nodes par:
@@ -88,6 +63,32 @@ func createSubnetwork(deal_id: string) -> ?string, *Error:
 
   <- subnetwork_id, error
 
+func getWorkerRecordMetadata(subnetwork_id: string) -> ?RecordMetadata, ?string:
+  t <- Peer.timestamp_sec()
+  relay_id = ?[HOST_PEER_ID]
+  bytes <- Registry.get_record_metadata_bytes(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil)
+  on INIT_PEER_ID:
+    Sig "sig"
+    sig_result <- Sig.sign(bytes)
+
+  result: ?RecordMetadata
+  error: *string
+  if sig_result.success == true:
+    result <- Registry.create_record_metadata(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil, sig_result.signature!)
+  else:
+    error <<- sig_result.error!
+
+  <- result, error
+
+func getWorkerRecordSignature(metadata: RecordMetadata, timestamp_created: u64) -> SignResult:
+  signature: *SignResult
+  bytes <- Registry.get_record_bytes(metadata, timestamp_created)
+
+  on INIT_PEER_ID:
+    Sig "sig"
+    signature <- Sig.sign(bytes)
+
+  <- signature!
 
 func registerWorker(subnetwork_id: string) -> bool, *Error:
   success: *bool
@@ -121,6 +122,7 @@ func registerWorker(subnetwork_id: string) -> bool, *Error:
             success <<- false
           else:
             nodes <- getNeighbors(subnetwork_id)
+
             successful: *bool
             for n <- nodes par:
               on n:
