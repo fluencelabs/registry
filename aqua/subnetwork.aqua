@@ -9,6 +9,8 @@ import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 alias Error: string
 
+const MIN_ACK = 2
+
 func getInsecuredPeerId() -> PeerId:
   Sig "insecure_sig"
   peer_id <- Sig.get_peer_id()
@@ -144,3 +146,35 @@ func registerWorker(subnetwork_id: string) -> bool, *Error:
     error <<- "worker hasn't registered: timeout exceeded"
 
   <- succ, error
+
+func resolveSubnetwork(deal_id: string) -> ?[]Record, *Error:
+  peer_id <- getInsecuredPeerId()
+  key_id <- Registry.get_key_id(deal_id, peer_id)
+
+  nodes <- getNeighbors(key_id)
+  result: ?[]Record
+  records: *[]Record
+  error: *Error
+  successful: *bool
+  on HOST_PEER_ID:
+    for n <- nodes par:
+      on n:
+        try:
+          t <- Peer.timestamp_sec()
+          get_result <- Registry.get_records(key_id, t)
+          if get_result.success:
+            records <<- get_result.result
+            successful <<- true
+          else:
+            error <<- get_result.error
+
+  success <- wait(successful, MIN_ACK, DEFAULT_TIMEOUT)
+  if success == false:
+    error <<- "timeout exceeded"
+  else:
+    merged <- Registry.merge(records)
+    if merged.success == false:
+      error <<- merged.error
+    else:
+      result <<- merged.result
+  <- result, error
