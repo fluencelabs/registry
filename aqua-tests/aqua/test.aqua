@@ -7,15 +7,3 @@ export test
 
 func get_peer_id() -> PeerId:
   <- INIT_PEER_ID
-
-service Scope("scope"):
-  get_peer_id() -> string
-
-func test() -> ?string, *string, bool, *string:
-  res, err <- createSubnetwork("test")
-
-  if res != nil:
-    on HOST_PEER_ID:
-      succ, err1 <- registerWorker(res!)
-
-  <- res, err, succ, err1
