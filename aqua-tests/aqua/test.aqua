@@ -2,8 +2,7 @@ module Test
 
 import "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
-import "../../aqua/subnetwork.aqua"
-export test
+export getResource, createResource, getResourceId, get_peer_id, registerService, resolveResource, unregisterService
 
 func get_peer_id() -> PeerId:
   <- INIT_PEER_ID
