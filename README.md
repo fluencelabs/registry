@@ -15,18 +15,6 @@ In centralized systems, one can have centralized storage and routing, but in p2p
 
 However, Registry is not a plain key/value storage. Instead, it is a composition of the Registry service for each network participant and scheduled scripts maintaining replication and garbage collection. Thus, if you want to discover a group of services on different peers without prior knowledge, you should create a **Resource**. A resource is a group of services or peers united by some common feature. Any service is represented by a combination of `service_id` and `peer_id`, it is called a **Record**.
 
-<!--
-Please notice that resource lifetime is ~24 hours. However, if the resource has actual records, its lifetime is prolonged, and it will not be garbage-collected for the next 24 hours.
--->
-
-
-<!--
-![image](images/discovery.png)
-![image](images/mapping.png)
-
-There is no permissions management at the moment, but in the coming updates, a resource owner will be able to provide a challenge to check against.
--->
-
 **Why is Registry important?**
 
 Scalability, redundancy and high availability are essential parts of a decentralized system, but they are not available out of the box. To enable them, information about services should be bound with peers providing them. Also, such networks are constantly changing, and those changes should be reflected and resolvable to provide uninterruptible access. So there's a need to have a decentralized protocol to update and resolve information about routing, both global and local.
@@ -43,16 +31,16 @@ Comprehensive documentation on Fluence can be found [here](https://fluence.dev).
 
 Resources API is defined in the [resources-api](./aqua/resources-api.aqua) module. Service API is defined in the [registry-service](./aqua/registry-service.aqua) module. For the details, check the [API Reference](./API_reference.md).
 
-<!--
-Other resources include [Aqua Playground](https://github.com/fluencelabs/aqua-playground) and [Aqua repo](https://github.com/fluencelabs/aqua).
--->
 
 ## Repository Structure
 
-- [**aqua-tests**](./aqua-tests) _TO BE FILLED_
-- [**aqua**](./aqua)
-- [**builtin-package**](./builtin-package)
-- [**service**](./service)
+- [**aqua-tests**](./aqua-tests) contains tests for the Aqua API and use
+  it in e2e tests
+- [**aqua**](./aqua) is the Aqua API registry
+- [**builtin-package**](./builtin-package) contains a build script and
+  config files used for building a standard distro for the Rust peer
+  builtins
+- [**service**](./service) is the Rust code for the Registry service
 
 
 ## Support
