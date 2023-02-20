@@ -5,4 +5,4 @@ import "@fluencelabs/registry/resources-api.aqua"
 export getResource, createResource, getResourceId, get_peer_id, registerService, resolveResource, unregisterService
 
 func get_peer_id() -> PeerId:
-    <- INIT_PEER_ID
+  <- INIT_PEER_ID
