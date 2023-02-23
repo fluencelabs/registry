@@ -36,7 +36,7 @@ Resources API is defined in the [resources-api](./aqua/resources-api.aqua) modul
 
 - [**aqua-tests**](./aqua-tests) contains tests for the Aqua API and use
   it in e2e tests
-- [**aqua**](./aqua) is the Aqua API registry
+- [**aqua**](./aqua) is the Registry Aqua API
 - [**builtin-package**](./builtin-package) contains a build script and
   config files used for building a standard distro for the Rust peer
   builtins
