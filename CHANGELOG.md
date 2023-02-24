@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/fluencelabs/registry/compare/registry-v0.8.0...registry-v0.8.1) (2023-02-24)
+
+
+### Bug Fixes
+
+* **subnet:** add on HOST_PEER_ID in resolveSubnetwork ([#202](https://github.com/fluencelabs/registry/issues/202)) ([3960180](https://github.com/fluencelabs/registry/commit/3960180246471a78bacf5fa65152a52fb3d4ddf2))
+
 ## [0.8.0](https://github.com/fluencelabs/registry/compare/registry-v0.7.1...registry-v0.8.0) (2023-02-24)
 
 
