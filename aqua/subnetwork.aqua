@@ -148,15 +148,15 @@ func registerWorker(subnetwork_id: string) -> bool, *Error:
   <- succ, error
 
 func resolveSubnetwork(deal_id: string) -> ?[]Record, *Error:
-  peer_id <- getInsecuredPeerId()
-  key_id <- Registry.get_key_id(deal_id, peer_id)
-
-  nodes <- getNeighbors(key_id)
   result: ?[]Record
-  records: *[]Record
   error: *Error
-  successful: *bool
   on HOST_PEER_ID:
+    peer_id <- getInsecuredPeerId()
+    key_id <- Registry.get_key_id(deal_id, peer_id)
+
+    nodes <- getNeighbors(key_id)
+    records: *[]Record
+    successful: *bool
     for n <- nodes par:
       on n:
         try:
@@ -168,13 +168,13 @@ func resolveSubnetwork(deal_id: string) -> ?[]Record, *Error:
           else:
             error <<- get_result.error
 
-  success <- wait(successful, MIN_ACK, DEFAULT_TIMEOUT)
-  if success == false:
-    error <<- "timeout exceeded"
-  else:
-    merged <- Registry.merge(records)
-    if merged.success == false:
-      error <<- merged.error
+    success <- wait(successful, MIN_ACK, DEFAULT_TIMEOUT)
+    if success == false:
+      error <<- "timeout exceeded"
     else:
-      result <<- merged.result
+      merged <- Registry.merge(records)
+      if merged.success == false:
+        error <<- merged.error
+      else:
+        result <<- merged.result
   <- result, error
