@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/fluencelabs/registry/compare/registry-v0.7.1...registry-v0.8.0) (2023-02-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **storage:** bump SQLite module to 0.18.0 ([#200](https://github.com/fluencelabs/registry/issues/200))
+
+### Bug Fixes
+
+* **storage:** bump SQLite module to 0.18.0 ([#200](https://github.com/fluencelabs/registry/issues/200)) ([f671c8a](https://github.com/fluencelabs/registry/commit/f671c8ac1514a11331ae871a7e126f1e908214f6))
+
 ## [0.7.1](https://github.com/fluencelabs/registry/compare/registry-v0.7.0...registry-v0.7.1) (2023-02-20)
 
 
