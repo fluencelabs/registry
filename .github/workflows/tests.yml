@@ -114,15 +114,7 @@ jobs:
         run: ./builtin-package/package.sh
 
       - name: Unpack registry package
-        run: |
-         mkdir -p builtins/registry
-         tar xvf registry.tar.gz --directory builtins/registry
-
-      - name: Download and unpack trust-graph release
-        run: |
-          mkdir -p builtins/trust-graph
-          curl -sL --fail https://github.com/fluencelabs/trust-graph/releases/latest/download/trust-graph.tar.gz -o trust-graph.tar.gz
-          tar xvf trust-graph.tar.gz --directory builtins/trust-graph
+        run: tar xvf registry.tar.gz
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
