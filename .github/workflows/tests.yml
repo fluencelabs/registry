@@ -146,7 +146,7 @@ jobs:
       - name: Wait for registry to be deployed
         uses: nick-fields/retry@v2
         with:
-          timeout_seconds: 20
+          timeout_seconds: 30
           max_attempts: 5
           shell: bash
           command: ${{ github.workspace }}/.github/check-registry.sh
