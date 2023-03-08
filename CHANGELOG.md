@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/fluencelabs/registry/compare/registry-v0.8.1...registry-v0.8.2) (2023-03-08)
+
+
+### Bug Fixes
+
+* **deps:** Update sqlite to 0.8.0 ([#205](https://github.com/fluencelabs/registry/issues/205)) ([d27f232](https://github.com/fluencelabs/registry/commit/d27f232fb44629b18fa45e45b7c33e332f5817fd))
+
 ## [0.8.1](https://github.com/fluencelabs/registry/compare/registry-v0.8.0...registry-v0.8.1) (2023-02-24)
 
 
