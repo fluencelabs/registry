@@ -11,6 +11,8 @@ services:
     ports:
       - 7771:7771
       - 9991:9991
+    environment:
+      RUST_LOG: "info,run-console=debug"
     command:
       - --aqua-pool-size=2
       - -t=7771
@@ -35,6 +37,8 @@ services:
     ports:
       - 7772:7772
       - 9992:9992
+    environment:
+      RUST_LOG: "info,run-console=debug"
     command:
       - --aqua-pool-size=2
       - -t=7772
@@ -58,6 +62,9 @@ services:
     ports:
       - 7773:7773
       - 9993:9993
+    environment:
+      RUST_LOG: "info,run-console=debug"
+
     command:
       - --aqua-pool-size=2
       - -t=7773
@@ -81,6 +88,8 @@ services:
     ports:
       - 7774:7774
       - 9994:9994
+    environment:
+      RUST_LOG: "info,run-console=debug"
     command:
       - --aqua-pool-size=2
       - -t=7774
@@ -104,6 +113,8 @@ services:
     ports:
       - 7775:7775
       - 9995:9995
+    environment:
+      RUST_LOG: "info,run-console=debug"
     command:
       - --aqua-pool-size=2
       - -t=7775
@@ -127,6 +138,8 @@ services:
     ports:
       - 7776:7776
       - 9996:9996
+    environment:
+      RUST_LOG: "info,run-console=debug"
     command:
       - --aqua-pool-size=2
       - -t=7776
