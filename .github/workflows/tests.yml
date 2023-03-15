@@ -15,6 +15,9 @@ on:
         description: "@fluencejs/aqua version"
         type: string
         default: "null"
+      cargo-dependencies:
+        description: "Cargo dependencies map"
+        type: string
       ref:
         description: "GitHub ref to checkout to"
         type: string
@@ -105,6 +108,12 @@ jobs:
         uses: baptiste0928/cargo-install@v1.3.1
         with:
           crate: marine
+
+      - name: Set dependencies
+        if: inputs.cargo-dependencies != ''
+        uses: fluencelabs/github-actions/cargo-set-dependency@main
+        with:
+          dependencies: ${{ inputs.cargo-dependencies }}
 
       - name: Build service
         run: ./build.sh
