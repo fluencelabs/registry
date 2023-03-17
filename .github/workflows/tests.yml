@@ -112,7 +112,7 @@ jobs:
         uses: fluencelabs/github-actions/cargo-set-dependency@main
         with:
           dependencies: ${{ inputs.cargo-dependencies }}
-          manifest: service/Cargo.toml
+          path: service/
 
       - name: Build service
         run: ./build.sh
