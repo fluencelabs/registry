@@ -114,7 +114,7 @@ jobs:
 
       - name: Make marine executable
         if: steps.marine.outcome == 'success'
-        run: chmod +x ${{ steps.marine.outputs.download-path }}/marine
+        run: chmod +x ~/.local/bin/marine
 
       - name: Setup marine
         if: steps.marine.outcome == 'failure'
