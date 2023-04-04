@@ -19,7 +19,7 @@ on:
         description: "Cargo dependencies map"
         type: string
       ref:
-        description: "GitHub ref to checkout to"
+        description: "git ref to checkout to"
         type: string
         default: "main"
 
