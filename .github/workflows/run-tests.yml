@@ -1,13 +1,25 @@
-name: "e2e"
+name: "test"
 
 on:
   pull_request:
     paths-ignore:
       - "**.md"
-
+      - ".github/**"
+      - "!.github/workflows/run-tests.yml"
+      - "!.github/workflows/tests.yml"
+    types:
+      - "labeled"
+      - "synchronize"
+      - "opened"
+      - "reopened"
   push:
     branches:
       - "main"
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - "!.github/workflows/run-tests.yml"
+      - "!.github/workflows/tests.yml"
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
