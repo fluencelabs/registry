@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/fluencelabs/registry/compare/registry-v0.8.2...registry-v0.8.3) (2023-04-06)
+
+
+### Features
+
+* **sqlite:** bump to v0.18.1 ([#218](https://github.com/fluencelabs/registry/issues/218)) ([4fd0895](https://github.com/fluencelabs/registry/commit/4fd0895ab8415b60eacb34e0a627e9d6d5b5fe2c))
+
 ## [0.8.2](https://github.com/fluencelabs/registry/compare/registry-v0.8.1...registry-v0.8.2) (2023-03-08)
 
 
