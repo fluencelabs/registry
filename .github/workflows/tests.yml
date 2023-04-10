@@ -24,6 +24,7 @@ on:
         default: "main"
 
 env:
+  CI: true
   FORCE_COLOR: true
   RUST_PEER_IMAGE: "${{ inputs.rust-peer-image }}"
   FLUENCE_ENV: "${{ inputs.fluence-env }}"
