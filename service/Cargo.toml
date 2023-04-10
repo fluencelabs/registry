@@ -15,7 +15,7 @@ marine-rs-sdk = "=0.7.1"
 marine-sqlite-connector = "=0.8.0"
 fstrings = "=0.2.3"
 boolinator = "=2.4.0"
-toml = "=0.5.10"
+toml = "=0.7.3"
 serde = { version = "=1.0.152", features = ["derive"] }
 thiserror = "=1.0.38"
 sha2 = "=0.10.6"
