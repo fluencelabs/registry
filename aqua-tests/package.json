@@ -31,6 +31,6 @@
   "devDependencies": {
     "@fluencelabs/aqua": "0.10.3",
     "@fluencelabs/cli": "0.4.3",
-    "@fluencelabs/fluence-network-environment": "1.0.13"
+    "@fluencelabs/fluence-network-environment": "1.0.14"
   }
 }
