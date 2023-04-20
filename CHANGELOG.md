@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.4](https://github.com/fluencelabs/registry/compare/registry-v0.8.3...registry-v0.8.4) (2023-04-19)
+
+
+### Features
+
+* update aqua-lib and trust-graph versions ([#229](https://github.com/fluencelabs/registry/issues/229)) ([5e460e3](https://github.com/fluencelabs/registry/commit/5e460e3e2429df909d034193fedf2876f86b18a8))
+
+
+### Bug Fixes
+
+* **deps:** pin dependencies ([#198](https://github.com/fluencelabs/registry/issues/198)) ([e66457c](https://github.com/fluencelabs/registry/commit/e66457c0ff696330717e58e3ebb4120709281202))
+* **deps:** update dependency @fluencelabs/fluence-network-environment to v1.0.14 ([#195](https://github.com/fluencelabs/registry/issues/195)) ([204af45](https://github.com/fluencelabs/registry/commit/204af450001cd6e1ed587111fcc452d41d56a705))
+
 ## [0.8.3](https://github.com/fluencelabs/registry/compare/registry-v0.8.2...registry-v0.8.3) (2023-04-06)
 
 
