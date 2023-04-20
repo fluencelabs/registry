@@ -12,7 +12,11 @@ on:
         type: string
         default: "fluencelabs/rust-peer:minimal"
       aqua-version:
-        description: "@fluencejs/aqua version"
+        description: "@fluencelabs/aqua version"
+        type: string
+        default: "null"
+      fluence-cli-version:
+        description: "@fluencelabs/cli version"
         type: string
         default: "null"
       cargo-dependencies:
@@ -72,18 +76,18 @@ jobs:
         run: npm install
         working-directory: aqua
 
-      - name: Set aqua version
-        if: inputs.aqua-version != 'null'
-        uses: fluencelabs/github-actions/npm-set-dependency@main
-        with:
-          package: "@fluencelabs/aqua"
-          version: ${{ inputs.aqua-version }}
-          working-directory: aqua
-          flags: "--save-dev"
-
       - name: Run npm install in aqua-tests
         run: npm install
         working-directory: aqua-tests
+
+      - name: Set fluence-cli version
+        if: inputs.fluence-cli-version != 'null'
+        uses: fluencelabs/github-actions/npm-set-dependency@main
+        with:
+          package: "@fluencelabs/cli"
+          version: ${{ inputs.fluence-cli-version }}
+          working-directory: aqua-tests
+          flags: "--save-dev"
 
       - name: Set aqua version
         if: inputs.aqua-version != 'null'
@@ -94,13 +98,19 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
-      - name: Set aqua version in fluence.yml
-        if: inputs.aqua-version != 'null'
+      - name: Set versions in fluence.yaml
+        uses: fluencelabs/github-actions/npm-set-dependency@FLU-231
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
-        working-directory: aqua-tests
-        run: |
-          sed -i 's/"@fluencelabs\/aqua": .*/"@fluencelabs\/aqua": ${{ inputs.aqua-version }}/g' fluence.yaml
+        with:
+          versions: |
+            {
+              "npm": {
+                "@fluencelabs/aqua": "${{ inputs.aqua-version }}",
+              }
+            }
+          path: aqua-test
+
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
