@@ -100,7 +100,6 @@ jobs:
 
       - name: Set versions in fluence.yaml
         uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
-        working-directory: aqua-tests
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
         with:
@@ -110,7 +109,7 @@ jobs:
                 "@fluencelabs/aqua": "${{ inputs.aqua-version }}",
               }
             }
-
+          path: registry/aqua-tests
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
