@@ -99,7 +99,7 @@ jobs:
           flags: "--save-dev"
 
       - name: Set versions in fluence.yaml
-        uses: fluencelabs/github-actions/npm-set-dependency@FLU-231
+        uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
         with:
