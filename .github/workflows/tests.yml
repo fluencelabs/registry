@@ -109,7 +109,7 @@ jobs:
                 "@fluencelabs/aqua": "${{ inputs.aqua-version }}",
               }
             }
-          path: registry/aqua-tests
+          path: ${{ github.workspace }}/registry/aqua-tests
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
