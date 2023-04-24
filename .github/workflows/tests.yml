@@ -198,25 +198,14 @@ jobs:
         run: pytest test_aqua.py
         working-directory: aqua-tests
 
-      - name: Setup dasel
-        if: always()
-        uses: allejo/setup-dasel@v1
-        with:
-          version: 1.27.3
-
       - name: Print versions to check summary
         if: always()
         working-directory: aqua-tests
         run: |
           cat <<SNAPSHOT >> $GITHUB_STEP_SUMMARY
-          ## Used versions
-          | name       | version                                                              |
-          | ---------- | -------------------------------------------------------------------- |
-          | rust-peer  | $(docker run --rm --entrypoint=fluence ${RUST_PEER_IMAGE} --version) |
-          | avm        | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/avm).version') |
-          | marine-js  | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/marine-js).version') |
-          | aqua       | $(npx aqua --version)                                                |
-          | fluence-js | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/fluence).version') |
+          ```
+          $(fluence dep v)
+          ```
           SNAPSHOT
 
       - name: Dump rust-peer logs on failure
