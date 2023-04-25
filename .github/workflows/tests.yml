@@ -89,11 +89,6 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
-      - run: |
-          ls -alh
-          pwd
-          ls /opt/actions-runner/_work/fluence-cli/registry/
-
       - name: Set aqua version
         if: inputs.aqua-version != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
@@ -114,7 +109,7 @@ jobs:
                 "@fluencelabs/aqua": "${{ inputs.aqua-version }}",
               }
             }
-          path: ${{ format('{0}/../registry/aqua-tests', github.workspace) }}
+          path: aqua-tests
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
