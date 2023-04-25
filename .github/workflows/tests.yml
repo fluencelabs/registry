@@ -203,8 +203,9 @@ jobs:
         working-directory: aqua-tests
         run: |
           cat <<SNAPSHOT >> $GITHUB_STEP_SUMMARY
+          ## Used versions
           ```
-          $(npx fluence dep v)
+          npx fluence dep v
           ```
           SNAPSHOT
 
