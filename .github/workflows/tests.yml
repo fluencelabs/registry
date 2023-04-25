@@ -89,6 +89,11 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
+      - run: |
+          ls -alh
+          pwd
+          ls /opt/actions-runner/_work/fluence-cli/registry/
+
       - name: Set aqua version
         if: inputs.aqua-version != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
