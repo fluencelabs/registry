@@ -98,6 +98,9 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
+      - run: |
+        ls -alh
+
       - name: Set versions in fluence.yaml
         uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
         env:
