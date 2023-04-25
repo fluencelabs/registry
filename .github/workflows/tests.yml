@@ -89,15 +89,6 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
-      - name: Set aqua version
-        if: inputs.aqua-version != 'null'
-        uses: fluencelabs/github-actions/npm-set-dependency@main
-        with:
-          package: "@fluencelabs/aqua"
-          version: ${{ inputs.aqua-version }}
-          working-directory: aqua-tests
-          flags: "--save-dev"
-
       - name: Set versions in fluence.yaml
         uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
         env:
