@@ -99,7 +99,7 @@ jobs:
           flags: "--save-dev"
 
       - run: |
-        ls -alh
+          ls -alh
 
       - name: Set versions in fluence.yaml
         uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
