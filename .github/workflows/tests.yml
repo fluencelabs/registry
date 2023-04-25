@@ -103,13 +103,13 @@ jobs:
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
         with:
-          versions: |
+          path: aqua-tests
+          versions: >
             {
               "npm": {
-                "@fluencelabs/aqua": "${{ inputs.aqua-version }}",
+                "@fluencelabs/aqua": "${{ inputs.aqua-version }}"
               }
             }
-          path: aqua-tests
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
