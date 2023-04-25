@@ -98,9 +98,6 @@ jobs:
           working-directory: aqua-tests
           flags: "--save-dev"
 
-      - run: |
-          ls -alh
-
       - name: Set versions in fluence.yaml
         uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
         env:
@@ -112,7 +109,7 @@ jobs:
                 "@fluencelabs/aqua": "${{ inputs.aqua-version }}",
               }
             }
-          path: ${{ github.workspace }}/registry/aqua-tests
+          path: ${{ env.PWD }}/aqua-tests
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
