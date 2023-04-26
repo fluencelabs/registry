@@ -207,9 +207,9 @@ jobs:
         run: |
           cat <<SNAPSHOT >> $GITHUB_STEP_SUMMARY
           ## Used versions
-          ```
-          npx fluence dep v
-          ```
+          \`\`\`
+          $(npx fluence dep v)
+          \`\`\`
           SNAPSHOT
 
       - name: Dump rust-peer logs on failure
