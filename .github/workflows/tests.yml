@@ -12,7 +12,11 @@ on:
         type: string
         default: "fluencelabs/rust-peer:minimal"
       aqua-version:
-        description: "@fluencejs/aqua version"
+        description: "@fluencelabs/aqua version"
+        type: string
+        default: "null"
+      fluence-cli-version:
+        description: "@fluencelabs/cli version"
         type: string
         default: "null"
       cargo-dependencies:
@@ -72,6 +76,19 @@ jobs:
         run: npm install
         working-directory: aqua
 
+      - name: Run npm install in aqua-tests
+        run: npm install
+        working-directory: aqua-tests
+
+      - name: Set fluence-cli version
+        if: inputs.fluence-cli-version != 'null'
+        uses: fluencelabs/github-actions/npm-set-dependency@main
+        with:
+          package: "@fluencelabs/cli"
+          version: ${{ inputs.fluence-cli-version }}
+          working-directory: aqua-tests
+          flags: "--save-dev"
+
       - name: Set aqua version
         if: inputs.aqua-version != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
@@ -81,26 +98,18 @@ jobs:
           working-directory: aqua
           flags: "--save-dev"
 
-      - name: Run npm install in aqua-tests
-        run: npm install
-        working-directory: aqua-tests
-
-      - name: Set aqua version
-        if: inputs.aqua-version != 'null'
-        uses: fluencelabs/github-actions/npm-set-dependency@main
-        with:
-          package: "@fluencelabs/aqua"
-          version: ${{ inputs.aqua-version }}
-          working-directory: aqua-tests
-          flags: "--save-dev"
-
-      - name: Set aqua version in fluence.yml
-        if: inputs.aqua-version != 'null'
+      - name: Set versions in fluence.yaml
+        uses: fluencelabs/github-actions/fluence-set-dependency@FLU-231
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
-        working-directory: aqua-tests
-        run: |
-          sed -i 's/"@fluencelabs\/aqua": .*/"@fluencelabs\/aqua": ${{ inputs.aqua-version }}/g' fluence.yaml
+        with:
+          path: aqua-tests
+          versions: >
+            {
+              "npm": {
+                "@fluencelabs/aqua": "${{ inputs.aqua-version }}"
+              }
+            }
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -165,13 +174,16 @@ jobs:
         run: pip install -r requirements.txt
         working-directory: aqua-tests
 
-      - name: Wait for registry to be deployed
-        uses: nick-fields/retry@v2
-        with:
-          timeout_seconds: 30
-          max_attempts: 5
-          shell: bash
-          command: ${{ github.workspace }}/.github/check-registry.sh
+      # - name: Wait for registry to be deployed
+      #   uses: nick-fields/retry@v2
+      #   with:
+      #     timeout_seconds: 30
+      #     max_attempts: 5
+      #     shell: bash
+      #     command: ${{ github.workspace }}/.github/check-registry.sh
+      #
+      - name: Temporarely wait with sleep
+        run: sleep 20
 
       - name: Install fluence-cli dependencies
         env:
@@ -189,25 +201,15 @@ jobs:
         run: pytest test_aqua.py
         working-directory: aqua-tests
 
-      - name: Setup dasel
-        if: always()
-        uses: allejo/setup-dasel@v1
-        with:
-          version: 1.27.3
-
       - name: Print versions to check summary
         if: always()
         working-directory: aqua-tests
         run: |
           cat <<SNAPSHOT >> $GITHUB_STEP_SUMMARY
           ## Used versions
-          | name       | version                                                              |
-          | ---------- | -------------------------------------------------------------------- |
-          | rust-peer  | $(docker run --rm --entrypoint=fluence ${RUST_PEER_IMAGE} --version) |
-          | avm        | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/avm).version') |
-          | marine-js  | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/marine-js).version') |
-          | aqua       | $(npx aqua --version)                                                |
-          | fluence-js | $(dasel -f package-lock.json -p json -m --plain 'packages.(?:-=node_modules/@fluencelabs/fluence).version') |
+          ```
+          npx fluence dep v
+          ```
           SNAPSHOT
 
       - name: Dump rust-peer logs on failure

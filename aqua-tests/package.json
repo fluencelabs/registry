@@ -8,7 +8,7 @@
     "@fluencelabs/trust-graph": "3.0.4"
   },
   "scripts": {
-    "compile-aqua": "aqua -i . -o ./target/typescript",
+    "compile-aqua": "fluence aqua -i . -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
     "build": "npm run compile-aqua",
     "secret": "npx fluence key new"
@@ -29,8 +29,7 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/aqua": "0.10.3",
-    "@fluencelabs/cli": "0.4.3",
+    "@fluencelabs/cli": "0.4.8",
     "@fluencelabs/fluence-network-environment": "1.0.14"
   }
 }

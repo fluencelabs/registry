@@ -13,7 +13,7 @@ cd ${GITHUB_WORKSPACE}/aqua-tests
 
 for PEER_ADDR in ${PEERS[@]}; do
   echo "Checking ${PEER_ADDR}"
-  if ! npx aqua remote get_interface --addr ${PEER_ADDR} --id registry | jq -ec 'has("function_signatures")'; then
+  if ! npx fluence aqua remote get_interface --addr ${PEER_ADDR} --id registry | jq -ec 'has("function_signatures")'; then
     exit 1
   fi
 done
