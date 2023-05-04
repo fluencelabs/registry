@@ -141,6 +141,9 @@ jobs:
         run: ./build.sh
         working-directory: service
 
+      - name: Install ipfs
+        uses: ibnesayeed/setup-ipfs@master
+
       - name: Create builtin distribution package
         run: ./builtin-package/package.sh
 
