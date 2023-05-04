@@ -141,7 +141,7 @@ jobs:
         working-directory: aqua
 
       - name: Install ipfs
-        uses: ibnesayeed/setup-ipfs@master
+        uses: ibnesayeed/setup-ipfs@0.6.0
 
       - name: Create builtin distribution package
         run: ./builtin-package/package.sh
