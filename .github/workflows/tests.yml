@@ -204,6 +204,10 @@ jobs:
         run: pytest test_aqua.py
         working-directory: aqua-tests
 
+      - name: Build distro
+        run: ./build.sh
+        working-directory: distro
+
       - name: Print versions to check summary
         if: always()
         working-directory: aqua-tests
