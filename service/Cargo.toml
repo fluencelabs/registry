@@ -1,6 +1,6 @@
 [package]
 name = "registry"
-version = "0.8.4"
+version = "0.8.5"
 authors = ["Fluence Labs"]
 edition = "2018"
 publish = false

@@ -1,6 +1,6 @@
 {
   "name": "@fluencelabs/registry",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Aqua Registry library",
   "files": [
     "*.aqua"
