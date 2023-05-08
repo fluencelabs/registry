@@ -140,6 +140,9 @@ jobs:
         run: npm publish --access public
         working-directory: aqua
 
+      - name: Install ipfs
+        uses: nahsi/setup-ipfs@v1
+
       - name: Create builtin distribution package
         run: ./builtin-package/package.sh
 
