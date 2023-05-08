@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.5](https://github.com/fluencelabs/registry/compare/registry-v0.8.4...registry-v0.8.5) (2023-05-08)
+
+
+### Features
+
+* **builtin-package:** use new blueprint ([#234](https://github.com/fluencelabs/registry/issues/234)) ([061cf2f](https://github.com/fluencelabs/registry/commit/061cf2f8186192c39946628e21e466323dc31a33))
+
 ## [0.8.4](https://github.com/fluencelabs/registry/compare/registry-v0.8.3...registry-v0.8.4) (2023-04-19)
 
 
