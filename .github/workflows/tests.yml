@@ -142,7 +142,9 @@ jobs:
         working-directory: service
 
       - name: Install ipfs
-        uses: ibnesayeed/setup-ipfs@0.6.0
+        uses: nahsi/setup-ipfs@v1
+        with:
+          version: 0.14.0
 
       - name: Create builtin distribution package
         run: ./builtin-package/package.sh
