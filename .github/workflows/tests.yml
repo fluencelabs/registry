@@ -26,7 +26,7 @@ on:
         description: "git ref to checkout to"
         type: string
         # default: "main"
-        default: "77dd4cd" # commit before new blueprints
+        default: "77dd4cdc4c61dd19e3833041f84d47a873cfeff2" # commit before new blueprints
 
 env:
   CI: true
