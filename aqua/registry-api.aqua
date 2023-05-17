@@ -58,7 +58,7 @@ func putRecord(metadata: RecordMetadata, timestamp_created: u64, signature: []u8
   <- result
 
 func addTombstone(key_id: string, peer_id: string, timestamp_issued: u64, solution: []u8, signature: []u8) -> RegistryResult:
-   t <- Peer.timestamp_sec()
+  t <- Peer.timestamp_sec()
   result <- Registry.add_tombstone(key_id, INIT_PEER_ID, peer_id, timestamp_issued, solution, signature, t)
   <- result
 
