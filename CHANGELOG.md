@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.6](https://github.com/fluencelabs/registry/compare/registry-v0.8.5...registry-v0.8.6) (2023-05-19)
+
+
+### Features
+
+* **parser:** Fix indentation ([#241](https://github.com/fluencelabs/registry/issues/241)) ([d96f5a4](https://github.com/fluencelabs/registry/commit/d96f5a4a0da7288ef6895c270fe207ea9a9f102d))
+
 ## [0.8.5](https://github.com/fluencelabs/registry/compare/registry-v0.8.4...registry-v0.8.5) (2023-05-08)
 
 
