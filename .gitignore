@@ -3,6 +3,8 @@ builtin-package/*.wasm
 builtin-package/scheduled/*.air
 registry.tar.gz
 registry
+distro/target/
+distro/registry-service/
 
 **/*.rs.bk
 **/.idea
