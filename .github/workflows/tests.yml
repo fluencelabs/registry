@@ -205,8 +205,7 @@ jobs:
         working-directory: aqua-tests
 
       - name: Build distro
-        run: ../build.sh
-        working-directory: distro
+        run: ./build.sh
 
       - name: Print versions to check summary
         if: always()
