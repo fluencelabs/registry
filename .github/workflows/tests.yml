@@ -141,6 +141,9 @@ jobs:
         run: ./build.sh
         working-directory: service
 
+      - name: Build distro
+        run: ./build.sh
+
       - name: Install ipfs
         uses: nahsi/setup-ipfs@v1
 
@@ -203,9 +206,6 @@ jobs:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: pytest test_aqua.py
         working-directory: aqua-tests
-
-      - name: Build distro
-        run: ./build.sh
 
       - name: Print versions to check summary
         if: always()
