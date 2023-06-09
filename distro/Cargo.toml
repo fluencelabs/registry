@@ -1,6 +1,6 @@
 [package]
 name = "registry-distro"
-version = "0.8.4"
+version = "0.8.6"
 edition = "2021"
 build = "built.rs"
 include = [ "/src", "built.rs", "Cargo.toml", "registry-service"]
