@@ -1,0 +1,25 @@
+import Op, Debug from "@fluencelabs/aqua-lib/builtin.aqua"
+import Spell from "@fluencelabs/spell/spell_service.aqua"
+
+import "../../aqua/registry-service.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/trust-graph/trust-graph.aqua"
+
+func spell():
+  on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    res <- Registry.evict_stale(t)
+    for r <- res.results par:
+      k <- Op.string_to_b58(r.key.id)
+      nodes <- Kademlia.neighborhood(k, nil, nil)
+      for n <- nodes par:
+        on n:
+          tt <- Peer.timestamp_sec()
+          key_weight <- TrustGraph.get_weight(r.key.owner_peer_id, tt)
+          Registry.republish_key(r.key, key_weight, tt)
+
+          records_weights: *WeightResult
+          for record <- r.records:
+            records_weights <- TrustGraph.get_weight(record.metadata.issued_by, tt)
+          Registry.republish_records(r.records, records_weights, tt)
+

@@ -1,0 +1,14 @@
+import Op, Debug from "@fluencelabs/aqua-lib/builtin.aqua"
+import Spell from "@fluencelabs/spell/spell_service.aqua"
+
+import "../../aqua/registry-service.aqua"
+import "../../aqua/registry-api.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+func spell():
+  on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    res <- Registry.get_stale_local_records(t)
+    for r <- res.result par:
+      signature <- getRecordSignature(r.metadata, t)
+      putRecord(r.metadata, t, signature.signature!)

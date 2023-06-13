@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -o pipefail -o nounset -o errexit
+set -x
 
 # set current working directory to script directory to run script from everywhere
 cd "$(dirname "$0")"
@@ -13,8 +14,9 @@ SCHEDULED="$PACKAGE_DIR/scheduled"
 (
     echo "*** compile scheduled scripts ***"
     cd ../aqua
-    npx aqua --version
-    npx aqua --no-relay --air -i ./registry-scheduled-scripts.aqua -o "$SCHEDULED"
+    npx fluence --version
+    npx fluence aqua --no-relay --air -i ./spells/registry-clear-expired-spell/spell.aqua -o "$SCHEDULED"
+
 )
 
 (

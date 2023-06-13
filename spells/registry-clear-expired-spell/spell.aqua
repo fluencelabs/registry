@@ -1,0 +1,11 @@
+import Op, Debug from "@fluencelabs/aqua-lib/builtin.aqua"
+import Spell from "@fluencelabs/spell/spell_service.aqua"
+
+import "../../aqua/registry-service.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+
+func spell():
+   on HOST_PEER_ID:
+    t <- Peer.timestamp_sec()
+    Registry.clear_expired(t)
