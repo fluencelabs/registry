@@ -1,0 +1,15 @@
+[package]
+name = "registry-distro"
+version = "0.8.6"
+edition = "2021"
+build = "built.rs"
+include = [ "/src", "built.rs", "Cargo.toml", "registry-service"]
+description = "Distribution package for the registry service including scheduled scripts"
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+maplit = "1.0.2"
+
+[build-dependencies]
+built = "0.5.2"

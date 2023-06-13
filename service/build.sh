@@ -17,3 +17,6 @@ curl -L https://github.com/fluencelabs/sqlite/releases/download/sqlite-wasm-v0.1
 
 # generate Aqua bindings
 marine aqua artifacts/registry.wasm -s Registry -i registry >../aqua/registry-service.aqua
+
+mkdir -p ../distro/registry-service
+cp artifacts/registry.wasm artifacts/sqlite3.wasm ../distro/registry-service

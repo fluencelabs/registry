@@ -67,6 +67,10 @@ jobs:
         working-directory: service
         run: cargo set-version ${{ steps.version.outputs.version }}
 
+      - name: Set version in distro
+        working-directory: distro
+        run: cargo set-version ${{ steps.version.outputs.version }}
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
@@ -176,6 +180,41 @@ jobs:
             "url": "https://github.com/fluencelabs/registry/releases/download/${{ needs.release-please.outputs.tag-name }}/registry.tar.gz",
             "sha256": "${{ steps.sha.outputs.sha256 }}"
           }'
+
+      - name: Import secrets
+        uses: hashicorp/vault-action@v2.4.3
+        with:
+          url: https://vault.fluence.dev
+          path: jwt/github
+          role: ci
+          method: jwt
+          jwtGithubAudience: "https://github.com/fluencelabs"
+          jwtTtl: 300
+          exportToken: false
+          secrets: |
+            kv/crates.io/fluencebot token | CARGO_REGISTRY_TOKEN
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install cargo-workspaces
+        uses: baptiste0928/cargo-install@v2.0.0
+        with:
+          crate: cargo-workspaces
+          version: v0.2.37
+
+      - name: Build distro
+        run: ./build.sh
+
+      - name: Publish to crates.io
+        working-directory: ./distro
+        run: |
+          cargo ws publish \
+            --no-git-commit \
+            --allow-dirty \
+            --from-git \
+            --skip-published \
+            --yes
 
   slack:
     if: always()

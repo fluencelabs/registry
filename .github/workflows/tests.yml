@@ -141,6 +141,9 @@ jobs:
         run: ./build.sh
         working-directory: service
 
+      - name: Build distro
+        run: ./build.sh
+
       - name: Install ipfs
         uses: nahsi/setup-ipfs@v1
 
