@@ -74,7 +74,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "16"
 
       - name: Set version in aqua
         working-directory: aqua
@@ -129,7 +129,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "16"
           registry-url: "https://registry.npmjs.org"
           cache-dependency-path: "aqua/package-lock.json"
           cache: "npm"
