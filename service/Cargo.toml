@@ -16,15 +16,15 @@ marine-sqlite-connector = "=0.8.0"
 fstrings = "=0.2.3"
 boolinator = "=2.4.0"
 toml = "=0.7.3"
-serde = { version = "=1.0.152", features = ["derive"] }
-thiserror = "=1.0.38"
+serde = { version = "=1.0.162", features = ["derive"] }
+thiserror = "=1.0.40"
 sha2 = "=0.10.6"
 fluence-keypair = "=0.8.1"
 libp2p-core = { version = "=0.36.0", default-features = false, features = [ "secp256k1" ] }
 
 [dev-dependencies]
-marine-rs-sdk-test = "=0.8.1"
+marine-rs-sdk-test = "=0.10.0"
 rusqlite = "=0.28.0"
 
 [build-dependencies]
-marine-rs-sdk-test = "=0.8.1"
+marine-rs-sdk-test = "=0.10.0"
