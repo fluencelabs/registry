@@ -10,8 +10,9 @@ cd "$(dirname "$0")"
 DISTRO_TARGET=distro/registry-service
 mkdir -p "$DISTRO_TARGET"
 
-npx fluence aqua --no-relay --air -i spell/spell.aqua -o "./$DISTRO_TARGET/air"
-
+cd ./aqua
+npx fluence aqua --no-relay --air -i ../spell/spell.aqua -o "../$DISTRO_TARGET/air"
+cd -
 
 cp service/artifacts/registry.wasm service/artifacts/sqlite3.wasm distro/Config.toml "$DISTRO_TARGET"
 
