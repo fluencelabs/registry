@@ -57,10 +57,10 @@ func spell(config: SpellConfig):
     Spell "registry-spell"
    	log = (msg: string):
         log_info("registry-spell", msg)
-        
-    check_and_run = (key: string, now:u32, inteval: u32, job: -> ()):
+
+    check_and_run = (key: string, now:u32, interval: u32, job: -> ()):
         last_run <- Spell.get_u32(key)
-        need_to_run <- or(not(last_run.success),  Compare.gte(now - last_run.num, inteval)) 
+        need_to_run <- or(not(last_run.success),  Compare.gte(now - last_run.num, interval)) 
         if need_to_run == true:
             log(Op.concat_strings(Op.concat_strings("Running ", key), "job"))
             job()
