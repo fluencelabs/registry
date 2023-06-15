@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/cli": "0.4.8",
+    "@fluencelabs/cli": "0.4.15",
     "@fluencelabs/fluence-network-environment": "1.0.14"
   }
 }
