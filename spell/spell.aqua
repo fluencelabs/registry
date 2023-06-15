@@ -56,26 +56,20 @@ func replicate():
 func spell(config: SpellConfig):
     Spell "registry-spell"
    	log = (msg: string):
-					log_info("registry-spell", msg) 
+        log_info("registry-spell", msg)
+        
+    check_and_run = (key: string, now:u32, inteval: u32, job: -> ()):
+        last_run <- Spell.get_u32(key)
+        need_to_run <- or(not(last_run.success),  Compare.gte(now - last_run.num, inteval)) 
+        if need_to_run == true:
+            log(Op.concat_strings(Op.concat_strings("Running ", key), "job"))
+            job()
+            Spell.set_u32(key, now)
+ 
+    
     on HOST_PEER_ID:
         now <- PeerTimeTrunc.timestamp_sec()
-        last_clear_expired <- Spell.get_u32("clear_expired")
-        run_clean_expired <- or(not(last_clear_expired.success),  Compare.gte(now - last_clear_expired.num, config.expired_interval)) 
-        if run_clean_expired == true:
-            log("Running clear_expired job")
-            clear_expired()
-            Spell.set_u32("clear_expired", now)
+        check_and_run("clear_expired", now, config.expired_interval, clear_expired)
+        check_and_run("renew", now, config.renew_interval, renew)
+        check_and_run("replicate", now, config.replicate_interval, replicate)
 
-        last_renew_interval <- Spell.get_u32("renew_interval")
-        run_renew = or(not(last_renew_interval.success),  Compare.gte(now - last_renew_interval.num, config.renew_interval))
-        if run_renew == true:
-            log("Running renew_interval job")
-            renew()
-            Spell.set_u32("renew_interval", now)
-            
-        last_replicate_interval <- Spell.get_u32("replicate_interval")
-        run_replicate = or(not(last_replicate_interval.success),  Compare.gte(now - last_replicate_interval.num, config.replicate_interval))
-        if run_replicate == true:
-            log("Running replicate job")
-            replicate()
-            Spell.set_u32("replicate", now)   
