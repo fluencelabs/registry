@@ -8,7 +8,7 @@ import "@fluencelabs/aqua-lib/binary.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 data SpellConfig:
-	  expired_interval: u32
+	expired_interval: u32
     renew_interval: u32
     replicate_interval:u32
 
