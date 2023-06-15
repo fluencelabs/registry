@@ -26,7 +26,7 @@ pub struct DistrSpell {
     /// AIR script of the spell
     pub air: &'static str,
     /// Initial key-value records for spells KV storage
-    pub kv: HashMap<&'static str, JValue>,
+    pub init_data: HashMap<&'static str, JValue>,
 }
 
 
@@ -41,7 +41,7 @@ pub struct RegistryConfig {
 pub fn registry_spell(config: RegistryConfig) -> DistrSpell {
     DistrSpell {
         air: REGISTRY_SPELL,
-        kv: hashmap!{
+        init_data: hashmap!{
             "config" => json!( {
                 "expired_interval": config.expired_interval,
                 "renew_interval": config.renew_interval,
