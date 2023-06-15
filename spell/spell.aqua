@@ -23,22 +23,19 @@ func log_info(spell_id: string, msg: string):
 
 
 -- clears expired records
-func clear_expired():
-    t <- Peer.timestamp_sec()
-    Registry.clear_expired(t)
+func clear_expired(now:u32):
+    Registry.clear_expired(now)
 
 -- update stale local records
-func renew():
-    t <- Peer.timestamp_sec()
-    res <- Registry.get_stale_local_records(t)
+func renew(now:u32):
+    res <- Registry.get_stale_local_records(now)
     for r <- res.result par:
-      signature <- getRecordSignature(r.metadata, t)
-      putRecord(r.metadata, t, signature.signature!)
+      signature <- getRecordSignature(r.metadata, now)
+      putRecord(r.metadata, now, signature.signature!)
 
 -- get all old records and replicate it by routes
-func replicate():
-    t <- Peer.timestamp_sec()
-    res <- Registry.evict_stale(t)
+func replicate(now:u32):
+    res <- Registry.evict_stale(now)
     for r <- res.results par:
       k <- Op.string_to_b58(r.key.id)
       nodes <- Kademlia.neighborhood(k, nil, nil)
@@ -58,12 +55,12 @@ func spell(config: SpellConfig):
    	log = (msg: string):
         log_info("registry-spell", msg)
 
-    check_and_run = (key: string, now:u32, interval: u32, job: -> ()):
+    check_and_run = (key: string, now:u32, interval: u32, job: u32 -> ()):
         last_run <- Spell.get_u32(key)
         need_to_run <- or(not(last_run.success),  Compare.gte(now - last_run.num, interval)) 
         if need_to_run == true:
             log(Op.concat_strings(Op.concat_strings("Running ", key), "job"))
-            job()
+            job(now)
             Spell.set_u32(key, now)
  
     
