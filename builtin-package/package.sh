@@ -13,8 +13,8 @@ SCHEDULED="$PACKAGE_DIR/scheduled"
 (
     echo "*** compile scheduled scripts ***"
     cd ../aqua
-    npx aqua --version
-    npx aqua --no-relay --air -i ./registry-scheduled-scripts.aqua -o "$SCHEDULED"
+    npx fluence --version
+    npx fluence aqua --no-relay --air -i ./registry-scheduled-scripts.aqua -o "$SCHEDULED"
 )
 
 (
