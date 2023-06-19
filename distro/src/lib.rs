@@ -2,7 +2,7 @@ use maplit::hashmap;
 use std::collections::HashMap;
 use serde_json::{json, Value as JValue};
 
-pub const TRUST_GRAPH_WASM: &'static [u8] = include_bytes!("../registry-service/registry.wasm");
+pub const REGISTRY_WASM: &'static [u8] = include_bytes!("../registry-service/registry.wasm");
 pub const SQLITE_WASM: &'static [u8] = include_bytes!("../registry-service/sqlite3.wasm");
 pub const CONFIG: &'static [u8] = include_bytes!("../registry-service/Config.toml");
 
@@ -18,7 +18,7 @@ pub use build_info::PKG_VERSION as VERSION;
 pub fn modules() -> std::collections::HashMap<&'static str, &'static [u8]> {
     maplit::hashmap! {
         "sqlite3" => SQLITE_WASM,
-        "registry" => TRUST_GRAPH_WASM,
+        "registry" => REGISTRY_WASM,
     }
 }
 
