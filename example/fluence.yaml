@@ -12,7 +12,7 @@ dependencies:
   npm:
     "@fluencelabs/aqua": 0.9.2
     "@fluencelabs/registry": 0.6.2
-    "@fluencelabs/aqua-lib": 0.6.0
+    "@fluencelabs/aqua-lib": 0.7.0
   cargo:
     marine: 0.12.4
     mrepl: 0.18.6

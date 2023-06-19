@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@fluencelabs/cli": "^0.4.16"
+  }
+}
