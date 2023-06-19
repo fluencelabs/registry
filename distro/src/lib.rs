@@ -30,7 +30,6 @@ pub struct DistrSpell {
 }
 
 
-/// Decider's configuration needed for the correct decider start-up
 #[derive(Debug)]
 pub struct RegistryConfig {
     pub expired_interval: u32,
