@@ -1,6 +1,6 @@
 {
   "name": "@fluencelabs/registry",
-  "version": "0.8.7",
+  "version": "0.8.6",
   "description": "Aqua Registry library",
   "files": [
     "*.aqua"
@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/cli": "0.4.16"
+    "@fluencelabs/cli": "0.4.16",
+    "@fluencelabs/aqua": "^0.10.3"
   }
 }
