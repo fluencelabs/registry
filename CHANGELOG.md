@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.7](https://github.com/fluencelabs/registry/compare/registry-v0.8.6...registry-v0.8.7) (2023-06-20)
+
+
+### Features
+
+* add distro crate [fixes NET-462] ([#233](https://github.com/fluencelabs/registry/issues/233)) ([5acf1d2](https://github.com/fluencelabs/registry/commit/5acf1d230b92f6b0784314b0926b6f6c2e195307))
+* Migrate Registry to spell ([#247](https://github.com/fluencelabs/registry/issues/247)) ([990b588](https://github.com/fluencelabs/registry/commit/990b588b75857d2f61b76d89999a2c1f09f861f8))
+* update to node 18 ([a08ee16](https://github.com/fluencelabs/registry/commit/a08ee16ff9dc402e1388e22c57324ca975c1a94d))
+
 ## [0.8.6](https://github.com/fluencelabs/registry/compare/registry-v0.8.5...registry-v0.8.6) (2023-05-19)
 
 
