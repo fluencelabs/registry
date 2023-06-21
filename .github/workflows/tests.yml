@@ -94,7 +94,7 @@ jobs:
         uses: fluencelabs/github-actions/npm-set-dependency@main
         with:
           package: "@fluencelabs/aqua"
-          version: ${{ fromJson(inputs.aqua-snapshots)['cli'] }}
+          version: ${{ fromJson(inputs.aqua-snapshots)['aqua'] }}
           working-directory: aqua
           flags: "--save-dev"
 
@@ -108,7 +108,7 @@ jobs:
           versions: >
             {
               "npm": {
-                "@fluencelabs/aqua": "${{ fromJson(inputs.aqua-snapshots)['cli'] }}"
+                "@fluencelabs/aqua": "${{ fromJson(inputs.aqua-snapshots)['aqua'] }}"
               }
             }
 
