@@ -205,6 +205,7 @@ jobs:
       - name: Run aqua tests
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
+          NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
         run: pytest test_aqua.py
         working-directory: aqua-tests
 
