@@ -11,8 +11,8 @@ on:
         description: "rust-peer image tag"
         type: string
         default: "fluencelabs/rust-peer:minimal"
-      aqua-version:
-        description: "@fluencelabs/aqua version"
+      aqua-snapshots:
+        description: "aqua snapshots"
         type: string
         default: "null"
       fluence-cli-version:
@@ -90,16 +90,17 @@ jobs:
           flags: "--save-dev"
 
       - name: Set aqua version
-        if: inputs.aqua-version != 'null'
+        if: inputs.aqua-snapshots != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
         with:
           package: "@fluencelabs/aqua"
-          version: ${{ inputs.aqua-version }}
+          version: ${{ fromJson(inputs.aqua-snapshots)['aqua'] }}
           working-directory: aqua
           flags: "--save-dev"
 
       - name: Set versions in fluence.yaml
         uses: fluencelabs/github-actions/fluence-set-dependency@main
+        if: inputs.aqua-snapshots != 'null'
         env:
           NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
         with:
@@ -107,7 +108,7 @@ jobs:
           versions: >
             {
               "npm": {
-                "@fluencelabs/aqua": "${{ inputs.aqua-version }}"
+                "@fluencelabs/aqua": "${{ fromJson(inputs.aqua-snapshots)['aqua'] }}"
               }
             }
 
@@ -204,6 +205,7 @@ jobs:
       - name: Run aqua tests
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
+          NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
         run: pytest test_aqua.py
         working-directory: aqua-tests
 
