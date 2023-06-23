@@ -10,7 +10,7 @@
     "@fluencelabs/trust-graph": "0.4.1"
   },
   "scripts": {
-    "compile-aqua": "aqua -i . -o ./target/typescript",
+    "compile-aqua": "fluence aqua -i . -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
     "build": "npm run compile-aqua"
   },
@@ -30,7 +30,6 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/cli": "0.4.16",
-    "@fluencelabs/aqua": "^0.10.3"
+    "@fluencelabs/cli": "0.4.16"
   }
 }
