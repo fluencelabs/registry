@@ -7,7 +7,7 @@
 version: 2
 dependencies:
   npm:
-    "@fluencelabs/aqua-lib": 0.6.0
+    "@fluencelabs/aqua-lib": 0.7.1
   cargo:
     marine: 0.14.1
     mrepl: 0.21.3
