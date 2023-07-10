@@ -7,16 +7,12 @@ on:
         description: "Fluence enviroment to run tests agains"
         type: string
         default: "local"
-      rust-peer-image:
-        description: "rust-peer image tag"
+      nox-image:
+        description: "nox image tag"
         type: string
         default: "fluencelabs/nox:unstable_minimal"
-      aqua-snapshots:
-        description: "aqua snapshots"
-        type: string
-        default: "null"
-      fluence-cli-version:
-        description: "@fluencelabs/cli version"
+      flox-version:
+        description: "@fluencelabs/flox version"
         type: string
         default: "null"
       cargo-dependencies:
@@ -30,7 +26,7 @@ on:
 env:
   CI: true
   FORCE_COLOR: true
-  RUST_PEER_IMAGE: "${{ inputs.rust-peer-image }}"
+  NOX_IMAGE: "${{ inputs.nox-image }}"
   FLUENCE_ENV: "${{ inputs.fluence-env }}"
 
 jobs:
@@ -80,37 +76,14 @@ jobs:
         run: npm install
         working-directory: aqua-tests
 
-      - name: Set fluence-cli version
-        if: inputs.fluence-cli-version != 'null'
+      - name: Set flox version
+        if: inputs.flox-version != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
         with:
-          package: "@fluencelabs/cli"
-          version: ${{ inputs.fluence-cli-version }}
+          package: "@fluencelabs/flox"
+          version: ${{ inputs.flox-version }}
           working-directory: aqua-tests
           flags: "--save-dev"
-
-      - name: Set aqua version
-        if: inputs.aqua-snapshots != 'null'
-        uses: fluencelabs/github-actions/npm-set-dependency@main
-        with:
-          package: "@fluencelabs/aqua"
-          version: ${{ fromJson(inputs.aqua-snapshots)['aqua'] }}
-          working-directory: aqua
-          flags: "--save-dev"
-
-      - name: Set versions in fluence.yaml
-        uses: fluencelabs/github-actions/fluence-set-dependency@main
-        if: inputs.aqua-snapshots != 'null'
-        env:
-          NPM_CONFIG_REGISTRY: "https://npm.fluence.dev"
-        with:
-          path: aqua-tests
-          versions: >
-            {
-              "npm": {
-                "@fluencelabs/aqua": "${{ fromJson(inputs.aqua-snapshots)['aqua'] }}"
-              }
-            }
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -161,10 +134,10 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      - name: Pull rust-peer image
-        run: docker pull $RUST_PEER_IMAGE
+      - name: Pull nox image
+        run: docker pull $NOX_IMAGE
 
-      - name: Run rust-peer
+      - name: Run nox network
         uses: isbang/compose-action@v1.4.1
         with:
           compose-file: ".github/e2e/docker-compose.yml"
@@ -192,13 +165,13 @@ jobs:
       - name: Temporarely wait with sleep
         run: sleep 20
 
-      - name: Install fluence-cli dependencies
+      - name: Install flox dependencies
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: npx fluence dep i --no-input
         working-directory: aqua-tests
 
-      - name: Print Fluence CLI version
+      - name: Print flox version
         run: pytest -s test_fluence_cli_version.py
         working-directory: aqua-tests
 
