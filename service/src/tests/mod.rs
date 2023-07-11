@@ -226,7 +226,7 @@ mod tests {
     ) -> EvictStaleResult {
         let cp = CPWrapper::new("peer_id", "host_id").add_timestamp_tetraplets(0);
         let evict_result = registry.evict_stale_cp(current_timestamp_sec, cp.get());
-        assert!(evict_result.success, evict_result.error);
+        assert!(evict_result.success, "{}", evict_result.error);
         evict_result
     }
 
@@ -387,7 +387,7 @@ mod tests {
             solution,
             weight,
         );
-        assert!(result.success, result.error);
+        assert!(result.success, "{}", result.error);
     }
 
     fn get_records(
@@ -474,7 +474,7 @@ mod tests {
             timestamp_issued,
             solution,
         );
-        assert!(result.success, result.error);
+        assert!(result.success, "{}", result.error);
     }
 
     #[test]
@@ -846,7 +846,7 @@ mod tests {
         let expired_timestamp = timestamp_created + DEFAULT_EXPIRED_AGE;
         let cp = CPWrapper::new("peer_id", "host_id").add_timestamp_tetraplets(0);
         let result = registry.clear_expired_cp(expired_timestamp, cp.get());
-        assert!(result.success, result.error);
+        assert!(result.success, "{}", result.error);
         assert_eq!(result.count_keys, 1);
     }
 
