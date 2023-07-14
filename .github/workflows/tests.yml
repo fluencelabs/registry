@@ -80,7 +80,7 @@ jobs:
         if: inputs.flox-version != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
         with:
-          package: "@fluencelabs/flox"
+          package: "@fluencelabs/cli"
           version: ${{ inputs.flox-version }}
           working-directory: aqua-tests
           flags: "--save-dev"
