@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          repository: fluencelabs/spell
+          repository: fluencelabs/registry
           ref: ${{ inputs.ref }}
 
       - name: Setup rust toolchain
