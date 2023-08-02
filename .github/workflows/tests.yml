@@ -147,17 +147,6 @@ jobs:
         run: pip install -r requirements.txt
         working-directory: aqua-tests
 
-      # - name: Wait for registry to be deployed
-      #   uses: nick-fields/retry@v2
-      #   with:
-      #     timeout_seconds: 30
-      #     max_attempts: 5
-      #     shell: bash
-      #     command: ${{ github.workspace }}/.github/check-registry.sh
-      #
-      - name: Temporarely wait with sleep
-        run: sleep 20
-
       - name: Install flox dependencies
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
