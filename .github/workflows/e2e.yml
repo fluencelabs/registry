@@ -35,35 +35,37 @@ jobs:
     with:
       ref: ${{ github.ref }}
 
-  # nox:
-  #   needs:
-  #     - snapshot
-  #   uses: fluencelabs/nox/.github/workflows/build.yml@master
-  #   with:
-  #     cargo-dependencies: |
-  #       [
-  #         {
-  #           "package": "fluence-spell-dtos",
-  #           "version": "=${{ needs.snapshot.outputs.cargo-version }}",
-  #           "registry": "fluence"
-  #         },
+  nox:
+    needs:
+      - snapshot
+    uses: fluencelabs/nox/.github/workflows/build.yml@master
+    with:
+      cargo-dependencies: |
+        [
+          {
+            "package": "registry-distro",
+            "version": "=${{ needs.snapshot.outputs.cargo-version }}",
+            "registry": "fluence",
+            "path": "crates/system-services/"
+          }
+        ]
 
-  # nox-snapshot:
-  #   name: "nox"
-  #   needs:
-  #     - nox
+  nox-snapshot:
+    name: "nox"
+    needs:
+      - nox
 
-  #   uses: fluencelabs/nox/.github/workflows/container.yml@master
-  #   with:
-  #     image-name: "docker.fluence.dev/registry"
-  #     flavour: "minimal"
-  #     nox-sha: "${{ needs.nox.outputs.nox-sha }}"
+    uses: fluencelabs/nox/.github/workflows/container.yml@master
+    with:
+      image-name: "docker.fluence.dev/registry"
+      flavour: "minimal"
+      nox-sha: "${{ needs.nox.outputs.nox-sha }}"
 
-  # aqua-tests:
-  #   name: "registry"
-  #   needs:
-  #     - nox-snapshot
-  #   uses: ./.github/workflows/tests.yml
-  #   with:
-  #     ref: ${{ github.ref }}
-  #     nox-image: "${{ needs.nox-snapshot.outputs.nox-image }}"
+  aqua-tests:
+    name: "registry"
+    needs:
+      - nox-snapshot
+    uses: ./.github/workflows/tests.yml
+    with:
+      ref: ${{ github.ref }}
+      nox-image: "${{ needs.nox-snapshot.outputs.nox-image }}"
