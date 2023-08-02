@@ -10,7 +10,7 @@ on:
       ref:
         description: "git ref to checkout to"
         type: string
-        default: "main"
+        default: "master"
       snapshot:
         description: "Whether to publish snapshots"
         type: boolean
