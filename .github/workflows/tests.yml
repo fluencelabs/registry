@@ -120,15 +120,6 @@ jobs:
       - name: Build distro
         run: ./build.sh
 
-      - name: Install ipfs
-        uses: nahsi/setup-ipfs@v1
-
-      - name: Create builtin distribution package
-        run: ./builtin-package/package.sh
-
-      - name: Unpack registry package
-        run: tar xvf registry.tar.gz
-
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
