@@ -79,15 +79,26 @@ jobs:
           secrets: |
             kv/cargo-registry/users/ci token | CARGO_REGISTRIES_FLUENCE_TOKEN
 
-      - name: Generate snapshot version
-        id: version
-        uses: fluencelabs/github-actions/generate-snapshot-id@main
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          registry-url: "https://registry.npmjs.org"
+          cache-dependency-path: "aqua/package-lock.json"
+          cache: "npm"
+
+      - run: npm i
+        working-directory: aqua
 
       - name: Install cargo-workspaces
         uses: baptiste0928/cargo-install@v2.0.0
         with:
           crate: cargo-workspaces
           version: v0.2.37
+
+      - name: Generate snapshot version
+        id: version
+        uses: fluencelabs/github-actions/generate-snapshot-id@main
 
       - name: Build distro
         run: ./build.sh
