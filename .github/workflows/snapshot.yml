@@ -22,7 +22,7 @@ on:
 
 jobs:
   snapshot:
-    name: "Build and test crates"
+    name: "Build crate"
     runs-on: builder
     timeout-minutes: 60
 
