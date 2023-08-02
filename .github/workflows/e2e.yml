@@ -1,0 +1,69 @@
+name: "e2e"
+
+on:
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - "!.github/workflows/e2e.yml"
+      - "!.github/workflows/snapshot.yml"
+    types:
+      - "labeled"
+      - "synchronize"
+      - "opened"
+      - "reopened"
+  push:
+    branches:
+      - "main"
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - "!.github/workflows/e2e.yml"
+      - "!.github/workflows/snapshot.yml"
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  snapshot:
+    if: >
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'e2e')
+    name: "registry"
+    uses: ./.github/workflows/snapshot.yml
+    with:
+      ref: ${{ github.ref }}
+
+  # nox:
+  #   needs:
+  #     - snapshot
+  #   uses: fluencelabs/nox/.github/workflows/build.yml@master
+  #   with:
+  #     cargo-dependencies: |
+  #       [
+  #         {
+  #           "package": "fluence-spell-dtos",
+  #           "version": "=${{ needs.snapshot.outputs.cargo-version }}",
+  #           "registry": "fluence"
+  #         },
+
+  # nox-snapshot:
+  #   name: "nox"
+  #   needs:
+  #     - nox
+
+  #   uses: fluencelabs/nox/.github/workflows/container.yml@master
+  #   with:
+  #     image-name: "docker.fluence.dev/registry"
+  #     flavour: "minimal"
+  #     nox-sha: "${{ needs.nox.outputs.nox-sha }}"
+
+  # aqua-tests:
+  #   name: "registry"
+  #   needs:
+  #     - nox-snapshot
+  #   uses: ./.github/workflows/tests.yml
+  #   with:
+  #     ref: ${{ github.ref }}
+  #     nox-image: "${{ needs.nox-snapshot.outputs.nox-image }}"
