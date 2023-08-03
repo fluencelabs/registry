@@ -26,11 +26,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  registry:
-    uses: ./.github/workflows/tests.yml
-    with:
-      ref: ${{ github.ref }}
-
   cargo:
     name: "registry / Run cargo tests"
     runs-on: builder
@@ -70,3 +65,20 @@ jobs:
           NEXTEST_RETRIES: 2
           NEXTEST_TEST_THREADS: 1
         run: cargo nextest run --release --all-features --no-fail-fast
+
+  lints:
+    name: Lints
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all --manifest-path service/Cargo.toml -- --check

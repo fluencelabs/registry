@@ -118,6 +118,8 @@ jobs:
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
 
       - name: Setup marine
         uses: fluencelabs/setup-marine@v1
@@ -143,43 +145,6 @@ jobs:
       - name: Publish to NPM registry
         run: npm publish --access public
         working-directory: aqua
-
-      - name: Install ipfs
-        uses: nahsi/setup-ipfs@v1
-
-      - name: Create builtin distribution package
-        run: ./builtin-package/package.sh
-
-      - name: Calculate SHA256
-        id: sha
-        run: |
-          # Calculate sha256
-          du -hs registry.tar.gz
-          sha256sum registry.tar.gz
-          sha=($(sha256sum registry.tar.gz))
-          echo "sha256=${sha}" >> $GITHUB_OUTPUT
-
-      - name: Upload registry package
-        if: needs.release-please.outputs.release-created
-        uses: softprops/action-gh-release@v1
-        with:
-          files: registry.tar.gz
-          tag_name: ${{ needs.release-please.outputs.tag-name }}
-
-      - name: Update version in node-distro repo
-        if: needs.release-please.outputs.release-created
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: update_service
-          repo: fluencelabs/node-distro
-          ref: "main"
-          token: ${{ secrets.PERSONAL_TOKEN }}
-          inputs: '{
-            "name": "registry",
-            "version": "${{ needs.release-please.outputs.version }}",
-            "url": "https://github.com/fluencelabs/registry/releases/download/${{ needs.release-please.outputs.tag-name }}/registry.tar.gz",
-            "sha256": "${{ steps.sha.outputs.sha256 }}"
-          }'
 
       - name: Import secrets
         uses: hashicorp/vault-action@v2.4.3

@@ -120,15 +120,6 @@ jobs:
       - name: Build distro
         run: ./build.sh
 
-      - name: Install ipfs
-        uses: nahsi/setup-ipfs@v1
-
-      - name: Create builtin distribution package
-        run: ./builtin-package/package.sh
-
-      - name: Unpack registry package
-        run: tar xvf registry.tar.gz
-
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -155,17 +146,6 @@ jobs:
       - name: Install python requirements
         run: pip install -r requirements.txt
         working-directory: aqua-tests
-
-      # - name: Wait for registry to be deployed
-      #   uses: nick-fields/retry@v2
-      #   with:
-      #     timeout_seconds: 30
-      #     max_attempts: 5
-      #     shell: bash
-      #     command: ${{ github.workspace }}/.github/check-registry.sh
-      #
-      - name: Temporarely wait with sleep
-        run: sleep 20
 
       - name: Install flox dependencies
         env:
