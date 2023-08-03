@@ -46,7 +46,7 @@ jobs:
             "package": "registry-distro",
             "version": "=${{ needs.snapshot.outputs.cargo-version }}",
             "registry": "fluence",
-            "path": "crates/system-services/"
+            "manifest": "crates/system-services/"
           }
         ]
 
