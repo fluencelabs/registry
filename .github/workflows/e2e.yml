@@ -38,7 +38,7 @@ jobs:
   nox:
     needs:
       - snapshot
-    uses: fluencelabs/nox/.github/workflows/build.yml@master
+    uses: fluencelabs/nox/.github/workflows/build.yml@FLU-377
     with:
       cargo-dependencies: |
         [
