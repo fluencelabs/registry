@@ -26,7 +26,7 @@ on:
 env:
   CI: true
   FORCE_COLOR: true
-  NOX_IMAGE: "${{ inputs.nox-image }}"
+  NOX_IMAGE: "fluencelabs/nox:minimal_0.2.0"
   FLUENCE_ENV: "${{ inputs.fluence-env }}"
 
 jobs:
