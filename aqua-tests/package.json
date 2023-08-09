@@ -4,8 +4,8 @@
   "description": "Aqua Registry library",
   "dependencies": {
     "@fluencelabs/aqua-lib": "0.7.0",
-    "@fluencelabs/registry": "file:../aqua",
-    "@fluencelabs/trust-graph": "3.0.4"
+    "@fluencelabs/trust-graph": "3.0.4",
+    "@fluencelabs/registry": "file:../aqua"
   },
   "scripts": {
     "compile-aqua": "fluence aqua -i . -o ./target/typescript",
