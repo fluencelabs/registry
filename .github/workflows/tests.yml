@@ -55,7 +55,7 @@ jobs:
             kv/npm-registry/basicauth/ci token | NODE_AUTH_TOKEN;
 
       - name: Checkout registry
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: fluencelabs/registry
           ref: ${{ inputs.ref }}
@@ -110,7 +110,7 @@ jobs:
         run: ./build.sh
 
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: docker.fluence.dev
           username: ${{ env.DOCKER_USERNAME }}
