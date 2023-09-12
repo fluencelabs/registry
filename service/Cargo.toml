@@ -23,8 +23,8 @@ fluence-keypair = "=0.8.1"
 libp2p-core = { version = "=0.36.0", default-features = false, features = [ "secp256k1" ] }
 
 [dev-dependencies]
-marine-rs-sdk-test = "=0.10.0"
+marine-rs-sdk-test = "=0.10.2"
 rusqlite = "=0.28.0"
 
 [build-dependencies]
-marine-rs-sdk-test = "=0.10.0"
+marine-rs-sdk-test = "=0.10.2"
