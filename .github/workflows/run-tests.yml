@@ -56,7 +56,7 @@ jobs:
         run: cargo clippy -Z unstable-options --all -- -D warnings
 
       - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v2.0.0
+        uses: baptiste0928/cargo-install@v2.2.0
         with:
           crate: cargo-nextest
 
