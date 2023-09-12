@@ -1765,12 +1765,16 @@ dependencies = [
 
 [[package]]
 name = "marine-sqlite-connector"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec1da2caa8e5e6e1facc3c34a0f54b2dbdd6478dda5b3f31773aa399c4d9897b"
+checksum = "02b2f62a0f56af2d5467d294133e264e13e24c15cfb21588f7c61c680f241baf"
 dependencies = [
  "bytesize",
+<<<<<<< HEAD
  "marine-rs-sdk 0.7.1",
+=======
+ "marine-rs-sdk 0.9.0",
+>>>>>>> origin/renovate/marine-sqlite-connector-0.x
 ]
 
 [[package]]
@@ -2419,7 +2423,11 @@ dependencies = [
  "fluence-keypair",
  "fstrings",
  "libp2p-core",
+<<<<<<< HEAD
  "marine-rs-sdk 0.9.0",
+=======
+ "marine-rs-sdk 0.7.1",
+>>>>>>> origin/renovate/marine-sqlite-connector-0.x
  "marine-rs-sdk-test",
  "marine-sqlite-connector",
  "rusqlite",

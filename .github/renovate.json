@@ -20,6 +20,14 @@
       "schedule": "at any time"
     },
     {
+      "matchManagers": ["cargo"],
+      "groupName": "marine-rs-sdk and marine-sqlite-connector",
+      "matchPackagePatterns": [
+        "marine-rs-sdk",
+        "marine-sqlite-connector"
+      ],
+    }
+    {
       "matchDepTypes": ["devDependencies"],
       "prPriority": -1,
       "semanticCommitType": "chore",
