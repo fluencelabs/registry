@@ -21,9 +21,10 @@
     },
     {
       "matchManagers": ["cargo"],
-      "groupName": "marine-rs-sdk and marine-sqlite-connector",
+      "groupName": "marine things",
       "matchPackagePatterns": [
         "marine-rs-sdk",
+        "marine-rs-sdk-test",
         "marine-sqlite-connector"
       ],
     }
