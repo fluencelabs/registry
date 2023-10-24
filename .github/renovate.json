@@ -27,7 +27,7 @@
         "marine-rs-sdk-test",
         "marine-sqlite-connector"
       ],
-    }
+    },
     {
       "matchDepTypes": ["devDependencies"],
       "prPriority": -1,
