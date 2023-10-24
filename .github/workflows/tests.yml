@@ -103,10 +103,14 @@ jobs:
           path: service/
 
       - name: Build service
+        env:
+          FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: ./build.sh
         working-directory: service
 
       - name: Build distro
+        env:
+          FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: ./build.sh
 
       - name: Login to DockerHub
@@ -164,14 +168,12 @@ jobs:
           \`\`\`
           SNAPSHOT
 
-      - name: Dump rust-peer logs on failure
+      - name: Dump container logs
         if: always()
         uses: jwalton/gh-docker-logs@v2
 
-      - name: Remove registry directory
+      - name: Cleanup
         if: always()
-        run: sudo rm -rf registry
-
-      - name: Remove tmp directory
-        if: always()
-        run: sudo rm -rf tmp
+        run: |
+          rm -rf tmp ~/.fluence
+          sudo rm -rf registry
