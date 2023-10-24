@@ -14,7 +14,7 @@
   "author": "Fluence Labs",
   "dependencies": {
     "@fluencelabs/fluence": "0.28.0",
-    "@fluencelabs/fluence-network-environment": "1.0.14",
+    "@fluencelabs/fluence-network-environment": "1.1.2",
     "@fluencelabs/trust-graph": "3.0.4"
   },
   "prettier": {}
