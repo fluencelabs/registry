@@ -32,7 +32,7 @@ func registerSubnetworkKey(deal_id: string, peer_id: PeerId, timestamp_created: 
 func createSubnetwork(deal_id: string) -> ?string, *Error:
   t <- Peer.timestamp_sec()
 
-  subnetwork_id: ?string
+  subnetwork_id: *string
   error: *Error
   on HOST_PEER_ID:
     peer_id <- getInsecuredPeerId()
@@ -73,7 +73,7 @@ func getWorkerRecordMetadata(subnetwork_id: string) -> ?RecordMetadata, ?string:
     Sig "sig"
     sig_result <- Sig.sign(bytes)
 
-  result: ?RecordMetadata
+  result: *RecordMetadata
   error: *string
   if sig_result.success == true:
     result <- Registry.create_record_metadata(subnetwork_id, INIT_PEER_ID, t, "", INIT_PEER_ID, relay_id, nil, nil, sig_result.signature!)
@@ -148,7 +148,7 @@ func registerWorker(subnetwork_id: string) -> bool, *Error:
   <- succ, error
 
 func resolveSubnetwork(deal_id: string) -> ?[]Record, *Error:
-  result: ?[]Record
+  result: *[]Record
   error: *Error
   on HOST_PEER_ID:
     peer_id <- getInsecuredPeerId()

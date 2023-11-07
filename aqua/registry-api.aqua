@@ -15,7 +15,7 @@ func getRecordMetadata(key_id: string, value: string, peer_id: string, relay_id:
   on INIT_PEER_ID via HOST_PEER_ID:
     sig_result <- Sig.sign(bytes)
 
-  result: ?RecordMetadata
+  result: *RecordMetadata
   error: *string
   if sig_result.success == true:
     result <- Registry.create_record_metadata(key_id, INIT_PEER_ID, t, value, peer_id, relay_id, service_id, solution, sig_result.signature!)

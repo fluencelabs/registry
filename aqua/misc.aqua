@@ -37,7 +37,7 @@ func appendErrors(error1: *Error, error2: *Error):
 
 func getResourceHelper(resource_id: ResourceId) -> ?Resource, *Error:
   nodes <- getNeighbors(resource_id)
-  result: ?Resource
+  result: *Resource
   error: *Error
 
   resources: *Key
