@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.8.8](https://github.com/fluencelabs/registry/compare/registry-v0.8.7...registry-v0.8.8) (2023-11-07)
+
+
+### Features
+
+* prepare cli update ([#270](https://github.com/fluencelabs/registry/issues/270)) ([2c29fea](https://github.com/fluencelabs/registry/commit/2c29fea09808e2f98c4f58a10a1587aa5a571ad0))
+* **registry:** Use streams instead of options [LNG-277]  ([#282](https://github.com/fluencelabs/registry/issues/282)) ([19f5d47](https://github.com/fluencelabs/registry/commit/19f5d47add949f62085a022a01b84c83d3fc0389))
+
+
+### Bug Fixes
+
+* **ci:** use unstable nox image ([#255](https://github.com/fluencelabs/registry/issues/255)) ([257516e](https://github.com/fluencelabs/registry/commit/257516e74ff78807f78a7570ccc9e2d685af48f9))
+* **deps:** unlock and update rust crate serde to 1.0.188 ([#273](https://github.com/fluencelabs/registry/issues/273)) ([4cb1b90](https://github.com/fluencelabs/registry/commit/4cb1b90a95bdc49b87b1dd1336e604cc71444de3))
+* **deps:** Update cli to 0.11.0 ([#272](https://github.com/fluencelabs/registry/issues/272)) ([0ac1b76](https://github.com/fluencelabs/registry/commit/0ac1b76fe1c0635bfa5cf1105ffaf899db36b300))
+* **deps:** update dependency @fluencelabs/cli ([#276](https://github.com/fluencelabs/registry/issues/276)) ([2259425](https://github.com/fluencelabs/registry/commit/22594259767fbd5be59904eab080d74733e7ea3e))
+* **deps:** update dependency @fluencelabs/cli to v0.6.0 ([#238](https://github.com/fluencelabs/registry/issues/238)) ([be441e8](https://github.com/fluencelabs/registry/commit/be441e86cbc07a51636edfd07ec0fc80933b31cf))
+* **deps:** update dependency @fluencelabs/fluence-network-environment to v1.1.2 ([#277](https://github.com/fluencelabs/registry/issues/277)) ([8ff086a](https://github.com/fluencelabs/registry/commit/8ff086a206d37edaeebe986661b626277e456d95))
+* **deps:** update marine things ([#278](https://github.com/fluencelabs/registry/issues/278)) ([1f44cdc](https://github.com/fluencelabs/registry/commit/1f44cdc3b1188ef9daaba33a73ee85980c0c8bc6))
+* **deps:** update rust crate marine-rs-sdk to v0.9.0 ([#265](https://github.com/fluencelabs/registry/issues/265)) ([9b4142d](https://github.com/fluencelabs/registry/commit/9b4142dc951414270f5a76b0519aa749c8835eb6))
+
 ## [0.8.7](https://github.com/fluencelabs/registry/compare/registry-v0.8.6...registry-v0.8.7) (2023-06-20)
 
 
