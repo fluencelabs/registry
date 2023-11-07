@@ -24,7 +24,7 @@ func getResourceId(label: string, peer_id: string) -> ResourceId:
 func createResource(label: string) -> ?ResourceId, *Error:
   t <- Peer.timestamp_sec()
 
-  resource_id: ?ResourceId
+  resource_id: *ResourceId
   error: *Error
   on HOST_PEER_ID:
     sig_result <- getKeySignature(label, t)
@@ -57,7 +57,7 @@ func createResource(label: string) -> ?ResourceId, *Error:
 
 -- Note: resource must be already created
 func registerService(resource_id: ResourceId, value: string, peer_id: PeerId, service_id: ?string) -> bool, *Error:
-  relay_id: ?string
+  relay_id: *string
   if peer_id == INIT_PEER_ID:
     relay_id <<- HOST_PEER_ID
 
@@ -116,7 +116,7 @@ func registerService(resource_id: ResourceId, value: string, peer_id: PeerId, se
 
 
 func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error:
-  success: ?bool
+  success: *bool
   error: *Error
 
   on HOST_PEER_ID:
@@ -168,7 +168,7 @@ func unregisterService(resource_id: ResourceId, peer_id: PeerId) -> bool, *Error
 func resolveResource(resource_id: ResourceId, ack: i16) -> ?[]Record, *Error:
   on HOST_PEER_ID:
     nodes <- getNeighbors(resource_id)
-    result: ?[]Record
+    result: *[]Record
     records: *[]Record
     error: *Error
     successful: *bool
@@ -197,7 +197,7 @@ func resolveResource(resource_id: ResourceId, ack: i16) -> ?[]Record, *Error:
 -- Execute the given call on providers
 -- Note that you can provide another Aqua function as an argument to this one
 func executeOnResource(resource_id: ResourceId, ack: i16, call: Record -> ()) -> bool, *Error:
-  success: ?bool
+  success: *bool
   result, error <- resolveResource(resource_id, ack)
 
   if result == nil:
