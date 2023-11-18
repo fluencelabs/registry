@@ -50,7 +50,7 @@ jobs:
           ref: ${{ fromJson(needs.release-please.outputs.pr).headBranchName }}
 
       - name: Setup Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: dsherret/rust-toolchain-file@v1
 
       - name: Install cargo-edit
         uses: baptiste0928/cargo-install@v2.2.0
@@ -117,9 +117,7 @@ jobs:
             kv/npmjs/fluencebot token | NODE_AUTH_TOKEN
 
       - name: Setup Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          cache: false
+        uses: dsherret/rust-toolchain-file@v1
 
       - name: Setup marine
         uses: fluencelabs/setup-marine@v1
