@@ -18,7 +18,7 @@ use crate::error::ServiceError;
 use crate::WeightResult;
 use boolinator::Boolinator;
 use fluence_keypair::PublicKey;
-use libp2p_core::PeerId;
+use libp2p_identity::PeerId;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
