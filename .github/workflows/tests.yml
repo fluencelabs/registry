@@ -11,8 +11,8 @@ on:
         description: "nox image tag"
         type: string
         default: "fluencelabs/nox:unstable_minimal"
-      flox-version:
-        description: "@fluencelabs/flox version"
+      fcli-version:
+        description: "@fluencelabs/cli version"
         type: string
         default: "null"
       cargo-dependencies:
@@ -76,12 +76,12 @@ jobs:
         run: npm install
         working-directory: aqua-tests
 
-      - name: Set flox version
-        if: inputs.flox-version != 'null'
+      - name: Set fcli version
+        if: inputs.fcli-version != 'null'
         uses: fluencelabs/github-actions/npm-set-dependency@main
         with:
           package: "@fluencelabs/cli"
-          version: ${{ inputs.flox-version }}
+          version: ${{ inputs.fcli-version }}
           working-directory: aqua-tests
           flags: "--save-dev"
 
@@ -140,13 +140,13 @@ jobs:
         run: pip install -r requirements.txt
         working-directory: aqua-tests
 
-      - name: Install flox dependencies
+      - name: Install fcli dependencies
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: npx fluence dep i --no-input
         working-directory: aqua-tests
 
-      - name: Print flox version
+      - name: Print fcli version
         run: pytest -s test_fluence_cli_version.py
         working-directory: aqua-tests
 
