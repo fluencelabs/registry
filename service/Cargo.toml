@@ -20,7 +20,7 @@ serde = { version = "1.0.188", features = ["derive"] }
 thiserror = "=1.0.50"
 sha2 = "=0.10.8"
 fluence-keypair = "=0.10.3"
-libp2p-core = { version = "=0.40.1", default-features = false }
+libp2p-identity = "=0.2.8"
 
 [dev-dependencies]
 marine-rs-sdk-test = "=0.11.0"
