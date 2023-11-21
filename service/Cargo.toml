@@ -10,21 +10,21 @@ name = "registry"
 path = "src/main.rs"
 
 [dependencies]
-bs58 = "=0.4.0"
+bs58 = "=0.5.0"
 marine-rs-sdk = "=0.10.1"
 marine-sqlite-connector = "=0.9.1"
 fstrings = "=0.2.3"
 boolinator = "=2.4.0"
-toml = "=0.7.3"
+toml = "=0.8.8"
 serde = { version = "1.0.188", features = ["derive"] }
-thiserror = "=1.0.40"
-sha2 = "=0.10.6"
-fluence-keypair = "=0.8.1"
-libp2p-core = { version = "=0.36.0", default-features = false, features = [ "secp256k1" ] }
+thiserror = "=1.0.50"
+sha2 = "=0.10.8"
+fluence-keypair = "=0.10.3"
+libp2p-core = { version = "=0.40.1", default-features = false }
 
 [dev-dependencies]
 marine-rs-sdk-test = "=0.11.0"
-rusqlite = "=0.28.0"
+rusqlite = "=0.30.0"
 
 [build-dependencies]
 marine-rs-sdk-test = "=0.11.0"
