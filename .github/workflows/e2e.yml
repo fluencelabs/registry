@@ -58,8 +58,6 @@ jobs:
     uses: fluencelabs/nox/.github/workflows/container.yml@master
     with:
       image-name: "docker.fluence.dev/registry"
-      flavour: "minimal"
-      nox-sha: "${{ needs.nox.outputs.nox-sha }}"
 
   aqua-tests:
     name: "registry"
