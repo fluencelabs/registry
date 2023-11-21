@@ -194,7 +194,7 @@ pub fn republish_records(
 pub fn merge_two(a: Vec<Record>, b: Vec<Record>) -> MergeResult {
     merge_records(
         a.into_iter()
-            .chain(b.into_iter())
+            .chain(b)
             .map(|record| RecordInternal {
                 record,
                 ..Default::default()
