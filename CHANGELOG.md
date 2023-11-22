@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/fluencelabs/registry/compare/registry-v0.8.8...registry-v0.9.0) (2023-11-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **subnetwork:** deprecate registry-based subnets [NET-633] ([#283](https://github.com/fluencelabs/registry/issues/283))
+
+### Features
+
+* **subnetwork:** deprecate registry-based subnets [NET-633] ([#283](https://github.com/fluencelabs/registry/issues/283)) ([81f15d4](https://github.com/fluencelabs/registry/commit/81f15d4eb74b730fca331f1ea4ef6b960a02f9c8))
+
 ## [0.8.8](https://github.com/fluencelabs/registry/compare/registry-v0.8.7...registry-v0.8.8) (2023-11-07)
 
 
