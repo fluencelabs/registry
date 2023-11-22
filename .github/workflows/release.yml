@@ -164,7 +164,6 @@ jobs:
         uses: baptiste0928/cargo-install@v2.2.0
         with:
           crate: cargo-workspaces
-          version: v0.2.37
 
       - name: Build distro
         run: ./build.sh
