@@ -14,7 +14,7 @@ on:
       fcli-version:
         description: "@fluencelabs/cli version"
         type: string
-        default: "null"
+        default: "stage"
       cargo-dependencies:
         description: "Cargo dependencies map"
         type: string
@@ -76,14 +76,11 @@ jobs:
         run: npm install
         working-directory: aqua-tests
 
-      - name: Set fcli version
-        if: inputs.fcli-version != 'null'
-        uses: fluencelabs/github-actions/npm-set-dependency@main
+      - name: Setup fcli
+        uses: fluencelabs/setup-fluence@v1
         with:
-          package: "@fluencelabs/cli"
+          artifact: fcli
           version: ${{ inputs.fcli-version }}
-          working-directory: aqua-tests
-          flags: "--save-dev"
 
       - name: Setup Rust toolchain
         uses: dsherret/rust-toolchain-file@v1
@@ -162,7 +159,7 @@ jobs:
           cat <<SNAPSHOT >> $GITHUB_STEP_SUMMARY
           ## Used versions
           \`\`\`
-          $(npx fluence dep v)
+          $(fluence dep v)
           \`\`\`
           SNAPSHOT
 

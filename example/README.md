@@ -18,13 +18,10 @@ This example shows how to use Registry to discover and call fluence services wit
 
 ## Set up the environment
 
-1. Install the latest version of Fluence CLI:
-    ```sh
-    npm i -g @fluencelabs/cli
-    ```
+1. [Install the latest version of Fluence CLI](https://github.com/fluencelabs/cli#installation-and-usage)
 2. Install Fluence project dependencies. It may take a while:
     ```sh
-    fluence dependency i
+    fluence dep i
     ```
 3. Install JS dependencies:
     ```sh

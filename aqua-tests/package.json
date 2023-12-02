@@ -11,7 +11,7 @@
     "compile-aqua": "fluence aqua -i . -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
     "build": "npm run compile-aqua",
-    "secret": "npx fluence key new"
+    "secret": "fluence key new"
   },
   "repository": {
     "type": "git",
@@ -29,7 +29,6 @@
   },
   "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
-    "@fluencelabs/cli": "0.13.0",
     "@fluencelabs/fluence-network-environment": "1.1.2"
   }
 }
