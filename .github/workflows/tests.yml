@@ -10,7 +10,7 @@ on:
       nox-image:
         description: "nox image tag"
         type: string
-        default: "fluencelabs/nox:unstable_minimal"
+        default: "fluencelabs/nox:unstable"
       fcli-version:
         description: "@fluencelabs/cli version"
         type: string
