@@ -138,7 +138,7 @@ jobs:
       - name: Install fcli dependencies
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
-        run: npx fluence dep i --no-input
+        run: fluence dep i --no-input
         working-directory: aqua-tests
 
       - name: Print fcli version
