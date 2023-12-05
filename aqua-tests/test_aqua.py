@@ -5,7 +5,7 @@ import os
 import inspect
 from config import get_local
 
-delegator.run("npx fluence dep npm i", block=True)
+delegator.run("fluence dep npm i", block=True)
 default_peers = json.loads(delegator.run(
     f"node ./getDefaultPeers.js", block=True).out)
 
@@ -58,7 +58,7 @@ def run_aqua(func, args, relay=get_random_relay()):
         # when running one test at a time, the stack is shorter so we need to use a different index
         test_name = inspect.stack()[-32][3]
 
-    command = f"npx fluence run -k {test_name} --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet --particle-id"
+    command = f"fluence run -k {test_name} --relay {relay} -f '{call}' --data '{json.dumps(data)}' --import 'node_modules' --quiet --particle-id"
     print(command)
     c = delegator.run(command, block=True)
     lines = c.out.splitlines()

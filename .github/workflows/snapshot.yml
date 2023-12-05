@@ -54,6 +54,11 @@ jobs:
         with:
           artifact-name: marine
 
+      - name: Setup fcli
+        uses: fluencelabs/setup-fluence@v1
+        with:
+          version: stage
+
       - name: Import secrets
         if: inputs.snapshot == true
         uses: hashicorp/vault-action@v2.7.3
