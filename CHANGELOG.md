@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1](https://github.com/fluencelabs/registry/compare/registry-v0.9.0...registry-v0.9.1) (2023-12-06)
+
+
+### Features
+
+* use non-npm Fluence CLI ([#302](https://github.com/fluencelabs/registry/issues/302)) ([d77fd12](https://github.com/fluencelabs/registry/commit/d77fd12b4dfe2d57ae3e35f729e35e2f6ad1c63c))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @fluencelabs/cli to v0.13.0 ([#290](https://github.com/fluencelabs/registry/issues/290)) ([2a440a8](https://github.com/fluencelabs/registry/commit/2a440a8b1ff8aa922bd2faa982b8b75c9beb3bc7))
+* **deps:** update rust crate marine-rs-sdk-test to v0.11.1 ([#292](https://github.com/fluencelabs/registry/issues/292)) ([2405f41](https://github.com/fluencelabs/registry/commit/2405f41702543d1ff70620923787a6a7621cc7d5))
+* remove binary import ([#304](https://github.com/fluencelabs/registry/issues/304)) ([c160475](https://github.com/fluencelabs/registry/commit/c16047515751f1400cb1f7231abcc83e2f6bcf4f))
+
 ## [0.9.0](https://github.com/fluencelabs/registry/compare/registry-v0.8.8...registry-v0.9.0) (2023-11-22)
 
 
