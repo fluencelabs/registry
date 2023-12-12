@@ -122,6 +122,11 @@ jobs:
       - name: Setup marine
         uses: fluencelabs/setup-marine@v1
 
+      - name: Setup fcli
+        uses: fluencelabs/setup-fluence@v1
+        with:
+          version: stage
+
       - name: Build service
         run: ./build.sh
         working-directory: service
