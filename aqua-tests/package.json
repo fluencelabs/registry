@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Aqua Registry library",
   "dependencies": {
-    "@fluencelabs/aqua-lib": "0.8.1",
+    "@fluencelabs/aqua-lib": "0.8.2",
     "@fluencelabs/registry": "file:../aqua",
     "@fluencelabs/trust-graph": "3.0.4"
   },
