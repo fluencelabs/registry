@@ -11,7 +11,7 @@ DISTRO_TARGET=distro/registry-service
 mkdir -p "$DISTRO_TARGET"
 
 cd ./aqua
-fluence aqua -i ../spell/spell.aqua --no-relay --air -o "../$DISTRO_TARGET/air"
+fluence aqua -i ./spell/spell.aqua --no-relay --air -o "../$DISTRO_TARGET/air"
 cd -
 
 cp service/artifacts/registry.wasm service/artifacts/sqlite3.wasm distro/Config.toml "$DISTRO_TARGET"
