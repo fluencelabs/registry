@@ -6,7 +6,7 @@
     "*.aqua"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "0.8.1",
+    "@fluencelabs/aqua-lib": "0.8.2",
     "@fluencelabs/trust-graph": "0.4.7"
   },
   "scripts": {
