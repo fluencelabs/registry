@@ -1,33 +1,4 @@
 {
-  "name": "aqua-tests",
-  "version": "1.0.0",
-  "description": "Aqua Registry library",
-  "dependencies": {
-    "@fluencelabs/aqua-lib": "0.8.1",
-    "@fluencelabs/registry": "file:../aqua",
-    "@fluencelabs/trust-graph": "3.0.4"
-  },
-  "scripts": {
-    "compile-aqua": "fluence aqua -i . -o ./target/typescript",
-    "generate-aqua": "../service/build.sh",
-    "build": "npm run compile-aqua",
-    "secret": "fluence key new"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/fluencelabs/registry.git",
-    "directory": "aqua"
-  },
-  "keywords": [
-    "aqua",
-    "fluence"
-  ],
-  "author": "Fluence Labs",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/fluencelabs/registry/issues"
-  },
-  "homepage": "https://github.com/fluencelabs/registry",
   "devDependencies": {
     "@fluencelabs/fluence-network-environment": "1.1.2"
   }

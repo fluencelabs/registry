@@ -14,8 +14,7 @@ distro/registry-service/
 **/dist
 *.drawio
 
-# Remove after https://github.com/fluencelabs/aqua/issues/287
-aqua/target/typescript/**
+aqua/*.tgz
 example/src/generated/**
 
 **/__pycache__
