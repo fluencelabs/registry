@@ -12,7 +12,7 @@ path = "src/main.rs"
 [dependencies]
 bs58 = "=0.5.0"
 marine-rs-sdk = "=0.10.2"
-marine-sqlite-connector = "=0.9.1"
+marine-sqlite-connector = "=0.9.2"
 fstrings = "=0.2.3"
 boolinator = "=2.4.0"
 toml = "=0.8.8"
