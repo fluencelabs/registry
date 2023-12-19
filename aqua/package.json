@@ -10,9 +10,8 @@
     "@fluencelabs/trust-graph": "0.4.7"
   },
   "scripts": {
-    "compile-aqua": "fluence aqua -i . -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
-    "build": "npm run compile-aqua"
+    "build": "fluence aqua -i . --dry"
   },
   "repository": {
     "type": "git",
