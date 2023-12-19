@@ -9,6 +9,9 @@ version: 5
 aquaInputPath: aqua/test.aqua
 
 dependencies:
+  cargo:
+    marine: 0.14.1
+    mrepl: 0.21.3
   npm:
     '@fluencelabs/aqua-lib': 0.8.1
     '@fluencelabs/spell': 0.5.31
