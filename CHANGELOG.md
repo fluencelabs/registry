@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.2](https://github.com/fluencelabs/registry/compare/registry-v0.9.1...registry-v0.9.2) (2023-12-19)
+
+
+### Features
+
+* update marine sdk's, sqlite conector and config ([#309](https://github.com/fluencelabs/registry/issues/309)) ([863ae55](https://github.com/fluencelabs/registry/commit/863ae55f35bbe5452b636c064f9f8b377bb10ee8))
+
+
+### Bug Fixes
+
+* **ci:** setup fcli in release step ([#305](https://github.com/fluencelabs/registry/issues/305)) ([7b89267](https://github.com/fluencelabs/registry/commit/7b892678b1003bcf0c0fc834b7b49ceb2172e388))
+* **deps:** update dependency @fluencelabs/aqua-lib to v0.8.1 ([#249](https://github.com/fluencelabs/registry/issues/249)) ([66a42f7](https://github.com/fluencelabs/registry/commit/66a42f7b935e82af9133e2d5bc2c864cb4296e2f))
+* **deps:** update dependency @fluencelabs/aqua-lib to v0.8.2 ([#308](https://github.com/fluencelabs/registry/issues/308)) ([c207f7f](https://github.com/fluencelabs/registry/commit/c207f7fa549702c45dd8f25d0f97d95944472e6e))
+* **deps:** update dependency @fluencelabs/trust-graph to v0.4.7 ([#257](https://github.com/fluencelabs/registry/issues/257)) ([a6aeeea](https://github.com/fluencelabs/registry/commit/a6aeeea3f5eb4f06a99ec272e0f5d3b4b0a2a8a7))
+
 ## [0.9.1](https://github.com/fluencelabs/registry/compare/registry-v0.9.0...registry-v0.9.1) (2023-12-06)
 
 
