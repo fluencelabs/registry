@@ -8,7 +8,8 @@ version: 5
 
 dependencies:
   npm:
-    '@fluencelabs/aqua-lib': 0.7.1
-    '@fluencelabs/registry': 'file:../aqua'
+    '@fluencelabs/aqua-lib': 0.8.1
+    '@fluencelabs/registry': 0.8.7
+    '@fluencelabs/spell': 0.5.31
 
 aquaInputPath: aqua/test.aqua
