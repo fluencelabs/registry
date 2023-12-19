@@ -76,10 +76,6 @@ jobs:
         run: npm install
         working-directory: aqua-tests
 
-      - name: Run npm install in spell
-        run: npm install
-        working-directory: spell
-
       - name: Setup fcli
         uses: fluencelabs/setup-fluence@v1
         with:

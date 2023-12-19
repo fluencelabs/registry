@@ -5,7 +5,6 @@ import os
 import inspect
 from config import get_local
 
-delegator.run("fluence dep npm i", block=True)
 default_peers = json.loads(delegator.run(
     f"node ./getDefaultPeers.js", block=True).out)
 
