@@ -1,0 +1,73 @@
+import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/aqua-lib/subnet.aqua"
+import createResource, registerService, resolveResource from "@fluencelabs/registry/resources-api.aqua"
+
+use "deals.aqua"
+use "hosts.aqua"
+import "services.aqua"
+
+service EchoJSService:
+    echo(msg: string) -> string
+
+func echo(msg: string) -> string:
+    deals <- Deals.get()
+    dealId = deals.dealName!.dealIdOriginal
+
+    on HOST_PEER_ID:
+        subnet <- Subnet.resolve(dealId)
+
+    if subnet.success == false:
+        Console.print(["Failed to resolve subnet: ", subnet.error])
+
+    w = subnet.workers!
+
+    on w.worker_id! via w.host_id:
+        res <- EchoService.echo(msg)
+    <- res
+
+
+func echoJS(peerId: string, relayId: string, serviceId: string, msg: string) -> string:
+    on peerId via relayId:
+        EchoService serviceId
+        res <- EchoService.echo(msg)
+    <- res
+
+func createRes(label: string) -> ?string:
+    resourceId, error <- createResource(label)
+    <- error
+
+func registerResourceService(resourceId: string, serviceId: string) -> bool, *string:
+    on HOST_PEER_ID:
+        -- TODO: change hardcoded local peer to resolve
+        res, message <- registerService(resourceId, "" , "12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR", [serviceId])
+    <- res, message
+
+
+func echoAll(resourceId: string, msg: string) -> *string:
+    -- 2 is the min number of peers we want to ask
+    records <- resolveResource(resourceId, 2)
+    results: *string
+    for r <- records!:
+        on HOST_PEER_ID:
+            EchoService r.metadata.service_id!
+            results <- EchoService.echo(msg)
+    <- results
+
+func showSubnets() -> *string:
+    deals <- Deals.get()
+    dealId = deals.dealName!.dealIdOriginal
+
+    on HOST_PEER_ID:
+        results: *string
+        subnet <- Subnet.resolve(dealId)
+
+        if subnet.success == false:
+            Console.print(["Failed to resolve subnet: ", subnet.error])
+
+        for w <- subnet.workers:
+            results <<- w.host_id
+
+    <- results
+
+
+

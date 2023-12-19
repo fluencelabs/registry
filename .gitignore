@@ -16,7 +16,7 @@ distro/registry-service/
 
 # Remove after https://github.com/fluencelabs/aqua/issues/287
 aqua/target/typescript/**
-example/src/generated/**
+examples/src/generated/**
 
 **/__pycache__
 tmp

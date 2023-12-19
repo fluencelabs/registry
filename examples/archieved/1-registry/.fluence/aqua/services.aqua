@@ -1,0 +1,2 @@
+service EchoService("echo_service"):
+  echo(msg: string) -> string

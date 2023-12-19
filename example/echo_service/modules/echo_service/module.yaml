@@ -1,5 +1,0 @@
-# yaml-language-server: $schema=../../../.fluence/schemas/module.yaml.json
-
-version: 0
-type: rust
-name: echo_service

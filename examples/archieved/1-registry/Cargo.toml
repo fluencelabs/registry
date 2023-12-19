@@ -1,0 +1,2 @@
+[workspace]
+members = [ "src/services/echo_service/modules/echo_service" ]

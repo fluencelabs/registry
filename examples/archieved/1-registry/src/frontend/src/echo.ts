@@ -13,32 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Fluence, KeyPair, setLogLevel } from "@fluencelabs/fluence";
-import { stage } from "@fluencelabs/fluence-network-environment";
-import { registerEchoService, registerService } from "./generated/export";
-import assert from "node:assert";
+import { Fluence, KeyPair } from '@fluencelabs/js-client';
+import { registerEchoJSService } from './compiled-aqua/main.ts';
 
 // don't store your secret key in the code. This is just for the example
 const secretKey = "Iz3HUmNIB78lkNNVmMkDKrju0nCivtkJNyObrFAr774=";
 
 async function main() {
-  const keypair = await KeyPair.fromEd25519SK(Buffer.from(secretKey, "base64"));
-  const connectTo = stage[0];
-  assert(connectTo !== undefined);
+  const keyPair = await KeyPair.fromEd25519SK(Buffer.from(secretKey, "base64"));
 
-  // connect to the Fluence network
-  await Fluence.start({ connectTo, KeyPair: keypair });
-  setLogLevel("SILENT");
+  await Fluence.connect({
+    multiaddr:
+        "/ip4/127.0.0.1/tcp/9991/ws/p2p/12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR",
+    peerId: "12D3KooWBM3SdXWqGaawQDGQ6JprtwswEg3FWGvGhmgmMez1vRbR",
+  }, { keyPair: {
+    type: 'Ed25519',
+    source: keyPair.toEd25519PrivateKey()
+  }});
 
-  const peerId = Fluence.getStatus().peerId;
-  const relayId = Fluence.getStatus().relayPeerId;
-  assert(peerId !== null && relayId !== null);
+  const peerId = Fluence.getClient().getPeerId();
+  const relayId = Fluence.getClient().getRelayPeerId();
+
   console.log(`📗 created a fluence peer ${peerId} with relay ${relayId}`);
 
   const serviceId = "echo";
 
   // register local service with serviceId "echo"
-  await registerEchoService(serviceId, {
+  registerEchoJSService(serviceId, {
     echo(msg) {
       console.log(`Received message: ${msg}`);
       return `${peerId}: ${msg}`;
@@ -50,19 +51,19 @@ async function main() {
   // don't register if resource id isn't passed
   if (resourceId === undefined) {
     console.log(
-      `
+        `
   Copy this code to call this service:
 
   fluence run -f 'echoJS("${peerId}", "${relayId}", "${serviceId}", "hi")'`
     );
   } else {
-    const [success, error] = await registerService(
-      resourceId,
-      "echo",
-      peerId,
-      serviceId
-    );
-    console.log(`Registration result: ${success || error}`);
+    // const [success, error] = await registerService(
+    //     resourceId,
+    //     "echo",
+    //     peerId,
+    //     serviceId
+    // );
+    // console.log(`Registration result: ${success || error}`);
   }
 
   console.log("\nPress any key to stop fluence js peer");
@@ -71,7 +72,7 @@ async function main() {
   process.stdin.setRawMode(true);
   process.stdin.resume();
   process.stdin.on("data", async () => {
-    await Fluence.stop();
+    await Fluence.disconnect();
     process.exit(0);
   });
 }
