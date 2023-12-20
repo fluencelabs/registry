@@ -16,4 +16,3 @@ dependencies:
     '@fluencelabs/aqua-lib': 0.8.1
     '@fluencelabs/spell': 0.5.33
     '@fluencelabs/trust-graph': 3.1.2
-    "@fluencelabs/registry": 0.8.7
