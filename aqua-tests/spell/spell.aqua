@@ -2,8 +2,8 @@ import Op, Debug, Peer, Kademlia from "@fluencelabs/aqua-lib/builtin.aqua"
 import Spell from "@fluencelabs/spell/spell_service.aqua"
 import Compare from "@fluencelabs/aqua-lib/math.aqua"
 
-import "../aqua/registry-service.aqua"
-import "../aqua/registry-api.aqua"
+import "@fluencelabs/registry/registry-service.aqua"
+import "@fluencelabs/registry/registry-api.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 data SpellConfig:
