@@ -89,9 +89,7 @@ It uses `createResource` function from Resources API to register the Resource wi
 You should see output similar to this:
 
 ```
-[
-  "5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB"
-]
+5pYpWB3ozi6fi1EjNs9X5kE156aA6iLECxTuVdJgUaLB
 ```
 
 It is `resourceId`, which we will use to register our services, and then we will be able to use the same `resourceId` to discover and call our services
@@ -105,9 +103,8 @@ This command calls [registerEchoService](src/aqua/main.aqua#L26) aqua function, 
 You should see this output:
 ```
 [
-  [
-    true
-  ]
+  true,
+  []
 ]
 ```
 It means the service is registered in Registry and should be accessible by anyone who only has the `resourceId` of this service.

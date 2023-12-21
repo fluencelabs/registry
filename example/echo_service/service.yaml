@@ -1,7 +1,0 @@
-# yaml-language-server: $schema=../.fluence/schemas/service.yaml.json
-
-version: 0
-name: echo_service
-modules:
-  facade:
-    get: modules/echo_service
