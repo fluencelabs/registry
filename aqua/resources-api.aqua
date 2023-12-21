@@ -1,4 +1,4 @@
-module Registry.ResourcesAPI declares *
+aqua Registry.ResourcesAPI declares *
 
 import "registry-service.aqua"
 import "registry-api.aqua"

@@ -1,4 +1,4 @@
-module Registry declares *
+aqua Registry declares *
 
 data ClearExpiredResult:
   success: bool

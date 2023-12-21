@@ -1,3 +1,5 @@
+aqua Misc declares *
+
 import "@fluencelabs/aqua-lib/builtin.aqua"
 import "registry-service.aqua"
 import "constants.aqua"

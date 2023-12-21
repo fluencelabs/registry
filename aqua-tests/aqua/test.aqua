@@ -1,7 +1,8 @@
-module Test
+aqua Test
 
 import "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/registry/resources-api.aqua"
+
 export getResource, createResource, getResourceId, get_peer_id, registerService, resolveResource, unregisterService
 
 func get_peer_id() -> PeerId:
