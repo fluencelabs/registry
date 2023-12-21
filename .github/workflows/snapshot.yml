@@ -57,7 +57,7 @@ jobs:
       - name: Setup fcli
         uses: fluencelabs/setup-fluence@v1
         with:
-          version: stage
+          version: main
 
       - name: Import secrets
         if: inputs.snapshot == true

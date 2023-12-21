@@ -125,7 +125,7 @@ jobs:
       - name: Setup fcli
         uses: fluencelabs/setup-fluence@v1
         with:
-          version: stage
+          version: main
 
       - name: Build service
         run: ./build.sh
