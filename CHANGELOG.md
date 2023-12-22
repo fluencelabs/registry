@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.3](https://github.com/fluencelabs/registry/compare/registry-v0.9.2...registry-v0.9.3) (2023-12-21)
+
+
+### Features
+
+* use new aqua packages ([#310](https://github.com/fluencelabs/registry/issues/310)) ([633d8e6](https://github.com/fluencelabs/registry/commit/633d8e6648f344487da68b610857ee9837d0c081))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @fluencelabs/trust-graph to v3.1.2 ([#189](https://github.com/fluencelabs/registry/issues/189)) ([7ba20dc](https://github.com/fluencelabs/registry/commit/7ba20dcabd9747256609e9b986bd63f47c94e691))
+* **spell:** update spell api ([#315](https://github.com/fluencelabs/registry/issues/315)) ([3092907](https://github.com/fluencelabs/registry/commit/3092907e5e5d38caeeda15a83ea11e0462022f41))
+
 ## [0.9.2](https://github.com/fluencelabs/registry/compare/registry-v0.9.1...registry-v0.9.2) (2023-12-19)
 
 

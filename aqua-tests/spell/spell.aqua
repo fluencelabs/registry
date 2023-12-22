@@ -56,16 +56,15 @@ func spell(config: SpellConfig):
 
     check_and_run = (key: string, now:u32, interval: u32, job: u32 -> ()):
         last_run <- Spell.get_u32(key)
-        need_to_run = !last_run.success || ((now - last_run.num) >= interval)
+        need_to_run = !last_run.success || ((now - last_run.value) >= interval)
         if need_to_run == true:
             log(Op.concat_strings(Op.concat_strings("Running ", key), "job"))
             job(now)
             Spell.set_u32(key, now)
- 
-    
+
+
     on HOST_PEER_ID:
         now <- PeerTimeTrunc.timestamp_sec()
         check_and_run("clear_expired", now, config.expired_interval, clear_expired)
         check_and_run("renew", now, config.renew_interval, renew)
         check_and_run("replicate", now, config.replicate_interval, replicate)
-
