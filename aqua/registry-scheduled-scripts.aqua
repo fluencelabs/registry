@@ -1,4 +1,4 @@
-module Registry.Scheduled declares *
+aqua Registry.Scheduled declares *
 
 export clearExpired_86400, replicate_3600, renew_43200
 

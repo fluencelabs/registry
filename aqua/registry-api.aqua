@@ -1,3 +1,10 @@
+aqua RegistryApi declares *
+
+export getKeySignature, getRecordMetadata
+export getRecordSignature, getTombstoneSignature
+export registerKey, putRecord, addTombstone
+export getKeyMetadata, republishKey
+
 import "registry-service.aqua"
 import PeerId, Peer, Sig, SignResult from "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
