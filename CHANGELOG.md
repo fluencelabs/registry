@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.4](https://github.com/fluencelabs/registry/compare/registry-v0.9.3...registry-v0.9.4) (2024-01-04)
+
+
+### Features
+
+* **registry:** Use `aqua` keyword instead of `module` ([#313](https://github.com/fluencelabs/registry/issues/313)) ([b9bce2e](https://github.com/fluencelabs/registry/commit/b9bce2e7641d0431d8199d6a104f8c3d2fe3eee5))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @fluencelabs/aqua-lib to v0.9.0 ([#328](https://github.com/fluencelabs/registry/issues/328)) ([5c9af8b](https://github.com/fluencelabs/registry/commit/5c9af8bd3a36493802b8e913d917e2fbd1621977))
+* **deps:** update marine things ([#307](https://github.com/fluencelabs/registry/issues/307)) ([f78212d](https://github.com/fluencelabs/registry/commit/f78212d49bca9fe30def6702ec65aa187fe9deb1))
+* **deps:** update rust crate fluence-keypair to v0.10.4 ([#318](https://github.com/fluencelabs/registry/issues/318)) ([b71b85c](https://github.com/fluencelabs/registry/commit/b71b85ca1eb0472176b78c237e421ec04418e0d9))
+* **deps:** update sqlite wasm to 0.18.2 ([#320](https://github.com/fluencelabs/registry/issues/320)) ([7d9327b](https://github.com/fluencelabs/registry/commit/7d9327bcfd11c2dd63b360c96fed045f3f0952c3))
+* **registry:** Revert release registry 0.9.4 ([#331](https://github.com/fluencelabs/registry/issues/331)) ([e9ba1ad](https://github.com/fluencelabs/registry/commit/e9ba1ad248418e3811fa8d7653545028b7e48127))
+
 ## [0.9.3](https://github.com/fluencelabs/registry/compare/registry-v0.9.2...registry-v0.9.3) (2023-12-21)
 
 
