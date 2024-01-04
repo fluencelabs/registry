@@ -7,7 +7,7 @@
   ],
   "dependencies": {
     "@fluencelabs/aqua-lib": "0.9.0",
-    "@fluencelabs/trust-graph": "0.4.10"
+    "@fluencelabs/trust-graph": "3.1.2"
   },
   "scripts": {
     "generate-aqua": "../service/build.sh",
