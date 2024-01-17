@@ -15,4 +15,4 @@ dependencies:
   npm:
     '@fluencelabs/aqua-lib': 0.9.1
     '@fluencelabs/spell': 0.6.9
-    '@fluencelabs/trust-graph': 0.4.10
+    '@fluencelabs/trust-graph': 0.4.11
