@@ -1,3 +1,7 @@
+aqua TestSpell
+
+export spell
+
 import Op, Debug, Peer, Kademlia from "@fluencelabs/aqua-lib/builtin.aqua"
 import Spell from "@fluencelabs/spell/spell_service.aqua"
 import Compare from "@fluencelabs/aqua-lib/math.aqua"
