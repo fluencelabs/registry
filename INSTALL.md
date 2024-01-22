@@ -7,7 +7,7 @@ dependencies:
   npm:
     "@fluencelabs/registry": 0.6.2
 ```
-And then run `fluence dep npm i`
+And then run `fluence dep i`
 
 If you are developing from scratch without Fluence CLI, you should install it via npm:
 
