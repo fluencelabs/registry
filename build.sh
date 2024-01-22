@@ -20,7 +20,7 @@ packed_archive_file_name_pattern="fluencelabs-registry-"
 packed_archive_file_name=$(find "./aqua" -type f -name "${packed_archive_file_name_pattern}*")
 
 cd ./aqua-tests
-echo "    '@fluencelabs/registry': file:../../.$packed_archive_file_name" >> "./fluence.yaml"
+echo "    '@fluencelabs/registry': file:.$packed_archive_file_name" >> "./fluence.yaml"
 fluence dep i
 fluence aqua -i ./spell/spell.aqua --no-relay --air -o "../$DISTRO_TARGET/air"
 cd -
