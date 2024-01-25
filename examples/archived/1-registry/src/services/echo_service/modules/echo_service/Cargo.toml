@@ -1,0 +1,14 @@
+[package]
+name = "echo_service"
+version = "0.1.0"
+edition = "2018"
+
+[[bin]]
+name = "echo_service"
+path = "src/main.rs"
+
+[dependencies]
+marine-rs-sdk = "0.10.2"
+
+[dev-dependencies]
+marine-rs-sdk-test = "=0.12.0"

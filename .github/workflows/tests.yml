@@ -14,7 +14,7 @@ on:
       fcli-version:
         description: "@fluencelabs/cli version"
         type: string
-        default: "stage"
+        default: "main"
       cargo-dependencies:
         description: "Cargo dependencies map"
         type: string

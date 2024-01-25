@@ -1,3 +1,5 @@
+aqua Constants declares *
+
 -- the number of peers to which data will be replicated during the API call
 const INITIAL_REPLICATION_FACTOR = 1
 -- the minimal number of peers requested to obtain the data.

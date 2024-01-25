@@ -1,18 +1,17 @@
 {
   "name": "@fluencelabs/registry",
-  "version": "0.9.1",
+  "version": "0.9.4",
   "description": "Aqua Registry library",
   "files": [
     "*.aqua"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "0.7.0",
-    "@fluencelabs/trust-graph": "0.4.1"
+    "@fluencelabs/aqua-lib": "0.9.1",
+    "@fluencelabs/trust-graph": "0.4.11"
   },
   "scripts": {
-    "compile-aqua": "fluence aqua -i . -o ./target/typescript",
     "generate-aqua": "../service/build.sh",
-    "build": "npm run compile-aqua"
+    "build": "fluence aqua -i . --dry"
   },
   "repository": {
     "type": "git",
