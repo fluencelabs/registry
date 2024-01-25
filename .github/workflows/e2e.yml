@@ -69,3 +69,4 @@ jobs:
     with:
       ref: ${{ github.ref }}
       nox-image: "${{ needs.nox-snapshot.outputs.nox-image }}"
+      if-no-artifacts-found: warn

@@ -15,6 +15,10 @@ on:
         description: "@fluencelabs/cli version"
         type: string
         default: "main"
+      if-no-artifacts-found:
+        description: "What to do when no artifacts found in setup-* actions"
+        type: string
+        default: "error"
       cargo-dependencies:
         description: "Cargo dependencies map"
         type: string
@@ -81,7 +85,7 @@ jobs:
         with:
           artifact: fcli
           version: ${{ inputs.fcli-version }}
-          if-no-artifact-found: error
+          if-no-artifact-found: ${{ inputs.if-no-artifacts-found }}
 
       - name: Setup Rust toolchain
         uses: dsherret/rust-toolchain-file@v1
