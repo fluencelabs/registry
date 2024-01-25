@@ -81,6 +81,7 @@ jobs:
         with:
           artifact: fcli
           version: ${{ inputs.fcli-version }}
+          if-no-artifact-found: error
 
       - name: Setup Rust toolchain
         uses: dsherret/rust-toolchain-file@v1
