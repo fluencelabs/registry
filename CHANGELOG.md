@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.5](https://github.com/fluencelabs/registry/compare/registry-v0.9.4...registry-v0.9.5) (2024-02-07)
+
+
+### Bug Fixes
+
+* **deps:** Bump tests aqua dependencies ([#334](https://github.com/fluencelabs/registry/issues/334)) ([2181b22](https://github.com/fluencelabs/registry/commit/2181b221422531cae80dc6954700b8a6f857f657))
+* **deps:** update dependency @fluencelabs/aqua-lib to v0.9.1 ([#332](https://github.com/fluencelabs/registry/issues/332)) ([fed52dc](https://github.com/fluencelabs/registry/commit/fed52dcd064291390ad95fca70a0959016cc37b4))
+* **deps:** update dependency @fluencelabs/trust-graph to v0.4.11 ([#335](https://github.com/fluencelabs/registry/issues/335)) ([f482926](https://github.com/fluencelabs/registry/commit/f4829267d0a3b3b2bfc2fca375609435bc441756))
+* **tests:** Add `aqua` header to spell source ([#336](https://github.com/fluencelabs/registry/issues/336)) ([5862498](https://github.com/fluencelabs/registry/commit/586249873fefef091e045fd077f06630f58fb74d))
+* **tests:** Changle `dep npm i` to `dep i` ([#337](https://github.com/fluencelabs/registry/issues/337)) ([4efd6b2](https://github.com/fluencelabs/registry/commit/4efd6b2645bfec9391f25edda51f270d0d8feae7))
+
 ## [0.9.4](https://github.com/fluencelabs/registry/compare/registry-v0.9.3...registry-v0.9.4) (2024-01-04)
 
 
