@@ -6,10 +6,6 @@ import "misc.aqua"
 import "constants.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
-alias ResourceId: string
-alias Resource: Key
-alias Error: string
-
 func getResource(resource_id: ResourceId) -> ?Resource, *Error:
   on HOST_PEER_ID:
     result, error <- getResourceHelper(resource_id)
