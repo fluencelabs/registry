@@ -14,7 +14,7 @@ on:
       fcli-version:
         description: "@fluencelabs/cli version"
         type: string
-        default: "main"
+        default: "unstable"
       if-no-artifacts-found:
         description: "What to do when no artifacts found in setup-* actions"
         type: string
@@ -30,8 +30,8 @@ on:
 env:
   CI: true
   FORCE_COLOR: true
-  NOX_IMAGE: "${{ inputs.nox-image }}"
   FLUENCE_ENV: "${{ inputs.fluence-env }}"
+  FCLI_V_NOX: "${{ inputs.nox-image }}"
 
 jobs:
   aqua:
@@ -113,22 +113,6 @@ jobs:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: ./build.sh
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.fluence.dev
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-
-      - name: Pull nox image
-        run: docker pull $NOX_IMAGE
-
-      - name: Run nox network
-        uses: isbang/compose-action@v1.4.1
-        with:
-          compose-file: ".github/e2e/docker-compose.yml"
-          down-flags: "--volumes"
-
       - name: Setup python
         uses: actions/setup-python@v4
         with:
@@ -144,6 +128,10 @@ jobs:
         env:
           FLUENCE_USER_DIR: "${{ github.workspace }}/tmp/.fluence"
         run: fluence dep i --no-input
+        working-directory: aqua-tests
+
+      - name: Run nox network
+        run: fluence local up
         working-directory: aqua-tests
 
       - name: Print fcli version
