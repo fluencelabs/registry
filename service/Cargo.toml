@@ -16,7 +16,7 @@ marine-sqlite-connector = "=0.9.3"
 fstrings = "=0.2.3"
 boolinator = "=2.4.0"
 toml = "=0.8.8"
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "=1.0.188", features = ["derive"] }
 thiserror = "=1.0.50"
 sha2 = "=0.10.8"
 fluence-keypair = "=0.10.4"
