@@ -24,7 +24,7 @@ libp2p-identity = "=0.2.8"
 
 [dev-dependencies]
 marine-rs-sdk-test = "=0.12.1"
-rusqlite = "=0.30.0"
+rusqlite = "=0.32.1"
 
 [build-dependencies]
 marine-rs-sdk-test = "=0.12.1"
