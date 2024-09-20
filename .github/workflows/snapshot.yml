@@ -61,7 +61,7 @@ jobs:
 
       - name: Import secrets
         if: inputs.snapshot == true
-        uses: hashicorp/vault-action@v2.7.3
+        uses: hashicorp/vault-action@v3.0.0
         with:
           url: https://vault.fluence.dev
           path: jwt/github
@@ -74,7 +74,7 @@ jobs:
             kv/cargo-registry/users/ci token | CARGO_REGISTRIES_FLUENCE_TOKEN
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
           registry-url: "https://registry.npmjs.org"
@@ -85,7 +85,7 @@ jobs:
         working-directory: aqua
 
       - name: Install cargo-workspaces
-        uses: baptiste0928/cargo-install@v2.2.0
+        uses: baptiste0928/cargo-install@v3.1.1
         with:
           crate: cargo-workspaces
 
