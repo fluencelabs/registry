@@ -61,7 +61,7 @@ jobs:
 
       - name: Import secrets
         if: inputs.snapshot == true
-        uses: hashicorp/vault-action@v2.7.3
+        uses: hashicorp/vault-action@v2.8.1
         with:
           url: https://vault.fluence.dev
           path: jwt/github
@@ -76,7 +76,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "18.20.8"
           registry-url: "https://registry.npmjs.org"
           cache-dependency-path: "aqua/package-lock.json"
           cache: "npm"

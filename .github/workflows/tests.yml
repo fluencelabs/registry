@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Import secrets
-        uses: hashicorp/vault-action@v2.7.3
+        uses: hashicorp/vault-action@v2.8.1
         with:
           url: https://vault.fluence.dev
           path: jwt/github
@@ -67,7 +67,7 @@ jobs:
       - name: Setup node with self-hosted registry
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "18.20.8"
           registry-url: "https://npm.fluence.dev"
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
@@ -124,7 +124,7 @@ jobs:
         run: docker pull $NOX_IMAGE
 
       - name: Run nox network
-        uses: isbang/compose-action@v1.4.1
+        uses: isbang/compose-action@v1.5.1
         with:
           compose-file: ".github/e2e/docker-compose.yml"
           down-flags: "--volumes"
@@ -132,7 +132,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.9.23"
           cache: "pip"
           cache-dependency-path: aqua-tests/requirements.txt
 
